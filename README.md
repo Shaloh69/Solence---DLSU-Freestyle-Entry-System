@@ -42,6 +42,10 @@ npm run dev            # both apps: client on :3000, server on :4000
 
 Or individually: `npm run dev:client` / `npm run dev:server`.
 
+- API contract: [server/docs/api.md](server/docs/api.md)
+- Server tests: `npm test` (vitest — engine unit tests + API integration tests)
+- Supabase schema: [server/supabase/schema.sql](server/supabase/schema.sql) (the API falls back to in-memory storage when Supabase is not configured)
+
 ## PEC data caveat
 
 ⚠️ PEC ampacity tables, demand factors, and rule thresholds in `server/src/engine/**/pec-*.ts` contain **placeholder values that must be supplied/verified by a licensed electrical engineer against the current PEC edition** before any output is used for a real permit submission. Each data file is flagged with a `PEC-VERIFY` comment.

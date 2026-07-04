@@ -86,19 +86,22 @@ export function sizeBranchCircuit(
 }
 
 /**
- * Greedy three-phase balancing: assign each circuit (heaviest first) to
- * the currently lightest phase. Returns the phase per circuit id and the
- * resulting per-phase VA totals.
+ * Greedy phase balancing over an arbitrary set of legs: assign each
+ * circuit (heaviest first) to the currently lightest phase. Returns the
+ * phase per circuit id and the resulting per-phase VA totals.
  */
-export function balanceThreePhase(
-  circuits: { id: string; va: number }[]
+export function balancePhases(
+  circuits: { id: string; va: number }[],
+  phases: Phase[]
 ): { assignments: Record<string, Phase>; phaseVa: Record<Phase, number> } {
+  if (phases.length === 0) throw new Error("at least one phase required");
+
   const phaseVa: Record<Phase, number> = { A: 0, B: 0, C: 0 };
   const assignments: Record<string, Phase> = {};
   const sorted = [...circuits].sort((a, b) => b.va - a.va);
 
   for (const circuit of sorted) {
-    const lightest = (Object.keys(phaseVa) as Phase[]).reduce((min, phase) =>
+    const lightest = phases.reduce((min, phase) =>
       phaseVa[phase] < phaseVa[min] ? phase : min
     );
 
@@ -107,4 +110,11 @@ export function balanceThreePhase(
   }
 
   return { assignments, phaseVa };
+}
+
+/** Greedy three-phase balancing across legs A/B/C. */
+export function balanceThreePhase(
+  circuits: { id: string; va: number }[]
+): { assignments: Record<string, Phase>; phaseVa: Record<Phase, number> } {
+  return balancePhases(circuits, ["A", "B", "C"]);
 }

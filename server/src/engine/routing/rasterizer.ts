@@ -45,10 +45,12 @@ export function rasterizeFloorPlan(
   plan: FloorPlan,
   options: RasterizerOptions = {}
 ): WalkabilityGrid {
-  const { cellSize, clearance, defaultWallThickness } = {
-    ...DEFAULTS,
-    ...options,
-  };
+  // Explicit ?? per field: callers may pass keys set to undefined, which
+  // a naive object spread would let clobber the defaults.
+  const cellSize = options.cellSize ?? DEFAULTS.cellSize;
+  const clearance = options.clearance ?? DEFAULTS.clearance;
+  const defaultWallThickness =
+    options.defaultWallThickness ?? DEFAULTS.defaultWallThickness;
 
   if (plan.width <= 0 || plan.height <= 0) {
     throw new Error("Floor plan must have positive width and height");
