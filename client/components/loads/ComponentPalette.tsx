@@ -57,7 +57,7 @@ export default function ComponentPalette() {
               draggable
               className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-xs transition-colors ${
                 armed
-                  ? "border-violet-500 bg-violet-500/20"
+                  ? "border-brand-teal bg-brand-teal/20"
                   : "border-default-200 hover:bg-default-100"
               }`}
               title={`${item.label} — ${item.va} VA${item.continuous ? ", continuous" : ""}`}

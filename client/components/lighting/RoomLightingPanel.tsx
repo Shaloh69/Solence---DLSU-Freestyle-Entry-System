@@ -33,7 +33,7 @@ export default function RoomLightingPanel() {
       <Table
         removeWrapper
         aria-label="Room lighting analysis"
-        classNames={{ th: "text-xs", td: "text-xs py-1.5" }}
+        classNames={{ th: "text-xs", td: "text-xs py-1.5 font-mono" }}
       >
         <TableHeader>
           <TableColumn>ROOM</TableColumn>

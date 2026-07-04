@@ -54,7 +54,7 @@ export default function ProjectsPage() {
 
   return (
     <section className="w-full max-w-4xl mx-auto px-6 py-10">
-      <h1 className={title({ color: "violet", size: "sm" })}>Projects</h1>
+      <h1 className={title({ color: "brand", size: "sm" })}>Projects</h1>
       <p className={subtitle()}>
         Each project holds a floor plan, its loads, and the latest wiring
         design.
@@ -101,8 +101,8 @@ export default function ProjectsPage() {
               onClick={() => router.push(`/projects/${project.id}/editor`)}
             >
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-violet-400" />
+                <div className="h-10 w-10 rounded-control border border-brand-teal/40 bg-brand-teal/10 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-brand-teal" />
                 </div>
                 <div>
                   <p className="font-semibold">{project.name}</p>

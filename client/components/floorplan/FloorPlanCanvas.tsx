@@ -294,9 +294,9 @@ export default function FloorPlanCanvas() {
             <g key={room.id}>
               <polygon
                 points={room.boundary.map((p) => `${p.x},${p.y}`).join(" ")}
-                fill="#8b5cf6"
+                fill="#14B8A6"
                 fillOpacity={selected ? 0.25 : 0.08}
-                stroke="#8b5cf6"
+                stroke="#14B8A6"
                 strokeOpacity={0.5}
                 strokeWidth={0.03}
                 className="cursor-pointer"
@@ -372,7 +372,7 @@ export default function FloorPlanCanvas() {
               y1={wall.start.y}
               x2={wall.end.x}
               y2={wall.end.y}
-              stroke={selected ? "#8b5cf6" : "currentColor"}
+              stroke={selected ? "#14B8A6" : "currentColor"}
               strokeOpacity={selected ? 1 : 0.85}
               strokeWidth={wall.thickness ?? WALL_STROKE}
               strokeLinecap="square"
@@ -427,13 +427,13 @@ export default function FloorPlanCanvas() {
                     y1={geometry.start.y}
                     x2={geometry.start.x - geometry.uy * opening.width}
                     y2={geometry.start.y + geometry.ux * opening.width}
-                    stroke={selected ? "#8b5cf6" : "currentColor"}
+                    stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.04}
                   />
                   <path
                     d={`M ${geometry.end.x} ${geometry.end.y} A ${opening.width} ${opening.width} 0 0 1 ${geometry.start.x - geometry.uy * opening.width} ${geometry.start.y + geometry.ux * opening.width}`}
                     fill="none"
-                    stroke={selected ? "#8b5cf6" : "currentColor"}
+                    stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeOpacity={0.5}
                     strokeWidth={0.02}
                   />
@@ -446,7 +446,7 @@ export default function FloorPlanCanvas() {
                     y1={geometry.start.y}
                     x2={geometry.end.x}
                     y2={geometry.end.y}
-                    stroke={selected ? "#8b5cf6" : "currentColor"}
+                    stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.03}
                   />
                   <line
@@ -454,7 +454,7 @@ export default function FloorPlanCanvas() {
                     y1={geometry.start.y + geometry.ux * 0.06}
                     x2={geometry.end.x - geometry.uy * 0.06}
                     y2={geometry.end.y + geometry.ux * 0.06}
-                    stroke={selected ? "#8b5cf6" : "currentColor"}
+                    stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.03}
                   />
                 </>
@@ -485,7 +485,7 @@ export default function FloorPlanCanvas() {
             width={0.5}
             height={0.7}
             fill="#404040"
-            stroke={selection?.kind === "panel" ? "#8b5cf6" : "#a3a3a3"}
+            stroke={selection?.kind === "panel" ? "#14B8A6" : "#a3a3a3"}
             strokeWidth={0.05}
             rx={0.05}
           />
@@ -535,7 +535,7 @@ export default function FloorPlanCanvas() {
               cy={load.position.y}
               r={0.22}
               fill={fill}
-              stroke={selected ? "#8b5cf6" : "#fafafa"}
+              stroke={selected ? "#14B8A6" : "#fafafa"}
               strokeWidth={selected ? 0.08 : 0.04}
             />
             <text
@@ -570,7 +570,7 @@ export default function FloorPlanCanvas() {
           y1={draftStart.y}
           x2={cursor.x}
           y2={cursor.y}
-          stroke="#8b5cf6"
+          stroke="#14B8A6"
           strokeWidth={WALL_STROKE}
           strokeOpacity={0.5}
           strokeLinecap="square"
@@ -583,9 +583,9 @@ export default function FloorPlanCanvas() {
           y={Math.min(draftStart.y, cursor.y)}
           width={Math.abs(cursor.x - draftStart.x)}
           height={Math.abs(cursor.y - draftStart.y)}
-          fill="#8b5cf6"
+          fill="#14B8A6"
           fillOpacity={0.15}
-          stroke="#8b5cf6"
+          stroke="#14B8A6"
           strokeOpacity={0.6}
           strokeWidth={0.03}
           pointerEvents="none"
@@ -596,7 +596,7 @@ export default function FloorPlanCanvas() {
           cx={cursor.x}
           cy={cursor.y}
           r={0.08}
-          fill="#8b5cf6"
+          fill="#14B8A6"
           opacity={0.7}
           pointerEvents="none"
         />

@@ -83,46 +83,76 @@ const Moon: React.FC<{ transitionProgress: number }> = ({
   );
 };
 
-// Optimized using instancing for clouds
-const DayClouds: React.FC = () => {
-  const cloudPositions = useMemo(() => {
-    const cloudCount = 6; // Reduced count
-    const viewportWidth = 31;
-    const yOffset = 9;
+/**
+ * Day clouds in three depth layers drifting at different speeds —
+ * parallax per DESIGN brief §10.3 (2–3 layers at different rates reads
+ * far better than one flat layer).
+ */
+const CLOUD_LAYERS = [
+  { z: -14, drift: 0.12, scale: 1.4, opacity: 0.45, count: 3, speed: 0.05 },
+  { z: -10, drift: 0.22, scale: 1.1, opacity: 0.65, count: 2, speed: 0.1 },
+  { z: -6, drift: 0.38, scale: 0.8, opacity: 0.85, count: 2, speed: 0.15 },
+];
 
-    return Array.from({ length: cloudCount }, (_, i) => {
-      const x = -viewportWidth / 2 + (i / (cloudCount - 1)) * viewportWidth;
-      const arcHeight =
-        -Math.pow((i - (cloudCount - 1) / 2) / ((cloudCount - 1) / 2), 2) * 3;
-      return {
-        x,
-        z: -8,
-        height: arcHeight + yOffset,
-        segments: 24, // Reduced segments
-        bounds: [8 - i * 0.5, 1.5, 2],
-        volume: 6 + i,
-      };
-    });
-  }, []);
+const DayCloudLayer: React.FC<(typeof CLOUD_LAYERS)[number]> = ({
+  z,
+  drift,
+  scale,
+  opacity,
+  count,
+  speed,
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const viewportWidth = 34;
+  const positions = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        x: -viewportWidth / 2 + ((i + 0.5) / count) * viewportWidth,
+        y:
+          9 -
+          Math.pow((i - (count - 1) / 2) / Math.max(1, (count - 1) / 2), 2) *
+            2.5,
+      })),
+    [count]
+  );
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    // Each layer drifts at its own rate and wraps around the viewport.
+    groupRef.current.position.x =
+      ((groupRef.current.position.x + drift * delta + viewportWidth / 2) %
+        viewportWidth) -
+      viewportWidth / 2;
+  });
 
   return (
-    <Clouds material={THREE.MeshBasicMaterial}>
-      {cloudPositions.map((props, index) => (
-        <Cloud
-          key={index}
-          segments={props.segments}
-          bounds={((props.bounds[0], props.bounds[1]), props.bounds[2])}
-          volume={props.volume}
-          color="#ffffff"
-          position={[props.x, props.height, props.z]}
-          speed={0.1}
-          opacity={0.8}
-          fade={100}
-        />
-      ))}
-    </Clouds>
+    <group ref={groupRef}>
+      <Clouds material={THREE.MeshBasicMaterial}>
+        {positions.map((position, index) => (
+          <Cloud
+            key={index}
+            segments={20}
+            bounds={[7 * scale, 1.4 * scale, 2]}
+            volume={6 * scale}
+            color="#ffffff"
+            position={[position.x, position.y, z]}
+            speed={speed}
+            opacity={opacity}
+            fade={100}
+          />
+        ))}
+      </Clouds>
+    </group>
   );
 };
+
+const DayClouds: React.FC = () => (
+  <>
+    {CLOUD_LAYERS.map((layer) => (
+      <DayCloudLayer key={layer.z} {...layer} />
+    ))}
+  </>
+);
 
 const NightClouds: React.FC<{ opacity: number }> = ({ opacity }) => {
   const cloudPositions = useMemo(() => {
@@ -299,20 +329,23 @@ const SceneContainer: React.FC = () => {
       {/* Night Elements - Only render when visible */}
       {transitionProgress > 0 && (
         <>
+          {/* Two star fields at different twinkle speeds for depth */}
           <Stars
             radius={50}
             depth={50}
-            count={Math.floor((transitionProgress / 5) * 1500)} // Reduced count
+            count={Math.floor((transitionProgress / 5) * 1500)}
             factor={4}
             saturation={1}
+            speed={0.6}
             fade
           />
           <Stars
             radius={50}
             depth={50}
-            count={Math.floor((transitionProgress / 5) * 1000)} // Reduced count
+            count={Math.floor((transitionProgress / 5) * 1000)}
             factor={4}
             saturation={1}
+            speed={1.4}
             fade
           />
           <ShootingStars opacity={transitionProgress} />
