@@ -1,25 +1,32 @@
 "use client";
 
 /**
- * The Solence wiring editor: floor plan drawing + load placement (2D),
- * 3D wiring overlay, live PEC compliance, and panel schedule — all
- * engine math comes from the Express API.
+ * The Solence wiring editor. Desktop-first CAD surface with responsive
+ * tiers (section 4.4):
+ *  - xl+   : palette+layers | canvas | inspector, results tabs below
+ *  - lg    : palette+layers | canvas, inspector joins the bottom tabs
+ *  - sm-lg : canvas with all panels as bottom tabs (tablet/review)
+ *  - <sm   : no drafting canvas — project summary, compliance, export
  */
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Button } from "@heroui/button";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, FileDown } from "lucide-react";
+import { toast } from "sonner";
 
 import { useEditorStore } from "@/lib/editor-store";
 import { api } from "@/lib/api-client";
 import EditorToolbar from "@/components/floorplan/EditorToolbar";
 import FloorPlanCanvas from "@/components/floorplan/FloorPlanCanvas";
 import InspectorPanel from "@/components/floorplan/InspectorPanel";
+import LayersPanel from "@/components/floorplan/LayersPanel";
+import StatusBar from "@/components/floorplan/StatusBar";
 import ComponentPalette from "@/components/loads/ComponentPalette";
 import WiringOverlay3D from "@/components/wiring-overlay/WiringOverlay3D";
 import CompliancePanel from "@/components/compliance/CompliancePanel";
+import RoomLightingPanel from "@/components/lighting/RoomLightingPanel";
 import {
   PanelDirectoryList,
   PanelScheduleTable,
@@ -28,14 +35,7 @@ import {
 export default function EditorPage() {
   const params = useParams<{ id: string }>();
   const store = useEditorStore();
-  const {
-    projectId,
-    projectName,
-    view,
-    isLoading,
-    error,
-    result,
-  } = store;
+  const { projectId, projectName, view, isLoading, error, result } = store;
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -46,6 +46,7 @@ export default function EditorPage() {
   async function exportPdf() {
     if (!projectId) return;
     setExporting(true);
+    toast.info("Generating permit-ready PDF…");
     try {
       const blob = await api.projects.exportPdf(projectId);
       const url = URL.createObjectURL(blob);
@@ -55,10 +56,11 @@ export default function EditorPage() {
       anchor.download = `${projectName || "solence"}-permit.pdf`;
       anchor.click();
       URL.revokeObjectURL(url);
+      toast.success("PDF exported — check your downloads");
     } catch (err) {
-      useEditorStore.setState({
-        error: err instanceof Error ? err.message : String(err),
-      });
+      const message = err instanceof Error ? err.message : String(err);
+
+      toast.error(`Export failed: ${message}`);
     } finally {
       setExporting(false);
     }
@@ -72,8 +74,50 @@ export default function EditorPage() {
     );
   }
 
+  const violationCount = result?.violations.length ?? 0;
+  const statusChip = result && (
+    <span
+      className={`text-xs px-2 py-0.5 rounded-full ${
+        violationCount > 0
+          ? "bg-danger-100 text-danger"
+          : "bg-success-100 text-success"
+      }`}
+    >
+      {violationCount > 0
+        ? `${violationCount} finding${violationCount === 1 ? "" : "s"}`
+        : "PEC checks pass"}
+    </span>
+  );
+
+  const resultsTabs = (
+    <Tabs aria-label="Results" variant="underlined" classNames={{ panel: "pt-0" }}>
+      <Tab
+        key="compliance"
+        title={
+          <span>
+            Compliance
+            {violationCount > 0 && (
+              <span className="ml-1.5 text-danger">({violationCount})</span>
+            )}
+          </span>
+        }
+      >
+        <CompliancePanel />
+      </Tab>
+      <Tab key="schedule" title="Panel Schedule">
+        <PanelScheduleTable />
+      </Tab>
+      <Tab key="lighting" title="Lighting">
+        <RoomLightingPanel />
+      </Tab>
+      <Tab key="directory" title="Directory">
+        <PanelDirectoryList />
+      </Tab>
+    </Tabs>
+  );
+
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-4 pb-8 flex flex-col gap-3">
+    <div className="w-full max-w-[1500px] mx-auto px-4 pb-8 flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <Button
           as={Link}
@@ -85,19 +129,7 @@ export default function EditorPage() {
           Projects
         </Button>
         <h1 className="text-lg font-semibold truncate">{projectName}</h1>
-        {result && (
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              result.violations.length > 0
-                ? "bg-danger-100 text-danger"
-                : "bg-success-100 text-success"
-            }`}
-          >
-            {result.violations.length > 0
-              ? `${result.violations.length} violation${result.violations.length === 1 ? "" : "s"}`
-              : "PEC checks pass"}
-          </span>
-        )}
+        {statusChip}
       </div>
 
       {error && (
@@ -115,50 +147,80 @@ export default function EditorPage() {
         </div>
       )}
 
-      <EditorToolbar exporting={exporting} onExport={() => void exportPdf()} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_260px] gap-3">
-        <aside className="rounded-lg bg-content1/60 backdrop-blur-md p-3 overflow-y-auto max-h-[600px]">
-          <ComponentPalette />
-        </aside>
-
-        <main className="h-[600px]">
-          {view === "2d" ? <FloorPlanCanvas /> : <WiringOverlay3D />}
-        </main>
-
-        <aside className="rounded-lg bg-content1/60 backdrop-blur-md p-3 overflow-y-auto max-h-[600px]">
-          <InspectorPanel />
-        </aside>
+      {/* ---- Mobile (<sm): review-only summary, no drafting canvas ---- */}
+      <div className="sm:hidden flex flex-col gap-3">
+        <div className="rounded-lg bg-content1/60 backdrop-blur-md p-4 text-sm">
+          <p className="font-medium mb-1">Project status</p>
+          <p className="text-default-500">
+            {result
+              ? `${result.circuits.length} circuits · main breaker ${result.schedule.mainBreakerAmps} A · ${violationCount} finding${violationCount === 1 ? "" : "s"}`
+              : "Not simulated yet — open this project on a larger screen to draft."}
+          </p>
+          <Button
+            size="sm"
+            className="mt-3"
+            variant="flat"
+            isDisabled={!result}
+            isLoading={exporting}
+            startContent={!exporting && <FileDown size={14} />}
+            onPress={() => void exportPdf()}
+          >
+            Export PDF
+          </Button>
+        </div>
+        <div className="rounded-lg bg-content1/60 backdrop-blur-md">
+          {resultsTabs}
+        </div>
       </div>
 
-      <div className="rounded-lg bg-content1/60 backdrop-blur-md">
-        <Tabs
-          aria-label="Results"
-          variant="underlined"
-          classNames={{ panel: "pt-0" }}
-        >
-          <Tab
-            key="compliance"
-            title={
-              <span>
-                Compliance
-                {result && result.violations.length > 0 && (
-                  <span className="ml-1.5 text-danger">
-                    ({result.violations.length})
-                  </span>
-                )}
-              </span>
-            }
+      {/* ---- Tablet and up: the drafting surface ---- */}
+      <div className="hidden sm:flex flex-col gap-3">
+        <EditorToolbar
+          exporting={exporting}
+          onExport={() => void exportPdf()}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_270px] gap-3">
+          {/* Left: palette + layers (lg and up) */}
+          <aside className="hidden lg:block rounded-lg bg-content1/60 backdrop-blur-md p-3 overflow-y-auto max-h-[600px] space-y-5">
+            <ComponentPalette />
+            <LayersPanel />
+          </aside>
+
+          <main className="h-[480px] lg:h-[600px]">
+            {view === "2d" ? <FloorPlanCanvas /> : <WiringOverlay3D />}
+          </main>
+
+          {/* Right: inspector (xl and up) */}
+          <aside className="hidden xl:block rounded-lg bg-content1/60 backdrop-blur-md p-3 overflow-y-auto max-h-[600px]">
+            <InspectorPanel />
+          </aside>
+        </div>
+
+        <StatusBar />
+
+        {/* Panels that didn't fit beside the canvas collapse into tabs. */}
+        <div className="rounded-lg bg-content1/60 backdrop-blur-md xl:hidden">
+          <Tabs
+            aria-label="Editor panels"
+            variant="underlined"
+            classNames={{ panel: "p-3" }}
           >
-            <CompliancePanel />
-          </Tab>
-          <Tab key="schedule" title="Panel Schedule">
-            <PanelScheduleTable />
-          </Tab>
-          <Tab key="directory" title="Panel Directory">
-            <PanelDirectoryList />
-          </Tab>
-        </Tabs>
+            <Tab key="inspector" title="Inspector">
+              <InspectorPanel />
+            </Tab>
+            <Tab key="library" title="Library" className="lg:hidden">
+              <ComponentPalette />
+            </Tab>
+            <Tab key="layers" title="Layers" className="lg:hidden">
+              <LayersPanel />
+            </Tab>
+          </Tabs>
+        </div>
+
+        <div className="rounded-lg bg-content1/60 backdrop-blur-md">
+          {resultsTabs}
+        </div>
       </div>
     </div>
   );

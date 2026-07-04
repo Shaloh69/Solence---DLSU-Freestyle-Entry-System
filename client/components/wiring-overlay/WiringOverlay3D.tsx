@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * 3D wiring overlay: extruded walls, panel, loads, and routed wiring
- * rendered over the floor plan — color-coded by circuit, violations in
- * red, fallback (non-wall-following) runs dashed.
+ * 3D wiring overlay: extruded walls with door/window cuts (deterministic
+ * segment splitting per section 7.7 — no CSG dependency), panel, loads,
+ * routed wiring at conduit height, plus the lighting layer (fixtures +
+ * lux heatmap). CAD layers from the editor store apply here too.
  *
  * Plan coordinates (x right, y down, meters) map to Three.js as
  * x -> x, y -> z, with +y up.
@@ -14,14 +15,19 @@ import { Line, OrbitControls, Text } from "@react-three/drei";
 import {
   ElectricalLoad,
   FloorPlan,
+  Opening,
   Panel,
   SimulationResult,
+  Wall,
 } from "@/lib/api-client";
 import { useEditorStore } from "@/lib/editor-store";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
 
 const WALL_HEIGHT = 2.7;
 const CONDUIT_HEIGHT = 2.5;
+const DOOR_HEIGHT = 2.1;
+const WINDOW_SILL = 0.9;
+const WINDOW_HEAD = 2.1;
 
 function loadHeight(type: ElectricalLoad["type"]): number {
   switch (type) {
@@ -34,42 +40,105 @@ function loadHeight(type: ElectricalLoad["type"]): number {
   }
 }
 
+interface WallBox {
+  /** Distance range along the wall, meters. */
+  from: number;
+  to: number;
+  /** Vertical range, meters. */
+  bottom: number;
+  top: number;
+}
+
+/**
+ * Split one wall into boxes around its openings: solid full-height
+ * segments, lintels above doors, and sill/head bands around windows.
+ */
+function wallBoxes(wall: Wall, openings: Opening[]): WallBox[] {
+  const length = Math.hypot(
+    wall.end.x - wall.start.x,
+    wall.end.y - wall.start.y
+  );
+
+  if (length === 0) return [];
+  const sorted = openings
+    .filter((opening) => opening.wallId === wall.id)
+    .sort((a, b) => a.offset - b.offset);
+
+  const boxes: WallBox[] = [];
+  let cursor = 0;
+
+  for (const opening of sorted) {
+    const from = Math.max(0, Math.min(opening.offset, length));
+    const to = Math.max(0, Math.min(opening.offset + opening.width, length));
+
+    if (from > cursor) {
+      boxes.push({ from: cursor, to: from, bottom: 0, top: WALL_HEIGHT });
+    }
+    if (opening.kind === "door") {
+      boxes.push({ from, to, bottom: DOOR_HEIGHT, top: WALL_HEIGHT });
+    } else {
+      boxes.push({ from, to, bottom: 0, top: WINDOW_SILL });
+      boxes.push({ from, to, bottom: WINDOW_HEAD, top: WALL_HEIGHT });
+    }
+    cursor = Math.max(cursor, to);
+  }
+  if (cursor < length) {
+    boxes.push({ from: cursor, to: length, bottom: 0, top: WALL_HEIGHT });
+  }
+
+  return boxes;
+}
+
 function Walls({ plan }: { plan: FloorPlan }) {
+  const openings = plan.openings ?? [];
+
   return (
     <>
       {plan.walls.map((wall) => {
-        const dx = wall.end.x - wall.start.x;
-        const dy = wall.end.y - wall.start.y;
-        const length = Math.hypot(dx, dy);
+        const length = Math.hypot(
+          wall.end.x - wall.start.x,
+          wall.end.y - wall.start.y
+        );
 
         if (length === 0) return null;
-        const angle = Math.atan2(dy, dx);
-        const midX = (wall.start.x + wall.end.x) / 2;
-        const midY = (wall.start.y + wall.end.y) / 2;
-
-        return (
-          <mesh
-            key={wall.id}
-            position={[midX, WALL_HEIGHT / 2, midY]}
-            rotation={[0, -angle, 0]}
-          >
-            <boxGeometry
-              args={[length, WALL_HEIGHT, wall.thickness ?? 0.15]}
-            />
-            <meshStandardMaterial
-              color="#9ca3af"
-              transparent
-              opacity={0.45}
-              roughness={0.8}
-            />
-          </mesh>
+        const angle = Math.atan2(
+          wall.end.y - wall.start.y,
+          wall.end.x - wall.start.x
         );
+        const ux = (wall.end.x - wall.start.x) / length;
+        const uy = (wall.end.y - wall.start.y) / length;
+        const thickness = wall.thickness ?? 0.15;
+
+        return wallBoxes(wall, openings).map((box, index) => {
+          const mid = (box.from + box.to) / 2;
+          const midX = wall.start.x + ux * mid;
+          const midY = wall.start.y + uy * mid;
+          const height = box.top - box.bottom;
+
+          if (height <= 0 || box.to - box.from <= 0) return null;
+
+          return (
+            <mesh
+              key={`${wall.id}-${index}`}
+              position={[midX, box.bottom + height / 2, midY]}
+              rotation={[0, -angle, 0]}
+            >
+              <boxGeometry args={[box.to - box.from, height, thickness]} />
+              <meshStandardMaterial
+                color="#9ca3af"
+                transparent
+                opacity={0.45}
+                roughness={0.8}
+              />
+            </mesh>
+          );
+        });
       })}
     </>
   );
 }
 
-function Floor({ plan }: { plan: FloorPlan }) {
+function Floor({ plan, showRooms }: { plan: FloorPlan; showRooms: boolean }) {
   return (
     <>
       <mesh
@@ -80,26 +149,52 @@ function Floor({ plan }: { plan: FloorPlan }) {
         <planeGeometry args={[plan.width, plan.height]} />
         <meshStandardMaterial color="#374151" roughness={0.9} />
       </mesh>
-      {plan.rooms.map((room) => {
-        const cx =
-          room.boundary.reduce((sum, p) => sum + p.x, 0) /
-          room.boundary.length;
-        const cy =
-          room.boundary.reduce((sum, p) => sum + p.y, 0) /
-          room.boundary.length;
+      {showRooms &&
+        plan.rooms.map((room) => {
+          const cx =
+            room.boundary.reduce((sum, p) => sum + p.x, 0) /
+            room.boundary.length;
+          const cy =
+            room.boundary.reduce((sum, p) => sum + p.y, 0) /
+            room.boundary.length;
+
+          return (
+            <Text
+              key={room.id}
+              position={[cx, 0.02, cy]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              fontSize={0.35}
+              color="#d1d5db"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {room.name}
+            </Text>
+          );
+        })}
+    </>
+  );
+}
+
+function LuxHeatmap({ result }: { result: SimulationResult }) {
+  return (
+    <>
+      {result.luxHeatmap.map((sample, index) => {
+        const hue = Math.max(0, 220 - Math.min(sample.lux, 500) * 0.44);
 
         return (
-          <Text
-            key={room.id}
-            position={[cx, 0.02, cy]}
+          <mesh
+            key={index}
+            position={[sample.x, 0.03, sample.y]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.35}
-            color="#d1d5db"
-            anchorX="center"
-            anchorY="middle"
           >
-            {room.name}
-          </Text>
+            <planeGeometry args={[0.48, 0.48]} />
+            <meshBasicMaterial
+              color={`hsl(${hue}, 80%, 50%)`}
+              transparent
+              opacity={0.45}
+            />
+          </mesh>
         );
       })}
     </>
@@ -160,7 +255,7 @@ function Loads({
               <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={0.4}
+                emissiveIntensity={load.type === "lighting" ? 0.8 : 0.4}
               />
             </mesh>
             <Text
@@ -202,8 +297,6 @@ function Routes({
           ? VIOLATION_COLOR
           : circuitColor(route.circuitId, circuitIds);
 
-        // Horizontal run at conduit height with vertical drops at the
-        // panel and at the load's mounting height.
         const first = route.points[0];
         const last = route.points[route.points.length - 1];
         const points: [number, number, number][] = [
@@ -235,10 +328,16 @@ export default function WiringOverlay3D() {
   const panel = useEditorStore((state) => state.panel);
   const loads = useEditorStore((state) => state.loads);
   const result = useEditorStore((state) => state.result);
+  const layers = useEditorStore((state) => state.layers);
 
   const circuitIds = result?.circuits.map((circuit) => circuit.id) ?? [];
   const violating = new Set(
-    result?.violations.map((violation) => violation.circuitId) ?? []
+    layers.violations
+      ? (result?.violations.map((violation) => violation.circuitId) ?? [])
+      : []
+  );
+  const visibleLoads = loads.filter((load) =>
+    load.type === "lighting" ? layers.lighting : layers.loads
   );
 
   const centerX = floorPlan.width / 2;
@@ -249,23 +348,31 @@ export default function WiringOverlay3D() {
     <div className="w-full h-full rounded-lg overflow-hidden bg-content1/40">
       <Canvas
         camera={{
-          position: [centerX + radius * 0.7, radius * 0.9, centerZ + radius * 0.9],
+          position: [
+            centerX + radius * 0.7,
+            radius * 0.9,
+            centerZ + radius * 0.9,
+          ],
           fov: 50,
         }}
       >
         <ambientLight intensity={0.7} />
-        <directionalLight position={[centerX, 12, centerZ + 6]} intensity={0.8} />
+        <directionalLight
+          position={[centerX, 12, centerZ + 6]}
+          intensity={0.8}
+        />
 
-        <Floor plan={floorPlan} />
-        <Walls plan={floorPlan} />
+        <Floor plan={floorPlan} showRooms={layers.rooms} />
+        {layers.walls && <Walls plan={floorPlan} />}
+        {layers.heatmap && result && <LuxHeatmap result={result} />}
         {panel && <PanelBox panel={panel} />}
         <Loads
-          loads={loads}
+          loads={visibleLoads}
           result={result}
           circuitIds={circuitIds}
           violating={violating}
         />
-        {result && (
+        {layers.wiring && result && (
           <Routes
             result={result}
             loads={loads}

@@ -36,11 +36,22 @@ export interface Room {
   boundary: Point[];
 }
 
+/** A door or window cut into a wall. */
+export interface Opening {
+  id: string;
+  wallId: string;
+  /** Meters from the wall's start to the opening's near edge. */
+  offset: number;
+  width: number;
+  kind: "door" | "window";
+}
+
 export interface FloorPlan {
   width: number;
   height: number;
   walls: Wall[];
   rooms: Room[];
+  openings?: Opening[];
   /** Optional trace-layer image as a data URL. */
   backgroundImage?: string;
 }
@@ -66,6 +77,10 @@ export interface ElectricalLoad {
   continuous: boolean;
   position: Point;
   roomId?: string;
+  /** Photometric output for lighting fixtures, lumens. */
+  lumens?: number;
+  /** Whether an outlet is GFCI-protected. */
+  gfci?: boolean;
 }
 
 export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";
@@ -145,6 +160,22 @@ export interface PanelDirectoryEntry {
   description: string;
 }
 
+export interface RoomLightingAnalysis {
+  roomId: string;
+  roomName: string;
+  targetLux: number;
+  averageLux: number;
+  fixtureCount: number;
+  totalLightingVa: number;
+  fluxEstimated: boolean;
+}
+
+export interface LuxSample {
+  x: number;
+  y: number;
+  lux: number;
+}
+
 export interface SimulationResult {
   routes: RoutedPath[];
   circuits: Circuit[];
@@ -152,6 +183,25 @@ export interface SimulationResult {
   directory: PanelDirectoryEntry[];
   violations: Violation[];
   routingErrors: { loadId: string; message: string }[];
+  roomLighting: RoomLightingAnalysis[];
+  luxHeatmap: LuxSample[];
+}
+
+export interface AutoLightingOptions {
+  roomIds?: string[];
+  targetLux?: number;
+  fixture?: { label: string; lumens: number; va: number; voltage: number };
+  replaceExisting?: boolean;
+}
+
+export interface AutoLightingPlacement {
+  roomId: string;
+  targetLux: number;
+  requiredCount: number;
+  placedCount: number;
+  expectedAverageLux: number;
+  cu: number;
+  mf: number;
 }
 
 export interface Project {

@@ -16,15 +16,24 @@ import {
   Boxes,
   LayoutGrid,
   FileDown,
+  DoorOpen,
+  RectangleHorizontal,
+  Lightbulb,
 } from "lucide-react";
 
 import { Tool, useEditorStore } from "@/lib/editor-store";
 
 const TOOLS: { key: Tool; label: string; icon: React.ReactNode }[] = [
-  { key: "select", label: "Select / move", icon: <MousePointer2 size={16} /> },
-  { key: "wall", label: "Draw wall (two clicks)", icon: <PenLine size={16} /> },
-  { key: "room", label: "Draw room (two corners)", icon: <Square size={16} /> },
-  { key: "panel", label: "Place panel", icon: <PanelTop size={16} /> },
+  { key: "select", label: "Select / move (V)", icon: <MousePointer2 size={16} /> },
+  { key: "wall", label: "Draw wall — two clicks (W)", icon: <PenLine size={16} /> },
+  { key: "room", label: "Draw room — two corners (R)", icon: <Square size={16} /> },
+  { key: "panel", label: "Place panel (P)", icon: <PanelTop size={16} /> },
+  { key: "door", label: "Place door on a wall (D)", icon: <DoorOpen size={16} /> },
+  {
+    key: "window",
+    label: "Place window on a wall (N)",
+    icon: <RectangleHorizontal size={16} />,
+  },
 ];
 
 export default function EditorToolbar({
@@ -35,7 +44,15 @@ export default function EditorToolbar({
   exporting: boolean;
 }) {
   const store = useEditorStore();
-  const { tool, view, autoCheck, isSimulating, dirty, result } = store;
+  const {
+    tool,
+    view,
+    autoCheck,
+    isSimulating,
+    isLightingBusy,
+    dirty,
+    result,
+  } = store;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -73,6 +90,22 @@ export default function EditorToolbar({
           3D Wiring
         </Button>
       </ButtonGroup>
+
+      <Tooltip
+        content="Auto-generate lighting fixtures for every room (lumen method) — results stay fully editable"
+        delay={300}
+      >
+        <Button
+          size="sm"
+          variant="flat"
+          color="secondary"
+          isLoading={isLightingBusy}
+          startContent={!isLightingBusy && <Lightbulb size={14} />}
+          onPress={() => void store.autoLighting()}
+        >
+          Auto-light
+        </Button>
+      </Tooltip>
 
       <div className="flex items-center gap-2 ml-auto">
         <Switch

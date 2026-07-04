@@ -9,7 +9,7 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Switch } from "@heroui/switch";
-import { Trash2, ImagePlus, Square } from "lucide-react";
+import { Trash2, ImagePlus, Square, Lightbulb } from "lucide-react";
 
 import { RoomType, VoltageSystem } from "@/lib/api-client";
 import { useEditorStore } from "@/lib/editor-store";
@@ -166,7 +166,9 @@ export default function InspectorPanel() {
 
       {selection?.kind === "wall" && (
         <div className="space-y-2">
-          <p className="text-xs text-default-500">Wall segment</p>
+          <p className="text-xs text-default-500">
+            Wall segment (deleting it also removes its doors/windows)
+          </p>
           <Button
             size="sm"
             color="danger"
@@ -175,6 +177,26 @@ export default function InspectorPanel() {
             onPress={() => store.deleteSelection()}
           >
             Delete wall
+          </Button>
+        </div>
+      )}
+
+      {selection?.kind === "opening" && (
+        <div className="space-y-2">
+          <p className="text-xs text-default-500">
+            {floorPlan.openings?.find((o) => o.id === selection.id)?.kind ===
+            "window"
+              ? "Window — blocked for wire routing, cut visually in 3D"
+              : "Door — wiring may route through the doorway"}
+          </p>
+          <Button
+            size="sm"
+            color="danger"
+            variant="flat"
+            startContent={<Trash2 size={14} />}
+            onPress={() => store.deleteSelection()}
+          >
+            Delete opening
           </Button>
         </div>
       )}
@@ -246,6 +268,16 @@ export default function InspectorPanel() {
           </Select>
           <Button
             size="sm"
+            color="secondary"
+            variant="flat"
+            startContent={<Lightbulb size={14} />}
+            isLoading={store.isLightingBusy}
+            onPress={() => void store.autoLighting([selectedRoom.id])}
+          >
+            Auto-light this room
+          </Button>
+          <Button
+            size="sm"
             color="danger"
             variant="flat"
             startContent={<Trash2 size={14} />}
@@ -300,6 +332,36 @@ export default function InspectorPanel() {
           >
             <span className="text-xs">Continuous load (3+ hours)</span>
           </Switch>
+          {selectedLoad.type === "outlet" && (
+            <Switch
+              size="sm"
+              isSelected={selectedLoad.gfci ?? false}
+              onValueChange={(gfci) =>
+                store.updateLoad(selectedLoad.id, { gfci })
+              }
+            >
+              <span className="text-xs">
+                GFCI-protected (required in wet areas)
+              </span>
+            </Switch>
+          )}
+          {selectedLoad.type === "lighting" && (
+            <Input
+              size="sm"
+              type="number"
+              label="Luminous flux (lm)"
+              value={String(selectedLoad.lumens ?? "")}
+              placeholder="estimated from VA if empty"
+              min={1}
+              onValueChange={(value) => {
+                const lumens = parseFloat(value);
+
+                store.updateLoad(selectedLoad.id, {
+                  lumens: lumens > 0 ? lumens : undefined,
+                });
+              }}
+            />
+          )}
           <p className="text-xs text-default-400">
             Type: {selectedLoad.type}
             {selectedLoad.roomId

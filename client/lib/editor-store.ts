@@ -1,14 +1,19 @@
 /**
  * Zustand store for the wiring editor. Owns the working copy of a
- * project (floor plan, panel, loads) plus editor UI state, and syncs
- * with the Express API. No domain math lives here — sizing, routing,
- * and compliance all come back from POST /simulate.
+ * project (floor plan, openings, panel, loads) plus editor UI state
+ * (tool, selection, CAD layers, cursor), syncs with the Express API,
+ * and listens on the realtime WebSocket for pushed simulation results.
+ * No domain math lives here — sizing, routing, photometrics, and
+ * compliance all come back from the backend engine.
  */
 import { create } from "zustand";
+import { toast } from "sonner";
 import {
   api,
+  realtimeUrl,
   ElectricalLoad,
   FloorPlan,
+  Opening,
   Panel,
   Point,
   Room,
@@ -17,18 +22,44 @@ import {
   VoltageSystem,
   Wall,
 } from "./api-client";
-import { COMPONENT_LIBRARY, defaultVoltage, LibraryItem } from "./component-library";
+import {
+  COMPONENT_LIBRARY,
+  defaultVoltage,
+  LibraryItem,
+} from "./component-library";
 
-export type Tool = "select" | "wall" | "room" | "panel" | "load";
+export type Tool = "select" | "wall" | "room" | "panel" | "load" | "door" | "window";
 export type Selection =
   | { kind: "wall"; id: string }
   | { kind: "room"; id: string }
   | { kind: "load"; id: string }
+  | { kind: "opening"; id: string }
   | { kind: "panel" }
   | null;
 
+export type LayerKey =
+  | "walls"
+  | "rooms"
+  | "loads"
+  | "lighting"
+  | "wiring"
+  | "heatmap"
+  | "violations";
+
+const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
+  walls: true,
+  rooms: true,
+  loads: true,
+  lighting: true,
+  wiring: true,
+  heatmap: false,
+  violations: true,
+};
+
 const DEFAULT_PLAN_WIDTH = 12;
 const DEFAULT_PLAN_HEIGHT = 9;
+const WALL_SNAP_DISTANCE = 0.35;
+const WALL_STANDOFF = 0.2;
 
 function emptyFloorPlan(): FloorPlan {
   return {
@@ -36,6 +67,7 @@ function emptyFloorPlan(): FloorPlan {
     height: DEFAULT_PLAN_HEIGHT,
     walls: [],
     rooms: [],
+    openings: [],
   };
 }
 
@@ -50,7 +82,43 @@ function perimeterWalls(width: number, height: number): Wall[] {
   ];
 }
 
+/** Nearest wall within maxDistance, with projection info. */
+function nearestWall(
+  point: Point,
+  walls: Wall[],
+  maxDistance: number
+): { wall: Wall; distance: number; t: number; proj: Point } | null {
+  let best: { wall: Wall; distance: number; t: number; proj: Point } | null =
+    null;
+
+  for (const wall of walls) {
+    const dx = wall.end.x - wall.start.x;
+    const dy = wall.end.y - wall.start.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) continue;
+    const t = Math.min(
+      1,
+      Math.max(
+        0,
+        ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) /
+          lengthSq
+      )
+    );
+    const proj = { x: wall.start.x + t * dx, y: wall.start.y + t * dy };
+    const distance = Math.hypot(point.x - proj.x, point.y - proj.y);
+
+    if (distance <= maxDistance && (!best || distance < best.distance)) {
+      best = { wall, distance, t, proj };
+    }
+  }
+
+  return best;
+}
+
 let autoCheckTimer: ReturnType<typeof setTimeout> | null = null;
+let socket: WebSocket | null = null;
+let socketProjectId: string | null = null;
 
 interface EditorState {
   // Project working copy
@@ -66,27 +134,35 @@ interface EditorState {
   libraryItem: LibraryItem | null;
   selection: Selection;
   view: "2d" | "3d";
+  layers: Record<LayerKey, boolean>;
+  cursor: Point | null;
+  snappedToWall: boolean;
   autoCheck: boolean;
   isLoading: boolean;
   isSimulating: boolean;
+  isLightingBusy: boolean;
   dirty: boolean;
   error: string | null;
 
   // Lifecycle
   openProject(id: string): Promise<void>;
-  saveAndSimulate(): Promise<void>;
+  saveAndSimulate(options?: { silent?: boolean }): Promise<void>;
+  autoLighting(roomIds?: string[]): Promise<void>;
 
   // Editing
   setTool(tool: Tool): void;
   setLibraryItem(item: LibraryItem | null): void;
   setView(view: "2d" | "3d"): void;
+  setLayer(layer: LayerKey, visible: boolean): void;
   setAutoCheck(on: boolean): void;
   setSelection(selection: Selection): void;
+  setCursor(point: Point | null, snapped?: boolean): void;
   setPlanSize(width: number, height: number): void;
   setBackgroundImage(dataUrl: string | undefined): void;
   addPerimeter(): void;
   addWall(start: Point, end: Point): void;
   addRoom(a: Point, b: Point): void;
+  addOpening(kind: "door" | "window", at: Point): void;
   updateRoom(id: string, changes: Partial<Pick<Room, "name" | "type">>): void;
   placePanel(position: Point, system?: VoltageSystem): void;
   placeLoad(item: LibraryItem, position: Point): void;
@@ -97,7 +173,6 @@ interface EditorState {
 }
 
 export const useEditorStore = create<EditorState>((set, get) => {
-  /** Mark dirty and kick the debounced auto check if enabled. */
   function touched() {
     set({ dirty: true });
     if (autoCheckTimer) clearTimeout(autoCheckTimer);
@@ -105,13 +180,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     if (autoCheck && panel && loads.length > 0) {
       autoCheckTimer = setTimeout(() => {
-        void get().saveAndSimulate();
+        void get().saveAndSimulate({ silent: true });
       }, 800);
     }
   }
 
   function roomAt(position: Point): Room | undefined {
-    // Point-in-polygon (ray cast) over drawn rooms.
     return get().floorPlan.rooms.find((room) => {
       let inside = false;
       const boundary = room.boundary;
@@ -133,6 +207,90 @@ export const useEditorStore = create<EditorState>((set, get) => {
     });
   }
 
+  /** Snap a load position against nearby walls at a standoff. */
+  function snapLoadPosition(point: Point): { point: Point; snapped: boolean } {
+    const hit = nearestWall(point, get().floorPlan.walls, WALL_SNAP_DISTANCE);
+
+    if (!hit || hit.distance < 0.01) return { point, snapped: false };
+    const nx = (point.x - hit.proj.x) / hit.distance;
+    const ny = (point.y - hit.proj.y) / hit.distance;
+
+    return {
+      point: {
+        x: Math.round((hit.proj.x + nx * WALL_STANDOFF) * 100) / 100,
+        y: Math.round((hit.proj.y + ny * WALL_STANDOFF) * 100) / 100,
+      },
+      snapped: true,
+    };
+  }
+
+  function connectRealtime(projectId: string) {
+    if (socketProjectId === projectId && socket?.readyState === WebSocket.OPEN) {
+      return;
+    }
+    socket?.close();
+    socketProjectId = projectId;
+    try {
+      socket = new WebSocket(realtimeUrl());
+    } catch {
+      return; // realtime is an enhancement, not a requirement
+    }
+
+    socket.onopen = () =>
+      socket?.send(JSON.stringify({ type: "subscribe", projectId }));
+    socket.onmessage = (message) => {
+      try {
+        const event = JSON.parse(String(message.data));
+
+        if (
+          event.type === "simulation" &&
+          event.projectId === get().projectId
+        ) {
+          applyResult(event.result as SimulationResult, { silent: true });
+        }
+      } catch {
+        // ignore malformed events
+      }
+    };
+    socket.onclose = () => {
+      if (socketProjectId === projectId) {
+        setTimeout(() => {
+          if (get().projectId === projectId) connectRealtime(projectId);
+        }, 3000);
+      }
+    };
+  }
+
+  function applyResult(
+    result: SimulationResult,
+    options: { silent?: boolean } = {}
+  ) {
+    const previousErrors =
+      get().result?.violations.filter((v) => v.severity === "error").length ??
+      0;
+    const errors = result.violations.filter(
+      (violation) => violation.severity === "error"
+    ).length;
+
+    set({ result });
+
+    if (errors > previousErrors) {
+      toast.warning(
+        `${errors} PEC violation${errors === 1 ? "" : "s"} in this design`,
+        {
+          description: result.violations.find(
+            (violation) => violation.severity === "error"
+          )?.message,
+          duration: 10000,
+        }
+      );
+    } else if (!options.silent) {
+      toast.success(
+        `Checked: ${result.circuits.length} circuits, ${result.violations.length} finding${result.violations.length === 1 ? "" : "s"}`
+      );
+    }
+  }
+
   return {
     projectId: null,
     projectName: "",
@@ -145,9 +303,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
     libraryItem: null,
     selection: null,
     view: "2d",
+    layers: { ...DEFAULT_LAYERS },
+    cursor: null,
+    snappedToWall: false,
     autoCheck: true,
     isLoading: false,
     isSimulating: false,
+    isLightingBusy: false,
     dirty: false,
     error: null,
 
@@ -166,15 +328,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
           dirty: false,
           isLoading: false,
         });
+        connectRealtime(project.id);
       } catch (error) {
-        set({
-          isLoading: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        const message = error instanceof Error ? error.message : String(error);
+
+        set({ isLoading: false, error: message });
+        toast.error(`Could not open project: ${message}`);
       }
     },
 
-    async saveAndSimulate() {
+    async saveAndSimulate(options = {}) {
       const { projectId, floorPlan, panel, loads, isSimulating } = get();
 
       if (!projectId || isSimulating) return;
@@ -187,15 +350,54 @@ export const useEditorStore = create<EditorState>((set, get) => {
         if (panel && loads.length > 0) {
           const result = await api.projects.simulate(projectId);
 
-          set({ result, dirty: false, isSimulating: false });
+          applyResult(result, options);
+          set({ dirty: false, isSimulating: false });
         } else {
           set({ dirty: false, isSimulating: false });
+          if (!options.silent) toast.success("Project saved");
         }
       } catch (error) {
-        set({
-          isSimulating: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        const message = error instanceof Error ? error.message : String(error);
+
+        set({ isSimulating: false, error: message });
+        toast.error(`Check failed: ${message}`);
+      }
+    },
+
+    async autoLighting(roomIds) {
+      const { projectId, floorPlan } = get();
+
+      if (!projectId) return;
+      if (floorPlan.rooms.length === 0) {
+        toast.error("Draw at least one room before auto-generating lighting");
+
+        return;
+      }
+      set({ isLightingBusy: true });
+      toast.info("Generating lighting layout (lumen method)…");
+      try {
+        // Persist current geometry first so the engine sees it.
+        await api.projects.setFloorPlan(projectId, floorPlan);
+        const { project, placements } = await api.projects.autoLighting(
+          projectId,
+          { roomIds }
+        );
+
+        set({ loads: project.loads, isLightingBusy: false });
+        const total = placements.reduce(
+          (sum, placement) => sum + placement.placedCount,
+          0
+        );
+
+        toast.success(
+          `Placed ${total} fixture${total === 1 ? "" : "s"} across ${placements.length} room${placements.length === 1 ? "" : "s"} — drag or delete any of them`
+        );
+        void get().saveAndSimulate({ silent: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+
+        set({ isLightingBusy: false });
+        toast.error(`Auto-lighting failed: ${message}`);
       }
     },
 
@@ -203,14 +405,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
     setLibraryItem: (item) =>
       set({ libraryItem: item, tool: item ? "load" : "select" }),
     setView: (view) => set({ view }),
+    setLayer: (layer, visible) =>
+      set((state) => ({ layers: { ...state.layers, [layer]: visible } })),
     setAutoCheck: (autoCheck) => set({ autoCheck }),
     setSelection: (selection) => set({ selection }),
+    setCursor: (cursor, snapped = false) =>
+      set({ cursor, snappedToWall: snapped }),
     clearError: () => set({ error: null }),
 
     setPlanSize(width, height) {
-      set((state) => ({
-        floorPlan: { ...state.floorPlan, width, height },
-      }));
+      set((state) => ({ floorPlan: { ...state.floorPlan, width, height } }));
       touched();
     },
 
@@ -218,6 +422,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set((state) => ({
         floorPlan: { ...state.floorPlan, backgroundImage: dataUrl },
       }));
+      if (dataUrl) toast.success("Trace image added — draw walls over it");
       touched();
     },
 
@@ -280,6 +485,38 @@ export const useEditorStore = create<EditorState>((set, get) => {
       touched();
     },
 
+    addOpening(kind, at) {
+      const hit = nearestWall(at, get().floorPlan.walls, 0.5);
+
+      if (!hit) {
+        toast.error(`Click on a wall to place a ${kind}`);
+
+        return;
+      }
+      const width = kind === "door" ? 0.9 : 1.2;
+      const wallLen = Math.hypot(
+        hit.wall.end.x - hit.wall.start.x,
+        hit.wall.end.y - hit.wall.start.y
+      );
+      const offset = Math.min(
+        Math.max(hit.t * wallLen - width / 2, 0),
+        Math.max(wallLen - width, 0)
+      );
+      const id = `o-${crypto.randomUUID().slice(0, 8)}`;
+
+      set((state) => ({
+        floorPlan: {
+          ...state.floorPlan,
+          openings: [
+            ...(state.floorPlan.openings ?? []),
+            { id, wallId: hit.wall.id, offset, width, kind },
+          ],
+        },
+        selection: { kind: "opening", id },
+      }));
+      touched();
+    },
+
     updateRoom(id, changes) {
       set((state) => ({
         floorPlan: {
@@ -310,7 +547,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
     placeLoad(item, position) {
       const { panel } = get();
       const system = panel?.system ?? "1P3W-120/240";
-      const room = roomAt(position);
+      const snapped = snapLoadPosition(position);
+      const room = roomAt(snapped.point);
       const id = `l-${crypto.randomUUID().slice(0, 8)}`;
 
       set((state) => ({
@@ -323,8 +561,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
             va: item.va,
             voltage: defaultVoltage(system, item),
             continuous: item.continuous,
-            position,
+            position: snapped.point,
             roomId: room?.id,
+            lumens: item.type === "lighting" ? item.va * 100 : undefined,
+            gfci: item.type === "outlet" ? false : undefined,
           },
         ],
         selection: { kind: "load", id },
@@ -344,12 +584,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
     moveItem(selection, position) {
       if (!selection) return;
       if (selection.kind === "load") {
-        const room = roomAt(position);
+        const snapped = snapLoadPosition(position);
+        const room = roomAt(snapped.point);
 
         set((state) => ({
+          snappedToWall: snapped.snapped,
           loads: state.loads.map((load) =>
             load.id === selection.id
-              ? { ...load, position, roomId: room?.id }
+              ? { ...load, position: snapped.point, roomId: room?.id }
               : load
           ),
         }));
@@ -379,6 +621,19 @@ export const useEditorStore = create<EditorState>((set, get) => {
             walls: state.floorPlan.walls.filter(
               (wall) => wall.id !== selection.id
             ),
+            openings: (state.floorPlan.openings ?? []).filter(
+              (opening) => opening.wallId !== selection.id
+            ),
+          },
+          selection: null,
+        }));
+      } else if (selection.kind === "opening") {
+        set((state) => ({
+          floorPlan: {
+            ...state.floorPlan,
+            openings: (state.floorPlan.openings ?? []).filter(
+              (opening) => opening.id !== selection.id
+            ),
           },
           selection: null,
         }));
@@ -406,3 +661,4 @@ export const useEditorStore = create<EditorState>((set, get) => {
 });
 
 export { COMPONENT_LIBRARY };
+export { nearestWall };

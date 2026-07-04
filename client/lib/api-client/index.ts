@@ -5,6 +5,8 @@
  * frontend components must call it through these wrappers only.
  */
 import {
+  AutoLightingOptions,
+  AutoLightingPlacement,
   ElectricalLoad,
   FloorPlan,
   Panel,
@@ -17,6 +19,11 @@ export * from "./types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+
+/** WebSocket endpoint for the realtime gateway (server/docs/api.md). */
+export function realtimeUrl(): string {
+  return `${BASE_URL.replace(/^http/, "ws")}/ws`;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -83,6 +90,13 @@ export const api = {
       request<Project>("PUT", `/projects/${id}/loads/${load.id}`, load),
     removeLoad: (id: string, loadId: string) =>
       request<Project>("DELETE", `/projects/${id}/loads/${loadId}`),
+
+    autoLighting: (id: string, options?: AutoLightingOptions) =>
+      request<{ project: Project; placements: AutoLightingPlacement[] }>(
+        "POST",
+        `/projects/${id}/lighting/auto`,
+        options ?? {}
+      ),
 
     simulate: (id: string, options?: SimulateOptions) =>
       request<SimulationResult>("POST", `/projects/${id}/simulate`, options ?? {}),
