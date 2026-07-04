@@ -1,39 +1,43 @@
-# solence-vision (v2 — not started)
+# solence-vision
 
-Planned Python + FastAPI microservice for AI floor-plan recognition. **Do not build until the core simulator (Phases 0–7) works end-to-end with the manual draw/upload-and-trace flow.**
+Python + FastAPI microservice for AI floor-plan recognition (brief
+section 7): given an uploaded floor plan image, return wall polygons,
+door/window openings, and typed room instances — the same JSON shape the
+Express API's rasterizer consumes from manually drawn plans, so the
+routing/compliance engine never knows the plan came from a model.
 
-## Scope (from the Solence brief, section 7)
+**Status: scaffolded, not trained.** The service, fusion logic, scripts,
+and tests are real and runnable; recognition returns 503 until models
+are trained per [HOW-TO.md](HOW-TO.md). The core simulator does not
+depend on this service existing.
 
-Given an uploaded floor plan image, return JSON with:
+## What lives here
 
-- **Wall masks/polygons** — feeds the rasterizer that builds the routing walkability grid
-- **Door/window openings** — cut wall segments; needed for room transitions
-- **Room instances with type labels** (bath, kitchen, garage, …) — drives GFCI/AFCI compliance rules
+- `app/` — the FastAPI service. `main.py` (HTTP + WebSocket job
+  endpoints), `pipeline.py` (staged U-Net → YOLO → fusion run),
+  `fusion.py` (pure-numpy mask+detection fusion — unit-testable without
+  any model), `models.py` (lazy weight loading with loud failures).
+- `scripts/` — idempotent dataset/training automation; see its README.
+- `tests/` — pytest suite: fusion + API contract tests run with no
+  models; model regression tests skip until weights exist.
+- `data/`, `models/` — gitignored payloads (datasets, weights); the
+  scripts are what's checked in.
+- `Dockerfile` — CPU-inference container; mount `models/` in.
 
-## Planned architecture
+## Architecture (7.2)
 
-- **U-Net** (ResNet or SegFormer encoder, via `segmentation_models_pytorch`) for wall/room-boundary semantic segmentation
-- **YOLOv8-seg / YOLO11-seg** (via `ultralytics`) for doors, windows, and room instances
-- **Fusion step**: cut U-Net wall segments where YOLO opening boxes intersect
-- Served over internal HTTP to the Express API (`/server`), which feeds the output into the same rasterizer used for manually drawn plans
-- Containerized (Docker), deployed and scaled independently
+U-Net (ResNet encoder, `segmentation_models_pytorch`) segments walls;
+YOLO-seg (`ultralytics`) detects doors/windows/room instances; the
+fusion step cuts wall segments where opening boxes intersect them.
+Room-type labels feed the GFCI/AFCI compliance rules in the Express
+engine.
 
-## Datasets (priority order)
+## Extending
 
-1. **CubiCasa5K** — primary. COCO-converted mirror with pretrained weights: https://github.com/xmarva/floorplan-detection
-2. **ResPlan** (17k plans, 2025) — https://arxiv.org/html/2508.14006v1
-3. **RPLAN** (80k plans, by request) — fine-tuning target, stylistically closest to PH submissions
-4. **Modified Swiss Dwellings** — multi-unit, for commercial scope later
-
-Plan a fine-tuning pass on real, team-labeled PH floor plans before trusting the model on client submissions.
-
-## Layout (planned)
-
-```
-solence-vision/
-  api/            # FastAPI app
-  models/         # model definitions + weights (gitignored)
-  training/       # training / fine-tuning scripts
-  conversion/     # dataset label conversion (SVG/COCO -> masks/YOLO)
-  Dockerfile
-```
+- New dataset: register it in `scripts/_common.py` `DATASETS`, then the
+  whole `download → convert → verify → train` chain works with
+  `--dataset <name>`.
+- New detection class: add it to `CLASSES` in `scripts/convert_to_yolo.py`
+  and (if it's an opening/room) teach `app/fusion.py` about it.
+- Retrained a model? Run `pytest tests/` before deploying — that's the
+  regression gate.

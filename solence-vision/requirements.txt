@@ -1,0 +1,17 @@
+# Core service (API + fusion) — enough to run the FastAPI app and tests.
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+numpy>=1.26
+opencv-python-headless>=4.10
+pillow>=10.4
+pytest>=8.3
+httpx>=0.27
+
+# ML training/inference — heavy; install when actually training models.
+# torch may need a CUDA-specific index URL, see HOW-TO.md.
+torch>=2.4
+ultralytics>=8.3
+segmentation-models-pytorch>=0.3.4
+albumentations>=1.4
+kagglehub>=0.3

@@ -1,0 +1,11 @@
+# Datasets and model weights stay out of git (scripts are what's tracked).
+data/raw/
+data/yolo/
+data/unet/
+data/_previews/
+models/yolo/
+models/unet/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
