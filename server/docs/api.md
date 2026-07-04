@@ -8,8 +8,14 @@ types in `client/lib/api-client/types.ts` — keep the two in sync when the
 contract changes.
 
 Errors: `{ "error": string }` with 400 (validation, includes `issues`),
-404, 409, 422 (simulation preconditions), 500. `501` marks endpoints whose
-implementation is scheduled for a later phase.
+403 (tier gating), 404, 409, 422 (simulation preconditions), 500.
+
+**Tiers:** requests resolve to a pricing tier — `x-solence-tier` header
+(dev/testing), else the `DEFAULT_TIER` env var, else `pro` — until
+Supabase auth carries a plan per user. Free: 1 project, ≤5 circuits per
+simulation, no export. Pro: unlimited + export. Firm: + API access +
+custom component library. LGU: + audit trail + BIM export (future).
+Gated endpoints return 403 with an upgrade message.
 
 ## Health
 

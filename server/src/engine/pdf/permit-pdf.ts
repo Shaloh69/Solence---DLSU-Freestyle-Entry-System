@@ -81,10 +81,12 @@ function header(doc: PDFKit.PDFDocument, input: PermitPdfInput, subtitle: string
 }
 
 function disclaimer(doc: PDFKit.PDFDocument) {
-  const y = 790;
+  // Keep the block inside the printable area (A4 = 842 pt, 40 pt margin)
+  // or pdfkit silently spills onto a new page.
+  const y = 768;
 
   doc
-    .fontSize(7.5)
+    .fontSize(7)
     .fillColor("#B00020")
     .text(
       "PEC-VERIFY: This document was generated with placeholder Philippine Electrical Code table values " +
@@ -92,7 +94,7 @@ function disclaimer(doc: PDFKit.PDFDocument) {
         "must verify all figures against the current PEC edition before submission to MERALCO/LGU.",
       40,
       y,
-      { width: 515, align: "center" }
+      { width: 515, align: "center", lineBreak: true, height: 30 }
     );
 }
 

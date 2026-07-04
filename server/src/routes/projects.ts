@@ -15,6 +15,7 @@ import {
 } from "../schemas.js";
 import { simulate } from "../engine/simulate.js";
 import { generatePermitPdf } from "../engine/pdf/permit-pdf.js";
+import { tierOf } from "../middleware/tier.js";
 
 type Handler = (req: Request, res: Response) => Promise<void>;
 
@@ -42,6 +43,16 @@ export function projectsRouter(repo: ProjectRepository): Router {
     "/projects",
     wrap(async (req, res) => {
       const { name } = createProjectSchema.parse(req.body);
+      const tier = tierOf(res);
+      const existing = await repo.list();
+
+      if (existing.length >= tier.maxProjects) {
+        throw new HttpError(
+          403,
+          `The ${tier.name} tier allows ${tier.maxProjects} project` +
+            `${tier.maxProjects === 1 ? "" : "s"} — upgrade to Pro for unlimited projects`
+        );
+      }
       const project = await repo.create(name);
 
       res.status(201).json(project);
@@ -201,6 +212,16 @@ export function projectsRouter(repo: ProjectRepository): Router {
         options,
       });
 
+      const tier = tierOf(res);
+
+      if (result.circuits.length > tier.maxCircuits) {
+        throw new HttpError(
+          403,
+          `This design needs ${result.circuits.length} circuits; the ` +
+            `${tier.name} tier allows up to ${tier.maxCircuits} — upgrade to Pro for unlimited circuits`
+        );
+      }
+
       project.lastResult = result;
       await repo.update(project);
       res.json(result);
@@ -224,6 +245,14 @@ export function projectsRouter(repo: ProjectRepository): Router {
   router.post(
     "/projects/:id/export",
     wrap(async (req, res) => {
+      const tier = tierOf(res);
+
+      if (!tier.canExport) {
+        throw new HttpError(
+          403,
+          `PDF export is not included in the ${tier.name} tier — upgrade to Pro to export permit-ready documents`
+        );
+      }
       const project = await requireProject(req.params.id);
 
       if (!project.floorPlan || !project.panel) {
