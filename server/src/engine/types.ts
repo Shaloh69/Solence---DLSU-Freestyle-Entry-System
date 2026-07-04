@@ -49,6 +49,11 @@ export interface FloorPlan {
   height: number;
   walls: Wall[];
   rooms: Room[];
+  /**
+   * Optional uploaded floor plan image (data URL) shown as a trace layer
+   * under the draw tools. Replaced by Supabase Storage post-MVP.
+   */
+  backgroundImage?: string;
 }
 
 // ---------- Electrical system ----------

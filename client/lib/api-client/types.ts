@@ -41,6 +41,8 @@ export interface FloorPlan {
   height: number;
   walls: Wall[];
   rooms: Room[];
+  /** Optional trace-layer image as a data URL. */
+  backgroundImage?: string;
 }
 
 export type VoltageSystem = "1P2W-120" | "1P3W-120/240" | "3P4W-230/400";

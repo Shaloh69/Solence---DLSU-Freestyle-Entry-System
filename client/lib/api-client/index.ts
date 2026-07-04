@@ -75,6 +75,8 @@ export const api = {
     setPanel: (id: string, panel: Panel) =>
       request<Project>("PUT", `/projects/${id}/panel`, panel),
 
+    setLoads: (id: string, loads: ElectricalLoad[]) =>
+      request<Project>("PUT", `/projects/${id}/loads`, loads),
     addLoad: (id: string, load: ElectricalLoad) =>
       request<Project>("POST", `/projects/${id}/loads`, load),
     updateLoad: (id: string, load: ElectricalLoad) =>
@@ -86,5 +88,22 @@ export const api = {
       request<SimulationResult>("POST", `/projects/${id}/simulate`, options ?? {}),
     results: (id: string) =>
       request<SimulationResult>("GET", `/projects/${id}/results`),
+
+    exportPdf: async (id: string): Promise<Blob> => {
+      const response = await fetch(`${BASE_URL}/api/projects/${id}/export`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+
+        throw new ApiError(
+          response.status,
+          payload?.error ?? `Export failed with status ${response.status}`
+        );
+      }
+
+      return response.blob();
+    },
   },
 };

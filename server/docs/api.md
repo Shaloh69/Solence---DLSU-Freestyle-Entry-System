@@ -36,8 +36,9 @@ implementation is scheduled for a later phase.
 | PUT | `/projects/:id/floorplan` | `FloorPlan` | Replace the floor plan |
 | PUT | `/projects/:id/panel` | `Panel` | Place/replace the distribution panel |
 
-`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[] }` — meters,
-origin top-left. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
+`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], backgroundImage? }`
+— meters, origin top-left; `backgroundImage` is an optional image data URL
+used as a trace layer. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
 `Room`: `{ id, name, type, boundary: {x,y}[] }` with `type` one of
 `bathroom | kitchen | garage | laundry | bedroom | living | dining | office | hallway | outdoor | other`.
 
@@ -49,6 +50,7 @@ engine size the main breaker from feeder demand.
 
 | Method | Path | Body | Description |
 | --- | --- | --- | --- |
+| PUT | `/projects/:id/loads` | `ElectricalLoad[]` | Bulk-replace all loads (editor save) |
 | POST | `/projects/:id/loads` | `ElectricalLoad` | Place a load → 201 |
 | PUT | `/projects/:id/loads/:loadId` | `ElectricalLoad` | Replace a load |
 | DELETE | `/projects/:id/loads/:loadId` | — | Remove a load |
@@ -94,4 +96,4 @@ Violation `ruleId`s so far: `ampacity`, `continuous-80`,
 
 | Method | Path | Description |
 | --- | --- | --- |
-| POST | `/projects/:id/export` | 501 — permit-ready PDF lands in Phase 7 |
+| POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |

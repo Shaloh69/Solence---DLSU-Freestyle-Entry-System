@@ -40,6 +40,11 @@ export const floorPlanSchema = z.object({
   height: z.number().positive().max(1000),
   walls: z.array(wallSchema),
   rooms: z.array(roomSchema),
+  backgroundImage: z
+    .string()
+    .regex(/^data:image\//, "backgroundImage must be an image data URL")
+    .max(8_000_000)
+    .optional(),
 });
 
 export const panelSchema = z.object({
@@ -68,6 +73,8 @@ export const loadSchema = z.object({
   position: pointSchema,
   roomId: z.string().optional(),
 });
+
+export const bulkLoadsSchema = z.array(loadSchema).max(500);
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(200),
