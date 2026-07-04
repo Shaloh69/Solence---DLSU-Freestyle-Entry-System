@@ -89,5 +89,16 @@
         "next": ["const", "let", "var"]
       }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "components/ThreeBackground.tsx",
+        "components/wiring-overlay/**/*.tsx"
+      ],
+      "rules": {
+        "react/no-unknown-property": "off"
+      }
+    }
+  ]
 }

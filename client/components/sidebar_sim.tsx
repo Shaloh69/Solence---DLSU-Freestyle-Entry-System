@@ -404,7 +404,7 @@ const Sidebar: React.FC = () => {
         <h3 className="text-md font-semibold">Environmental Factors</h3>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Ceiling Reflectance</label>
+          <p className="text-sm font-medium">Ceiling Reflectance</p>
           <div className="flex items-center gap-2">
             <Slider
               defaultValue={ceilingReflectance}
@@ -430,7 +430,7 @@ const Sidebar: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Wall Reflectance</label>
+          <p className="text-sm font-medium">Wall Reflectance</p>
           <div className="flex items-center gap-2">
             <Slider
               defaultValue={wallReflectance}

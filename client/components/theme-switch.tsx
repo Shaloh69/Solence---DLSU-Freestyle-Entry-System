@@ -1,6 +1,6 @@
 "use client";
 
-import { FC } from "react";
+import React, { FC } from "react";
 import { VisuallyHidden } from "@react-aria/visually-hidden";
 import { SwitchProps, useSwitch } from "@heroui/switch";
 import { useTheme } from "next-themes";
@@ -38,8 +38,12 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
     onChange,
   });
 
+  // HeroUI's polymorphic Component type collapses children to `never`
+  // under React 19 typings; widen it so JSX accepts children.
+  const BaseComponent = Component as FC<React.PropsWithChildren<object>>;
+
   return (
-    <Component
+    <BaseComponent
       {...getBaseProps({
         className: clsx(
           "px-px transition-opacity hover:opacity-80 cursor-pointer bg-transparent",
@@ -76,6 +80,6 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
           <MoonFilledIcon size={22} />
         )}
       </div>
-    </Component>
+    </BaseComponent>
   );
 };

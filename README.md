@@ -16,36 +16,31 @@ Solence is an automatic electrical wiring simulator for the Philippine market. I
 6. Review the 3D wiring overlay with live PEC violation flags
 7. Export a permit-ready PDF (wiring diagram, panel schedule, conductor schedule)
 
-## Architecture
+## Repository structure
 
 ```
-/          Next.js 15 (App Router) frontend — HeroUI v2, Tailwind, Three.js
-/server    Express + TypeScript API — routing engine, load calc, sizing,
-           PEC compliance, PDF export. Supabase (Postgres + Storage + Auth).
+/client            Next.js 15 (App Router) frontend — HeroUI v2, Tailwind, Three.js
+/server            Express + TypeScript API — routing engine, load calc, sizing,
+                   PEC compliance, PDF export. Supabase (Postgres + Storage + Auth).
+/solence-vision    v2 AI floor-plan recognition (Python + FastAPI) — placeholder,
+                   not started until the core simulator works end-to-end.
 ```
 
-All wiring-simulation domain logic (routing, load calculation, PEC checks, PDF export) lives in the Express service. The frontend talks to it through a typed API client in `lib/api-client/`.
+All wiring-simulation domain logic (routing, load calculation, PEC checks, PDF export) lives in the Express service. The frontend talks to it through a typed API client in `client/lib/api-client/`.
 
 ## Development
 
-### Frontend (Next.js)
-
 ```bash
-npm install
-cp .env.example .env.local   # fill in values
-npm run dev                  # http://localhost:3000
+npm install            # root dev tooling (concurrently)
+npm run install:all    # client + server dependencies
+
+cp client/.env.example client/.env.local   # fill in values
+cp server/.env.example server/.env         # fill in values
+
+npm run dev            # both apps: client on :3000, server on :4000
 ```
 
-### Backend (Express API)
-
-```bash
-cd server
-npm install
-cp .env.example .env         # fill in values
-npm run dev                  # http://localhost:4000
-```
-
-Run both from the repo root in two terminals, or `npm run dev:all` (requires backend deps installed).
+Or individually: `npm run dev:client` / `npm run dev:server`.
 
 ## PEC data caveat
 
