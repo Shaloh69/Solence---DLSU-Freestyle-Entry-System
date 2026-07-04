@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3000",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/next-real.js dev --turbopack -p 3000",
+    "build": "node scripts/next-real.js build",
+    "start": "node scripts/next-real.js start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
