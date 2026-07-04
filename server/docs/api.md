@@ -42,9 +42,11 @@ Gated endpoints return 403 with an upgrade message.
 | PUT | `/projects/:id/floorplan` | `FloorPlan` | Replace the floor plan |
 | PUT | `/projects/:id/panel` | `Panel` | Place/replace the distribution panel |
 
-`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], backgroundImage? }`
+`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
 — meters, origin top-left; `backgroundImage` is an optional image data URL
-used as a trace layer. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
+used as a trace layer. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
+(offset = meters from the wall's start). Doors are routable gaps; windows
+stay blocked for routing and are cut visually in 3D. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
 `Room`: `{ id, name, type, boundary: {x,y}[] }` with `type` one of
 `bathroom | kitchen | garage | laundry | bedroom | living | dining | office | hallway | outdoor | other`.
 
@@ -61,8 +63,16 @@ engine size the main breaker from feeder demand.
 | PUT | `/projects/:id/loads/:loadId` | `ElectricalLoad` | Replace a load |
 | DELETE | `/projects/:id/loads/:loadId` | — | Remove a load |
 
-`ElectricalLoad`: `{ id, name, type, va, voltage, continuous, position, roomId? }`
+`ElectricalLoad`: `{ id, name, type, va, voltage, continuous, position, roomId?, lumens?, gfci? }`
 with `type` one of `lighting | outlet | appliance | laundry | hvac | motor | equipment`.
+`lumens` is the photometric output for lighting fixtures (estimated from VA
+when absent, flagged); `gfci` marks a GFCI-protected outlet.
+
+## Lighting
+
+| Method | Path | Body | Description |
+| --- | --- | --- | --- |
+| POST | `/projects/:id/lighting/auto` | `{ roomIds?, targetLux?, fixture?, replaceExisting? }` | Auto-generate fixtures per room via the lumen method; returns `{ project, placements }`. Auto fixtures have `lf-` id prefixes and are ordinary editable loads. |
 
 ## Simulation
 
@@ -91,8 +101,21 @@ Preconditions (422): floor plan set, panel placed, at least one load.
 }
 ```
 
+`SimulationResult` also carries `roomLighting` (per-room average lux vs
+target, fixture count) and `luxHeatmap` (workplane illuminance samples
+for the heatmap layer).
+
 Violation `ruleId`s so far: `ampacity`, `continuous-80`,
-`voltage-drop-branch`, `voltage-drop-total`.
+`voltage-drop-branch`, `voltage-drop-total`, `gfci-required`,
+`illuminance-none`, `illuminance-low`, `illuminance-high`,
+`general-lighting-basis`.
+
+## Realtime (WebSocket)
+
+Connect to `ws://<api-host>/ws`, send `{ "type": "subscribe", "projectId" }`.
+Server pushes `{ "type": "subscribed" }` then `{ "type": "simulation", projectId, result }`
+after every recompute. AI job progress events (`ai-progress`) will use the
+same channel once solence-vision is live.
 
 > **PEC-VERIFY:** every numeric code value behind these results
 > (ampacities, demand tiers, resistances, breaker ratings) is a

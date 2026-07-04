@@ -16,7 +16,13 @@ import {
 } from "./types.js";
 import { rasterizeFloorPlan, routeWire } from "./routing/index.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
-import { runComplianceChecks } from "./compliance/index.js";
+import { runComplianceChecks, runProjectChecks } from "./compliance/index.js";
+import {
+  analyzeRoomLighting,
+  luxHeatmap,
+  LuxSample,
+  RoomLightingAnalysis,
+} from "./lighting/index.js";
 import {
   generatePanelDirectory,
   PanelDirectoryEntry,
@@ -43,6 +49,10 @@ export interface SimulationResult {
   violations: Violation[];
   /** Loads that could not be routed, with the reason. */
   routingErrors: { loadId: string; message: string }[];
+  /** Per-room photometric analysis of placed lighting. */
+  roomLighting: RoomLightingAnalysis[];
+  /** Workplane illuminance samples for the lux heatmap layer. */
+  luxHeatmap: LuxSample[];
 }
 
 export function simulate(input: SimulationInput): SimulationResult {
@@ -80,7 +90,10 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
 
   const threePhase = panel.system === "3P4W-230/400";
-  const violations = runComplianceChecks(circuits, { threePhase });
+  const violations = [
+    ...runComplianceChecks(circuits, { threePhase }),
+    ...runProjectChecks(floorPlan.rooms, loads),
+  ];
 
   // Size the main breaker from feeder demand if not set manually.
   const demandVa = feederDemandVa(circuits, loads);
@@ -92,5 +105,14 @@ export function simulate(input: SimulationInput): SimulationResult {
   const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps);
   const directory = generatePanelDirectory(circuits, loads, floorPlan.rooms);
 
-  return { routes, circuits, schedule, directory, violations, routingErrors };
+  return {
+    routes,
+    circuits,
+    schedule,
+    directory,
+    violations,
+    routingErrors,
+    roomLighting: analyzeRoomLighting(floorPlan.rooms, loads),
+    luxHeatmap: luxHeatmap(floorPlan, loads),
+  };
 }

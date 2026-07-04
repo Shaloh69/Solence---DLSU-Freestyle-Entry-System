@@ -35,11 +35,20 @@ export const roomSchema = z.object({
   boundary: z.array(pointSchema).min(3),
 });
 
+export const openingSchema = z.object({
+  id: z.string().min(1),
+  wallId: z.string().min(1),
+  offset: z.number().nonnegative(),
+  width: z.number().positive().max(10),
+  kind: z.enum(["door", "window"]),
+});
+
 export const floorPlanSchema = z.object({
   width: z.number().positive().max(1000),
   height: z.number().positive().max(1000),
   walls: z.array(wallSchema),
   rooms: z.array(roomSchema),
+  openings: z.array(openingSchema).optional(),
   backgroundImage: z
     .string()
     .regex(/^data:image\//, "backgroundImage must be an image data URL")
@@ -72,6 +81,8 @@ export const loadSchema = z.object({
   continuous: z.boolean(),
   position: pointSchema,
   roomId: z.string().optional(),
+  lumens: z.number().positive().optional(),
+  gfci: z.boolean().optional(),
 });
 
 export const bulkLoadsSchema = z.array(loadSchema).max(500);
@@ -90,3 +101,19 @@ export const simulateOptionsSchema = z
     clearance: z.number().positive().max(5).optional(),
   })
   .optional();
+
+export const autoLightingSchema = z.object({
+  /** Rooms to generate for; omit for all rooms. */
+  roomIds: z.array(z.string()).optional(),
+  targetLux: z.number().positive().max(2000).optional(),
+  fixture: z
+    .object({
+      label: z.string().min(1),
+      lumens: z.number().positive(),
+      va: z.number().positive(),
+      voltage: z.number().positive(),
+    })
+    .optional(),
+  /** Replace previously auto-generated fixtures in those rooms. */
+  replaceExisting: z.boolean().optional(),
+});

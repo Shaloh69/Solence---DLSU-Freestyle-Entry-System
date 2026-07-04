@@ -5,6 +5,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import { ProjectRepository } from "../db/repository.js";
 import { HttpError } from "../middleware/error-handler.js";
 import {
+  autoLightingSchema,
   bulkLoadsSchema,
   createProjectSchema,
   floorPlanSchema,
@@ -13,6 +14,8 @@ import {
   simulateOptionsSchema,
   updateProjectSchema,
 } from "../schemas.js";
+import { autoPlaceLighting } from "../engine/lighting/index.js";
+import { broadcastToProject } from "../realtime/index.js";
 import { simulate } from "../engine/simulate.js";
 import { generatePermitPdf } from "../engine/pdf/permit-pdf.js";
 import { tierOf } from "../middleware/tier.js";
@@ -187,6 +190,63 @@ export function projectsRouter(repo: ProjectRepository): Router {
     })
   );
 
+  // ---- Auto-lighting (section 9: the ported illumination engine) ----
+
+  router.post(
+    "/projects/:id/lighting/auto",
+    wrap(async (req, res) => {
+      const options = autoLightingSchema.parse(req.body ?? {});
+      const project = await requireProject(req.params.id);
+
+      if (!project.floorPlan || project.floorPlan.rooms.length === 0) {
+        throw new HttpError(
+          422,
+          "Draw at least one room before auto-generating lighting"
+        );
+      }
+
+      const rooms = project.floorPlan.rooms.filter(
+        (room) => !options.roomIds || options.roomIds.includes(room.id)
+      );
+
+      if (rooms.length === 0) {
+        throw new HttpError(404, "None of the requested rooms exist");
+      }
+
+      const targetRoomIds = new Set(rooms.map((room) => room.id));
+
+      if (options.replaceExisting ?? true) {
+        // Auto-generated fixtures are identifiable by their id prefix.
+        project.loads = project.loads.filter(
+          (load) =>
+            !(
+              load.id.startsWith("lf-") &&
+              load.roomId &&
+              targetRoomIds.has(load.roomId)
+            )
+        );
+      }
+
+      const results = rooms.map((room) =>
+        autoPlaceLighting(room, {
+          targetLux: options.targetLux,
+          fixture: options.fixture,
+        })
+      );
+
+      for (const result of results) {
+        project.loads.push(...result.loads);
+      }
+
+      const updated = await repo.update(project);
+
+      res.json({
+        project: updated,
+        placements: results.map((result) => result.meta),
+      });
+    })
+  );
+
   // ---- Simulation ----
 
   router.post(
@@ -224,6 +284,7 @@ export function projectsRouter(repo: ProjectRepository): Router {
 
       project.lastResult = result;
       await repo.update(project);
+      broadcastToProject(project.id, { type: "simulation", result });
       res.json(result);
     })
   );

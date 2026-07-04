@@ -12,6 +12,7 @@
  * rooms, and openings.
  */
 import { FloorPlan, Point, Wall } from "../types.js";
+import { pointAlongWall } from "../geometry.js";
 
 export interface WalkabilityGrid {
   /** Cells per row (x direction). */
@@ -61,6 +62,27 @@ export function rasterizeFloorPlan(
   const blocked = makeMatrix(rows, cols);
   const nearWall = makeMatrix(rows, cols);
 
+  // Door openings are routable gaps (wire crosses over the door frame);
+  // windows stay blocked for routing and are only cut visually in 3D.
+  const wallById = new Map(plan.walls.map((wall) => [wall.id, wall]));
+  const doorSegments = (plan.openings ?? [])
+    .filter((opening) => opening.kind === "door")
+    .map((opening) => {
+      const wall = wallById.get(opening.wallId);
+
+      if (!wall) return null;
+
+      return {
+        start: pointAlongWall(wall, opening.offset),
+        end: pointAlongWall(wall, opening.offset + opening.width),
+        halfThickness:
+          (wall.thickness ?? defaultWallThickness) / 2 + cellSize / 2,
+      };
+    })
+    .filter((segment): segment is NonNullable<typeof segment> =>
+      Boolean(segment)
+    );
+
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const center: Point = {
@@ -79,6 +101,19 @@ export function rasterizeFloorPlan(
         }
         if (distance <= halfThickness + clearance) {
           nearWall[row][col] = true;
+        }
+      }
+
+      if (blocked[row][col]) {
+        for (const door of doorSegments) {
+          if (
+            segmentDistance(center, door.start, door.end) <=
+            door.halfThickness
+          ) {
+            blocked[row][col] = false;
+            nearWall[row][col] = true;
+            break;
+          }
         }
       }
     }
@@ -115,21 +150,25 @@ function makeMatrix(rows: number, cols: number): boolean[][] {
 }
 
 function distanceToSegment(point: Point, wall: Wall): number {
-  const dx = wall.end.x - wall.start.x;
-  const dy = wall.end.y - wall.start.y;
+  return segmentDistance(point, wall.start, wall.end);
+}
+
+function segmentDistance(point: Point, start: Point, end: Point): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
   const lengthSq = dx * dx + dy * dy;
 
   if (lengthSq === 0) {
-    return Math.hypot(point.x - wall.start.x, point.y - wall.start.y);
+    return Math.hypot(point.x - start.x, point.y - start.y);
   }
 
   const t = clamp(
-    ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) / lengthSq,
+    ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSq,
     0,
     1
   );
-  const projX = wall.start.x + t * dx;
-  const projY = wall.start.y + t * dy;
+  const projX = start.x + t * dx;
+  const projY = start.y + t * dy;
 
   return Math.hypot(point.x - projX, point.y - projY);
 }

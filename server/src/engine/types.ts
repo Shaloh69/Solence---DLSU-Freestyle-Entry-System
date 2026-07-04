@@ -43,12 +43,25 @@ export interface Room {
   boundary: Point[];
 }
 
+/** A door or window cut into a wall. */
+export interface Opening {
+  id: string;
+  /** Wall this opening belongs to. */
+  wallId: string;
+  /** Distance from the wall's start point to the opening's near edge, meters. */
+  offset: number;
+  /** Opening width along the wall, meters. */
+  width: number;
+  kind: "door" | "window";
+}
+
 export interface FloorPlan {
   /** Overall extents in meters. */
   width: number;
   height: number;
   walls: Wall[];
   rooms: Room[];
+  openings?: Opening[];
   /**
    * Optional uploaded floor plan image (data URL) shown as a trace layer
    * under the draw tools. Replaced by Supabase Storage post-MVP.
@@ -89,6 +102,13 @@ export interface ElectricalLoad {
   continuous: boolean;
   position: Point;
   roomId?: string;
+  /**
+   * Photometric output for lighting fixtures (lumens). When absent the
+   * lighting engine estimates from VA (flagged assumption).
+   */
+  lumens?: number;
+  /** Whether an outlet is GFCI-protected (wet-area rule input). */
+  gfci?: boolean;
 }
 
 export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";

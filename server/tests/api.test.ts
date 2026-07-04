@@ -61,6 +61,7 @@ const loads: ElectricalLoad[] = [
     continuous: false,
     position: { x: 4.5, y: 1 },
     roomId: "kitchen",
+    gfci: true, // kitchen outlet — GFCI rule fires otherwise
   },
   {
     id: "fridge",
@@ -182,8 +183,18 @@ describe("MVP demo flow", () => {
     // Directory entry per circuit.
     expect(result.directory).toHaveLength(result.circuits.length);
 
-    // A sane design has no violations.
-    expect(result.violations).toEqual([]);
+    // A sane design has no error-severity violations (advisory warnings
+    // like the general-lighting basis are allowed).
+    expect(
+      result.violations.filter(
+        (violation: { severity: string }) => violation.severity === "error"
+      )
+    ).toEqual([]);
+
+    // Lighting layer output present.
+    expect(result.roomLighting).toHaveLength(1);
+    expect(result.roomLighting[0].fixtureCount).toBe(1);
+    expect(result.luxHeatmap.length).toBeGreaterThan(0);
 
     // Results are persisted.
     const stored = await request(app)
