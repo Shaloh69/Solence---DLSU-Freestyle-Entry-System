@@ -5,6 +5,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import { ProjectRepository } from "../db/repository.js";
 import { HttpError } from "../middleware/error-handler.js";
 import {
+  bulkLoadsSchema,
   createProjectSchema,
   floorPlanSchema,
   loadSchema,
@@ -13,6 +14,7 @@ import {
   updateProjectSchema,
 } from "../schemas.js";
 import { simulate } from "../engine/simulate.js";
+import { generatePermitPdf } from "../engine/pdf/permit-pdf.js";
 
 type Handler = (req: Request, res: Response) => Promise<void>;
 
@@ -106,6 +108,22 @@ export function projectsRouter(repo: ProjectRepository): Router {
   );
 
   // ---- Load placement ----
+
+  router.put(
+    "/projects/:id/loads",
+    wrap(async (req, res) => {
+      const loads = bulkLoadsSchema.parse(req.body);
+      const ids = new Set(loads.map((load) => load.id));
+
+      if (ids.size !== loads.length) {
+        throw new HttpError(400, "Duplicate load ids in bulk replace");
+      }
+      const project = await requireProject(req.params.id);
+
+      project.loads = loads;
+      res.json(await repo.update(project));
+    })
+  );
 
   router.post(
     "/projects/:id/loads",
@@ -201,16 +219,35 @@ export function projectsRouter(repo: ProjectRepository): Router {
     })
   );
 
-  // ---- Export (implemented in Phase 7) ----
+  // ---- Export ----
 
   router.post(
     "/projects/:id/export",
     wrap(async (req, res) => {
-      await requireProject(req.params.id);
-      throw new HttpError(
-        501,
-        "PDF export is not implemented yet (planned: Phase 7)"
-      );
+      const project = await requireProject(req.params.id);
+
+      if (!project.floorPlan || !project.panel) {
+        throw new HttpError(422, "Project needs a floor plan and a panel");
+      }
+      if (!project.lastResult) {
+        throw new HttpError(422, "Run a simulation before exporting");
+      }
+
+      const pdf = await generatePermitPdf({
+        projectName: project.name,
+        floorPlan: project.floorPlan,
+        panel: project.panel,
+        result: project.lastResult,
+      });
+      const safeName = project.name.replace(/[^\w.-]+/g, "_");
+
+      res
+        .setHeader("Content-Type", "application/pdf")
+        .setHeader(
+          "Content-Disposition",
+          `attachment; filename="${safeName}-permit.pdf"`
+        )
+        .send(pdf);
     })
   );
 

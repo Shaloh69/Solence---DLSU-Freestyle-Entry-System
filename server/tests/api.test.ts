@@ -252,14 +252,72 @@ describe("MVP demo flow", () => {
     expect(response.body.error).toContain("floor plan");
   });
 
-  it("keeps export as a documented 501 until Phase 7", async () => {
+  it("bulk-replaces loads", async () => {
+    const app = makeApp();
+    const project = (
+      await request(app).post("/api/projects").send({ name: "Bulk" })
+    ).body;
+
+    const updated = await request(app)
+      .put(`/api/projects/${project.id}/loads`)
+      .send(loads)
+      .expect(200);
+
+    expect(updated.body.loads).toHaveLength(3);
+
+    const cleared = await request(app)
+      .put(`/api/projects/${project.id}/loads`)
+      .send([])
+      .expect(200);
+
+    expect(cleared.body.loads).toHaveLength(0);
+
+    await request(app)
+      .put(`/api/projects/${project.id}/loads`)
+      .send([loads[0], loads[0]])
+      .expect(400);
+  });
+
+  it("exports a permit PDF after simulation, 422 before", async () => {
     const app = makeApp();
     const project = (
       await request(app).post("/api/projects").send({ name: "Export" })
     ).body;
 
+    await request(app).post(`/api/projects/${project.id}/export`).expect(422);
+
     await request(app)
+      .put(`/api/projects/${project.id}/floorplan`)
+      .send(floorPlan)
+      .expect(200);
+    await request(app)
+      .put(`/api/projects/${project.id}/panel`)
+      .send(panel)
+      .expect(200);
+    await request(app)
+      .put(`/api/projects/${project.id}/loads`)
+      .send(loads)
+      .expect(200);
+    await request(app)
+      .post(`/api/projects/${project.id}/simulate`)
+      .send({})
+      .expect(200);
+
+    const response = await request(app)
       .post(`/api/projects/${project.id}/export`)
-      .expect(501);
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200)
+      .expect("Content-Type", /application\/pdf/);
+
+    const pdf = response.body as Buffer;
+
+    expect(pdf.length).toBeGreaterThan(1000);
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
   });
 });
