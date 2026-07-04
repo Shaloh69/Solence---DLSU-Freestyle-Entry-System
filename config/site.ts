@@ -3,8 +3,9 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "BEPVY",
-  description: "Illums YEs.",
+  name: "Solence",
+  description:
+    "Draw a floor plan. Get a complete, code-compliant wiring design — automatically.",
   navItems: [
     {
       label: "Home",
@@ -15,7 +16,7 @@ export const siteConfig = {
       href: "/about",
     },
     {
-      label: "Simulator",
+      label: "Lighting Simulator",
       href: "/simulator",
     },
   ],
@@ -29,7 +30,7 @@ export const siteConfig = {
       href: "/About",
     },
     {
-      label: "Simulator",
+      label: "Lighting Simulator",
       href: "/simulator",
     },
     {

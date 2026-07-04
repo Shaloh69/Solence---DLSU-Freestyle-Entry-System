@@ -7,8 +7,7 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
 import ThreeBackground from "@/components/ThreeBackground";
-import { initDatabase } from "@/lib/db";
-import ClientWrapper from "../context/ClientWrapper"; // <== NEW
+import ClientWrapper from "../context/ClientWrapper";
 
 export const metadata: Metadata = {
   title: {

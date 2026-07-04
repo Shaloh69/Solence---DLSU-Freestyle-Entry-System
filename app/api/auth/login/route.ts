@@ -3,10 +3,16 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
 
-const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
-
 export async function POST(req: NextRequest) {
   try {
+    const SECRET_KEY = process.env.JWT_SECRET;
+
+    if (!SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Server misconfigured: JWT_SECRET is not set" },
+        { status: 500 }
+      );
+    }
     const { email, password } = await req.json();
 
     const connection = await pool.getConnection();

@@ -1,53 +1,56 @@
-# Next.js & HeroUI Template
+# Solence
 
-This is a template for creating applications using Next.js 14 (app directory) and HeroUI (v2).
+**Draw a floor plan. Get a complete, code-compliant wiring design — automatically.**
 
-[Try it on CodeSandbox](https://githubbox.com/heroui-inc/heroui/next-app-template)
+Solence is an automatic electrical wiring simulator for the Philippine market. It ingests a floor plan, auto-routes all branch wiring, auto-sizes breakers and conductors, renders a 3D wiring overlay, checks Philippine Electrical Code (PEC) compliance in real time, and exports permit-ready documents.
 
-## Technologies Used
+> Formerly **BEPVY_Sims**, a luminance/lamp-quantity simulator. The lighting simulator remains available at `/simulator`.
 
-- [Next.js 14](https://nextjs.org/docs/getting-started)
-- [HeroUI v2](https://heroui.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Framer Motion](https://www.framer.com/motion/)
-- [next-themes](https://github.com/pacocoursey/next-themes)
+## Core loop
 
-## How to Use
+1. Upload or draw a floor plan
+2. Place electrical loads (outlets, lighting, HVAC, equipment) with ratings
+3. Auto-route wiring — wall-following pathfinding from each load to the panel
+4. Auto-calculate branch/feeder loads and demand factors per PEC Section 2
+5. Auto-size breakers and conductors (AWG/mm²) per PEC Table 3.10.1
+6. Review the 3D wiring overlay with live PEC violation flags
+7. Export a permit-ready PDF (wiring diagram, panel schedule, conductor schedule)
 
-### Use the template with create-next-app
+## Architecture
 
-To create a new project based on this template using `create-next-app`, run the following command:
-
-```bash
-npx create-next-app -e https://github.com/heroui-inc/next-app-template
+```
+/          Next.js 15 (App Router) frontend — HeroUI v2, Tailwind, Three.js
+/server    Express + TypeScript API — routing engine, load calc, sizing,
+           PEC compliance, PDF export. Supabase (Postgres + Storage + Auth).
 ```
 
-### Install dependencies
+All wiring-simulation domain logic (routing, load calculation, PEC checks, PDF export) lives in the Express service. The frontend talks to it through a typed API client in `lib/api-client/`.
 
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+## Development
+
+### Frontend (Next.js)
 
 ```bash
 npm install
+cp .env.example .env.local   # fill in values
+npm run dev                  # http://localhost:3000
 ```
 
-### Run the development server
+### Backend (Express API)
 
 ```bash
-npm run dev
+cd server
+npm install
+cp .env.example .env         # fill in values
+npm run dev                  # http://localhost:4000
 ```
 
-### Setup pnpm (optional)
+Run both from the repo root in two terminals, or `npm run dev:all` (requires backend deps installed).
 
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
+## PEC data caveat
 
-```bash
-public-hoist-pattern[]=*@heroui/*
-```
-
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
+⚠️ PEC ampacity tables, demand factors, and rule thresholds in `server/src/engine/**/pec-*.ts` contain **placeholder values that must be supplied/verified by a licensed electrical engineer against the current PEC edition** before any output is used for a real permit submission. Each data file is flagged with a `PEC-VERIFY` comment.
 
 ## License
 
-Licensed under the [MIT license](https://github.com/heroui-inc/next-app-template/blob/main/LICENSE).
+Licensed under the [MIT license](LICENSE).

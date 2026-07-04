@@ -49,7 +49,7 @@ const AboutPage: FC = () => {
     <section className="flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-6">
       {/* Hero Section */}
       <div className="w-full py-12 md:py-16 text-center">
-        <h1 className={`${title({ color: "violet" })} mb-4`}>About BEPVY</h1>
+        <h1 className={`${title({ color: "violet" })} mb-4`}>About Solence</h1>
         <p
           className={`${subtitle()} max-w-3xl mx-auto text-xl mb-8 text-gray-400`}
         >
@@ -64,22 +64,24 @@ const AboutPage: FC = () => {
             Our Project
           </h2>
           <p className="text-gray-300 mb-4">
-            BEPVY (Web-Based Platform for Luminance and Lamp Quantity Simulation
-            for Electrical Systems and Illumination Engineering Design) is a
-            thesis project developed by Electrical Engineering students from the
-            University of Cebu Lapu-Lapu and Mandaue Campus.
+            Solence is an automatic electrical wiring simulator for the
+            Philippine market, developed by Electrical Engineering students
+            from the University of Cebu Lapu-Lapu and Mandaue Campus.
           </p>
           <p className="text-gray-300 mb-4">
-            Our platform addresses the challenge of complex lighting
-            calculations by providing an intuitive, accessible web-based tool
-            for determining optimal luminance levels and lamp quantities for
-            various spaces.
+            Philippine electrical engineers and licensed master electricians
+            still do load calculations by hand, draft wiring manually in CAD,
+            and only discover Philippine Electrical Code violations at
+            MERALCO/LGU inspection — costing ₱50,000–500,000 in rework.
+            Solence ingests a floor plan, auto-routes all branch wiring,
+            auto-sizes breakers and conductors, and checks PEC compliance in
+            real time.
           </p>
           <p className="text-gray-300">
-            The project combines principles from illumination engineering,
-            simulation theory, and web-based technologies to create a solution
-            that benefits students, professionals, and educators in the field of
-            electrical engineering and lighting design.
+            The platform combines pathfinding algorithms, electrical
+            engineering design rules, and web-based 3D visualization to
+            produce permit-ready wiring designs — plus a lighting design
+            simulator for luminance and lamp quantity calculations.
           </p>
         </div>
       </div>
@@ -202,10 +204,10 @@ const AboutPage: FC = () => {
       {/* CTA */}
       <div className="w-full py-6 mb-12">
         <div className="flex flex-col items-center text-center">
-          <h2 className="text-2xl font-bold mb-4">Experience BEPVY Today</h2>
+          <h2 className="text-2xl font-bold mb-4">Experience Solence Today</h2>
           <p className="text-gray-300 max-w-2xl mb-6">
             Try our platform and see how it can transform your approach to
-            illumination engineering design.
+            electrical system design.
           </p>
           <Link
             href="/simulator"

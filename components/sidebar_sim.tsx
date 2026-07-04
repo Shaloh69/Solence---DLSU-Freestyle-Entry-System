@@ -256,7 +256,7 @@ const Sidebar: React.FC = () => {
       )}
     >
       <h2 className="text-xl font-bold text-center">
-        BEPVY Lighting Calculator
+        Solence Lighting Calculator
       </h2>
 
       <Divider className="my-2" />
@@ -602,7 +602,7 @@ const Sidebar: React.FC = () => {
       <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="text-sm text-gray-500 dark:text-gray-400">
           <p>
-            BEPVY: Web-Based Platform for Luminance and Lamp Quantity Simulation
+            Solence Lighting: Luminance and Lamp Quantity Simulation
           </p>
           <p className="mt-1">
             Based on the formula: N = (E × A) / (Φ × C.U. × M.F.)
