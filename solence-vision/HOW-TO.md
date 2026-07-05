@@ -31,10 +31,12 @@ PowerShell activation gotchas:
 
 On macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate`.
 
-PyTorch note: the plain `pip install` gets the CPU build. For GPU
-training install the matching CUDA build first — pick the command for
-your CUDA version at https://pytorch.org/get-started/locally/ — then
-re-run `pip install -r requirements.txt` for the rest.
+PyTorch note: the plain `pip install` gets the **CPU** build — fine for
+serving, useless for training. The full GPU walkthrough (detecting your
+GPU with `nvidia-smi`, picking the right cuXXX wheel, the
+`+cpu`-already-installed gotcha that requires uninstall-first, and VRAM
+-based training flags) lives at the top of `requirements.txt` — read it
+before training.
 
 **No GPU?** Training on CPU is impractically slow. Rent a cloud GPU or
 use Google Colab: clone the repo there, run the same scripts.

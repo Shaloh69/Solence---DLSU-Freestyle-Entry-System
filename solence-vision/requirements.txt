@@ -1,3 +1,41 @@
+# ============================================================================
+# solence-vision dependencies
+#
+# Quick install (CPU-only torch — fine for serving, NOT for training):
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt
+#
+# ---------------------------------------------------------------------------
+# GPU / CUDA — read this before training
+# ---------------------------------------------------------------------------
+# 1) Do you have an NVIDIA GPU? Run:  nvidia-smi
+#    - Command not found / errors  -> no usable NVIDIA GPU: train on
+#      Kaggle Notebooks (free ~30 GPU-hrs/week) or Colab instead.
+#    - Shows a table -> note two things:
+#        "CUDA Version: X.Y" (top right)  = the MAX cuda toolkit your
+#                                           driver supports
+#        Memory (e.g. 4096MiB)            = your VRAM budget
+#
+# 2) Install the CUDA build of torch. Plain `pip install torch` gives the
+#    CPU build. Pick the wheel whose cuXXX is <= your driver's CUDA Version
+#    (exact command generator: https://pytorch.org/get-started/locally):
+#
+#      .venv\Scripts\python.exe -m pip uninstall -y torch torchvision
+#      .venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#
+#    GOTCHA: if the CPU build is already installed, `--upgrade` will NOT
+#    switch it — pip considers 2.x.x+cpu equal to 2.x.x+cu128. You must
+#    uninstall first (as above) or add --force-reinstall.
+#
+# 3) Verify before training:
+#      .venv\Scripts\python.exe -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"
+#    Must print True + your GPU name.
+#
+# 4) VRAM budget (training flags):
+#      >= 8 GB : defaults are fine (train_yolo --imgsz 1024, train_unet --batch 8)
+#      4-6 GB  : train_yolo --imgsz 640 ; train_unet --imgsz 512 --batch 2
+#      OOM?    : halve --batch first, then --imgsz
+# ============================================================================
+
 # Core service (API + fusion) — enough to run the FastAPI app and tests.
 fastapi>=0.115
 uvicorn[standard]>=0.32
@@ -8,9 +46,10 @@ pillow>=10.4
 pytest>=8.3
 httpx>=0.27
 
-# ML training/inference — heavy; install when actually training models.
-# torch may need a CUDA-specific index URL, see HOW-TO.md.
+# ML training/inference — heavy. torch line below installs the CPU build;
+# for GPU training replace it per the CUDA instructions above.
 torch>=2.4
+torchvision>=0.19
 ultralytics>=8.4  # YOLO26 (NMS-free end-to-end) support
 segmentation-models-pytorch>=0.3.4
 albumentations>=1.4
