@@ -10,9 +10,11 @@ import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Switch } from "@heroui/switch";
 import { Trash2, ImagePlus, Square, Lightbulb } from "lucide-react";
+import { toast } from "sonner";
 
 import { RoomType, VoltageSystem } from "@/lib/api-client";
 import { useEditorStore } from "@/lib/editor-store";
+import { pdfFirstPageToDataUrl } from "@/lib/pdf-import";
 
 const ROOM_TYPES: RoomType[] = [
   "bathroom",
@@ -40,6 +42,21 @@ export default function InspectorPanel() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   function uploadImage(file: File) {
+    if (
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      toast.info("Converting PDF page 1 to a trace image…");
+      void pdfFirstPageToDataUrl(file)
+        .then((dataUrl) => store.setBackgroundImage(dataUrl))
+        .catch((error: unknown) =>
+          toast.error(
+            `PDF import failed: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+
+      return;
+    }
     const reader = new FileReader();
 
     reader.onload = () =>
@@ -106,7 +123,7 @@ export default function InspectorPanel() {
             <input
               ref={fileInput}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -122,8 +139,8 @@ export default function InspectorPanel() {
                 startContent={<ImagePlus size={14} />}
                 onPress={() => fileInput.current?.click()}
               >
-                {floorPlan.backgroundImage ? "Replace" : "Upload"} floor plan
-                image
+                {floorPlan.backgroundImage ? "Replace" : "Upload"} plan
+                image/PDF
               </Button>
               {floorPlan.backgroundImage && (
                 <Button
@@ -227,6 +244,39 @@ export default function InspectorPanel() {
               <SelectItem key={system.key}>{system.label}</SelectItem>
             ))}
           </Select>
+          {/* Exact coordinate input (CAD precision, brief §4.1) */}
+          <div className="flex gap-2">
+            <Input
+              size="sm"
+              type="number"
+              step={0.05}
+              label="X (m)"
+              classNames={{ input: "font-mono" }}
+              value={String(panel.position.x)}
+              onValueChange={(value) => {
+                const x = parseFloat(value);
+
+                if (Number.isFinite(x)) {
+                  store.placePanel({ ...panel.position, x });
+                }
+              }}
+            />
+            <Input
+              size="sm"
+              type="number"
+              step={0.05}
+              label="Y (m)"
+              classNames={{ input: "font-mono" }}
+              value={String(panel.position.y)}
+              onValueChange={(value) => {
+                const y = parseFloat(value);
+
+                if (Number.isFinite(y)) {
+                  store.placePanel({ ...panel.position, y });
+                }
+              }}
+            />
+          </div>
           <p className="text-xs text-default-400">
             Main breaker is auto-sized from feeder demand.
           </p>
@@ -296,6 +346,45 @@ export default function InspectorPanel() {
             value={selectedLoad.name}
             onValueChange={(name) => store.updateLoad(selectedLoad.id, { name })}
           />
+          {/* Exact coordinate input (CAD precision, brief §4.1) */}
+          <div className="flex gap-2">
+            <Input
+              size="sm"
+              type="number"
+              step={0.05}
+              label="X (m)"
+              classNames={{ input: "font-mono" }}
+              value={String(selectedLoad.position.x)}
+              onValueChange={(value) => {
+                const x = parseFloat(value);
+
+                if (Number.isFinite(x)) {
+                  store.setLoadPosition(selectedLoad.id, {
+                    ...selectedLoad.position,
+                    x,
+                  });
+                }
+              }}
+            />
+            <Input
+              size="sm"
+              type="number"
+              step={0.05}
+              label="Y (m)"
+              classNames={{ input: "font-mono" }}
+              value={String(selectedLoad.position.y)}
+              onValueChange={(value) => {
+                const y = parseFloat(value);
+
+                if (Number.isFinite(y)) {
+                  store.setLoadPosition(selectedLoad.id, {
+                    ...selectedLoad.position,
+                    y,
+                  });
+                }
+              }}
+            />
+          </div>
           <div className="flex gap-2">
             <Input
               size="sm"

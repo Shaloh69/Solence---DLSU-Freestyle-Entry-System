@@ -167,6 +167,8 @@ interface EditorState {
   placePanel(position: Point, system?: VoltageSystem): void;
   placeLoad(item: LibraryItem, position: Point): void;
   updateLoad(id: string, changes: Partial<ElectricalLoad>): void;
+  /** Typed-coordinate placement: exact position (no snapping), room re-detected. */
+  setLoadPosition(id: string, position: Point): void;
   moveItem(selection: Selection, position: Point): void;
   deleteSelection(): void;
   clearError(): void;
@@ -576,6 +578,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set((state) => ({
         loads: state.loads.map((load) =>
           load.id === id ? { ...load, ...changes } : load
+        ),
+      }));
+      touched();
+    },
+
+    setLoadPosition(id, position) {
+      const room = roomAt(position);
+
+      set((state) => ({
+        loads: state.loads.map((load) =>
+          load.id === id ? { ...load, position, roomId: room?.id } : load
         ),
       }));
       touched();
