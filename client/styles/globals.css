@@ -1,3 +1,319 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Day/night sky background (DESIGN.md §4 "Animated sky", brief §10.3) */
+/* Layered SVG + CSS keyframes only — no WebGL. Scoped to marketing/   */
+/* dashboard shells via <SkyBackground/>; never behind the editor.     */
+/* ------------------------------------------------------------------ */
+
+.sky-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sky-day,
+.sky-night {
+  position: absolute;
+  inset: 0;
+  transition: opacity 1.4s ease;
+}
+
+/* Day: warm near the horizon, cooler toward the top. */
+.sky-day {
+  opacity: 1;
+  background: linear-gradient(
+    to top,
+    #fdf0dd 0%,
+    #dcebf5 35%,
+    #b7d4ec 100%
+  );
+}
+.dark .sky-day {
+  opacity: 0;
+}
+
+/* Night: brand navy deepening upward. */
+.sky-night {
+  opacity: 0;
+  background: linear-gradient(to top, #13294b 0%, #0b1b33 60%, #060f1f 100%);
+}
+.dark .sky-night {
+  opacity: 1;
+}
+
+/* --- Sun ------------------------------------------------------------ */
+.sky-sun {
+  position: absolute;
+  top: 12%;
+  left: 14%;
+  width: 90px;
+  height: 90px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fff7b0 0%, #ffe08a 55%, transparent 72%);
+  animation: sky-sun-pulse 7s ease-in-out infinite;
+}
+.sky-sun::after {
+  content: "";
+  position: absolute;
+  inset: -45px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 224, 138, 0.45) 0%,
+    transparent 70%
+  );
+}
+@keyframes sky-sun-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* --- Parallax cloud layers (three depths, three speeds) ------------- */
+.sky-clouds {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  display: flex;
+}
+.sky-clouds > svg {
+  width: 50%;
+  flex-shrink: 0;
+}
+.sky-clouds-far {
+  top: 6%;
+  opacity: 0.5;
+  animation: sky-drift 160s linear infinite;
+}
+.sky-clouds-mid {
+  top: 16%;
+  opacity: 0.7;
+  animation: sky-drift 95s linear infinite;
+}
+.sky-clouds-near {
+  top: 30%;
+  opacity: 0.9;
+  animation: sky-drift 55s linear infinite;
+}
+@keyframes sky-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* --- Star field: multi-box-shadow technique, layered twinkle phases - */
+.sky-stars {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: transparent;
+}
+.sky-stars-a {
+  animation: sky-twinkle 3.6s ease-in-out infinite;
+}
+.sky-stars-b {
+  width: 1.5px;
+  height: 1.5px;
+  animation: sky-twinkle 5.2s ease-in-out infinite;
+  animation-delay: -1.7s;
+}
+.sky-stars-c {
+  width: 1px;
+  height: 1px;
+  animation: sky-twinkle 7.4s ease-in-out infinite;
+  animation-delay: -3.1s;
+}
+@keyframes sky-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* --- Crescent moon: backlit-dial halo, not a cartoon ----------------- */
+.sky-moon {
+  position: absolute;
+  top: 10%;
+  right: 16%;
+  animation: sky-moon-glow 9s ease-in-out infinite;
+}
+@keyframes sky-moon-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 14px rgba(230, 237, 247, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 26px rgba(230, 237, 247, 0.55));
+  }
+}
+
+/* --- Shooting stars: randomized delays/paths via CSS custom props ---- */
+.sky-shooting {
+  position: absolute;
+  top: var(--st, 15%);
+  left: var(--sl, 70%);
+  width: 110px;
+  height: 1.5px;
+  background: linear-gradient(
+    to right,
+    rgba(230, 237, 247, 0) 0%,
+    rgba(230, 237, 247, 0.9) 100%
+  );
+  border-radius: 9999px;
+  opacity: 0;
+  transform: rotate(var(--sr, 32deg));
+  animation: sky-shoot var(--sd, 21s) linear infinite;
+  animation-delay: var(--sdelay, 4s);
+}
+@keyframes sky-shoot {
+  0%,
+  92% {
+    opacity: 0;
+    transform: rotate(var(--sr, 32deg)) translateX(0);
+  }
+  93% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: rotate(var(--sr, 32deg)) translateX(-340px);
+  }
+}
+
+/* --- Global gates ----------------------------------------------------- */
+.sky-paused .sky-sun,
+.sky-paused .sky-clouds,
+.sky-paused .sky-stars,
+.sky-paused .sky-moon,
+.sky-paused .sky-shooting {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-root * {
+    animation: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Navbar motion (DESIGN.md §4 "Navbar motion", brief §10.8)           */
+/* ------------------------------------------------------------------ */
+
+.nav-link-indicator {
+  position: relative;
+}
+.nav-link-indicator::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: #14b8a6;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.22s ease;
+}
+.nav-link-indicator:hover::after,
+.nav-link-indicator[data-active="true"]::after {
+  transform: scaleX(1);
+}
+
+.nav-logo-glow {
+  transition: filter 0.25s ease;
+}
+.nav-logo-glow:hover {
+  filter: drop-shadow(0 0 6px rgba(20, 184, 166, 0.65));
+}
+
+.nav-cta-glow {
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.45);
+  transition: box-shadow 0.3s ease;
+}
+.nav-cta-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(20, 184, 166, 0.8),
+    0 0 14px rgba(20, 184, 166, 0.35);
+}
+
+/* Staggered mobile-drawer links */
+.nav-menu-stagger > * {
+  animation: nav-fade-up 0.3s ease both;
+}
+.nav-menu-stagger > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.nav-menu-stagger > *:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.nav-menu-stagger > *:nth-child(3) {
+  animation-delay: 0.19s;
+}
+.nav-menu-stagger > *:nth-child(4) {
+  animation-delay: 0.26s;
+}
+@keyframes nav-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Wire-draw animation for the landing schematic (DESIGN.md §4 content rule) */
+.schematic-wire {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: wire-draw 3.2s ease-out forwards;
+}
+.schematic-wire:nth-of-type(2) {
+  animation-delay: 0.5s;
+}
+.schematic-wire:nth-of-type(3) {
+  animation-delay: 1s;
+}
+.schematic-wire:nth-of-type(4) {
+  animation-delay: 1.5s;
+}
+@keyframes wire-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-menu-stagger > *,
+  .schematic-wire {
+    animation: none !important;
+  }
+  .schematic-wire {
+    stroke-dashoffset: 0 !important;
+  }
+  .nav-link-indicator::after,
+  .nav-logo-glow,
+  .nav-cta-glow {
+    transition: none !important;
+  }
+}

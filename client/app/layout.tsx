@@ -7,7 +7,6 @@ import { Providers } from "./providers";
 import { siteConfig } from "@/config/site";
 import { fontDisplay, fontMono, fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
-import ThreeBackground from "@/components/ThreeBackground";
 import ClientWrapper from "../context/ClientWrapper";
 
 export const metadata: Metadata = {
@@ -46,9 +45,6 @@ export default function RootLayout({
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
           <div className="relative flex flex-col h-screen bg-transparent">
-            <div className="absolute inset-0 z-0">
-              <ThreeBackground />
-            </div>
             <Navbar />
             <ClientWrapper>{children}</ClientWrapper>
           </div>
