@@ -215,12 +215,35 @@ color tinting.
   bordered for everything else. No gradient buttons, no full-pill CTAs.
 - **Cards/panels:** flat surface + border + dense padding (12px), led
   by a mono-caps eyebrow or data — never an icon-in-a-rounded-square.
+- **Marketing cards (brief §10.4):** asymmetric/bento grids sized by
+  content weight — never a uniform 3-up grid. Drafting-convention
+  chrome: corner registration marks (short L-shaped strokes at 2–4
+  corners), thin schematic borders, a mono technical index label
+  (`01`, `SPEC-A`, …) per card. Cards differentiate by content type —
+  a spec card carries a data readout, a problem card carries different
+  visual weight — never identical layouts with swapped icon+text.
 - **Tables (schedules):** dense rows, mono numerals, mono-caps header
   labels, circuit color swatch as a small square (2px radius), not a pill.
 - **Content rule (ClickHouse calibration):** show the real computation.
   Marketing and empty-state surfaces display actual engine output —
   real schedules, real conductor sizes, real violation messages — never
   abstract decoration standing in for them.
+- **Animated sky (brief §10.3):** the day/night environmental background
+  is layered **SVG + CSS keyframes only — never WebGL/canvas** (it is
+  chrome and must not compete with the CAD canvas for GPU). Day: sun
+  with soft pulsing glow, 2–3 parallax cloud layers at different speeds,
+  warm-horizon → cool-top gradient. Night: box-shadow star field with
+  randomized (non-synchronized) twinkle, crescent moon as a clean SVG
+  with a backlit-dial halo, infrequent randomized shooting stars with
+  brief trails. Scope: landing, about, auth, dashboard/project-list
+  shells only — **never behind the active editor**. Respect
+  `prefers-reduced-motion`; pause when the tab is hidden.
+- **Navbar motion (brief §10.8):** restrained and purposeful only —
+  scroll-reactive surface (transparent over hero → blurred solid after),
+  hide-on-scroll-down / reveal-on-scroll-up, a sliding active/hover link
+  indicator, a subtle instrument-glow logo hover (no bounce/spin),
+  hamburger-to-X morph with staggered drawer links, and a persistently
+  highlighted nav CTA. All gated behind `prefers-reduced-motion`.
 
 ## 5. Layout principles
 
@@ -270,7 +293,19 @@ review-leaning stacked panels · <sm no canvas, status/summary/export
 only. The banned list applies at every tier — mobile is its own
 simplified layout, not a squeezed desktop.
 
-## 9. Rejection clause
+## 9. Process (brief §10.9–10.11)
+
+Before generating or revamping any screen: read this file, write a
+short component spec per page section (exact tokens, spacing,
+interaction states) before building it, then build. After any
+meaningful UI change, run the installed `/design-review` workflow
+(`.claude/` — OneRedOak design-review + the avoid-ai-design audit)
+rather than an ad-hoc self-check; it verifies the rendered page against
+this file and the §7 banned list. New screens and empty/loading/error
+states go through the same pass — they are where generic defaults
+sneak back in.
+
+## 10. Rejection clause
 
 Do not introduce colors, fonts, gradients, shadows, radii, or component
 patterns not listed in this file. If a needed token or pattern is
