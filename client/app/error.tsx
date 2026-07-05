@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+/** Route error boundary — specific, recoverable, on-voice (brief §10.5). */
 export default function Error({
   error,
   reset,
@@ -10,19 +11,25 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
     /* eslint-disable no-console */
     console.error(error);
   }, [error]);
 
   return (
-    <div>
-      <h2>Something went wrong!</h2>
+    <div className="flex flex-col items-center justify-center py-32 text-center">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-danger">
+        Fault detected
+      </p>
+      <h1 className="font-display font-bold text-3xl tracking-tight mt-3">
+        This page tripped
+      </h1>
+      <p className="text-default-500 mt-3 max-w-md text-sm">
+        {error.message || "An unexpected error interrupted rendering."} Your
+        project data is stored server-side and is not affected.
+      </p>
       <button
-        onClick={
-          // Attempt to recover by trying to re-render the segment
-          () => reset()
-        }
+        className="mt-8 bg-brand-teal-dark hover:bg-brand-teal transition-colors px-6 py-2.5 rounded-control text-white font-medium"
+        onClick={() => reset()}
       >
         Try again
       </button>

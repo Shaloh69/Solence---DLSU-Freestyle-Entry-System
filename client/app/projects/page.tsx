@@ -8,6 +8,7 @@ import { Input } from "@heroui/input";
 import { Plus, Trash2, FolderOpen, Zap } from "lucide-react";
 
 import { title, subtitle } from "@/components/primitives";
+import SkyBackground from "@/components/SkyBackground";
 import { api, Project } from "@/lib/api-client";
 
 export default function ProjectsPage() {
@@ -53,7 +54,10 @@ export default function ProjectsPage() {
   }
 
   return (
-    <section className="w-full max-w-4xl mx-auto px-6 py-10">
+    <section className="relative w-full max-w-4xl mx-auto px-6 py-10">
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <SkyBackground />
+      </div>
       <h1 className={title({ color: "brand", size: "sm" })}>Projects</h1>
       <p className={subtitle()}>
         Each project holds a floor plan, its loads, and the latest wiring
@@ -88,9 +92,15 @@ export default function ProjectsPage() {
       )}
 
       {projects !== null && projects.length === 0 && (
-        <p className="text-default-500">
-          No projects yet — create one above to start designing.
-        </p>
+        <div className="relative border border-dashed border-default-300 rounded-panel p-10 text-center bg-content1/50">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-default-400">
+            No projects yet
+          </p>
+          <p className="text-default-600 mt-2 max-w-md mx-auto text-sm">
+            Name one above and press Create — you&apos;ll land in the editor
+            with an empty plan, ready to draw walls and place the panel.
+          </p>
+        </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
