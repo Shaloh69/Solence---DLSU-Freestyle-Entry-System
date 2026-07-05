@@ -25,7 +25,7 @@ export default function LayersPanel() {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-2">Layers</h3>
+      <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-default-500 mb-2">Layers</h3>
       <div className="flex flex-col gap-1.5">
         {LAYERS.map((layer) => (
           <Checkbox

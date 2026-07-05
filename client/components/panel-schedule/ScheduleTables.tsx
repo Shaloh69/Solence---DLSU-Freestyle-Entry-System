@@ -69,7 +69,10 @@ export function PanelScheduleTable() {
       <Table
         removeWrapper
         aria-label="Panel schedule"
-        classNames={{ th: "text-xs", td: "text-xs py-1.5 font-mono" }}
+        classNames={{
+          th: "font-mono text-[11px] uppercase tracking-wider",
+          td: "text-xs py-1.5 font-mono",
+        }}
       >
         <TableHeader>
           <TableColumn>CKT</TableColumn>

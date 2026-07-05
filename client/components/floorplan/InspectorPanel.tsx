@@ -58,7 +58,7 @@ export default function InspectorPanel() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold">
+      <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-default-500">
         {selection ? "Selection" : "Plan Settings"}
       </h3>
 
