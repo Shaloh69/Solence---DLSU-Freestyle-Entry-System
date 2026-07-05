@@ -27,7 +27,8 @@ depend on this service existing.
 ## Architecture (7.2)
 
 U-Net (ResNet encoder, `segmentation_models_pytorch`) segments walls;
-YOLO-seg (`ultralytics`) detects doors/windows/room instances; the
+YOLO26-seg (`ultralytics`, NMS-free end-to-end) detects doors/windows/
+room instances; the
 fusion step cuts wall segments where opening boxes intersect them.
 Room-type labels feed the GFCI/AFCI compliance rules in the Express
 engine.

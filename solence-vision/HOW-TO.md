@@ -6,14 +6,30 @@ vision model before. Every step is a literal command.
 
 ## 0. Environment setup
 
-Python 3.11+ required.
+Python 3.11 or 3.12 recommended (`py -0` lists what's installed; 3.12
+is the most battle-tested for the torch/ultralytics stack).
 
-```bash
-cd solence-vision
-python -m venv .venv
-.venv\Scripts\activate            # Windows (source .venv/bin/activate on mac/linux)
+```powershell
+cd C:\Projects\Solence\solence-vision
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
+
+PowerShell activation gotchas:
+
+- It must be `.\.venv\Scripts\Activate.ps1` — the leading `.\` and the
+  `.ps1` matter. Bare `.venv\Scripts\activate` is cmd.exe syntax and
+  fails in PowerShell with "The module '.venv' could not be loaded".
+- If you get "running scripts is disabled on this system", allow local
+  scripts once:
+  `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+- **No-activation alternative (always works):** skip activation and
+  call the venv's interpreter directly —
+  `.venv\Scripts\python.exe scripts\train_yolo.py --dataset cubicasa5k`
+  (same for pip: `.venv\Scripts\python.exe -m pip install -r requirements.txt`).
+
+On macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate`.
 
 PyTorch note: the plain `pip install` gets the CPU build. For GPU
 training install the matching CUDA build first — pick the command for
@@ -63,7 +79,7 @@ hours on a mislabeled conversion.
 ## 4. Train
 
 ```bash
-python scripts/train_yolo.py --dataset cubicasa5k --epochs 100
+python scripts/train_yolo.py --dataset cubicasa5k --epochs 100   # YOLO26n-seg base
 python scripts/train_unet.py --dataset cubicasa5k --epochs 40
 ```
 

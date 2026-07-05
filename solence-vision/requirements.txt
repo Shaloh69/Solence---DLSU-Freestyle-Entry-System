@@ -11,7 +11,7 @@ httpx>=0.27
 # ML training/inference — heavy; install when actually training models.
 # torch may need a CUDA-specific index URL, see HOW-TO.md.
 torch>=2.4
-ultralytics>=8.3
+ultralytics>=8.4  # YOLO26 (NMS-free end-to-end) support
 segmentation-models-pytorch>=0.3.4
 albumentations>=1.4
 kagglehub>=0.3

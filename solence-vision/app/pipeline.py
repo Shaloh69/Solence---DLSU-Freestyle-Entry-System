@@ -45,7 +45,7 @@ def default_wall_predictor(image: np.ndarray) -> np.ndarray:
 
 
 def default_opening_predictor(image: np.ndarray) -> list[Detection]:
-    """YOLO doors/windows/rooms over an RGB image."""
+    """YOLO26 doors/windows/rooms over an RGB image (NMS-free e2e)."""
     from .models import load_yolo
 
     model = load_yolo()
@@ -77,7 +77,7 @@ def run_pipeline(
     on_progress("running_wall_segmentation", "Segmenting walls (U-Net)")
     wall_mask = wall_predictor(image)
 
-    on_progress("running_detection", "Detecting doors/windows/rooms (YOLO)")
+    on_progress("running_detection", "Detecting doors/windows/rooms (YOLO26)")
     detections = opening_predictor(image)
 
     on_progress("fusing", "Fusing wall mask with detections")

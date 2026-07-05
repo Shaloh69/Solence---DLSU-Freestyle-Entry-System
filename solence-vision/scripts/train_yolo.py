@@ -1,7 +1,11 @@
-"""Train the YOLO door/window/room head.
+"""Train the YOLO26 door/window/room head.
+
+YOLO26 is end-to-end NMS-free by default; the training/predict API is
+unchanged from earlier Ultralytics models. Scale up with --base
+yolo26s-seg.pt / yolo26m-seg.pt if the nano head underfits.
 
 Usage:
-    python scripts/train_yolo.py --dataset cubicasa5k [--epochs 100] [--base yolo11n-seg.pt]
+    python scripts/train_yolo.py --dataset cubicasa5k [--epochs 100] [--base yolo26n-seg.pt]
 
 Saves best weights to models/yolo/best.pt (previous weights are kept as
 best-<timestamp>.pt, never silently overwritten). Needs a GPU for
@@ -22,7 +26,7 @@ def main() -> None:
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--imgsz", type=int, default=1024)
-    parser.add_argument("--base", default="yolo11n-seg.pt")
+    parser.add_argument("--base", default="yolo26n-seg.pt")
     args = parser.parse_args()
 
     require_dataset_name(args.dataset)
