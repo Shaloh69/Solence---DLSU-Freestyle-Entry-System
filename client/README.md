@@ -13,10 +13,11 @@ the script's header.
 ## Map
 
 - `app/` — routes. `/projects` (list), `/projects/[id]/editor` (the
-  editor), `/simulator` (the original lighting calculator, kept live).
-  Auth is not wired yet — the legacy BEPVY MySQL/JWT stack was removed;
-  Supabase Auth lands once a Supabase project is provisioned (tiers
-  resolve via header/env until then).
+  editor). The old standalone `/simulator` page was deleted per brief
+  §9.1 — lighting lives in the editor's lighting layer, backed by
+  `server/src/engine/lighting/`. Auth is not wired yet — the legacy
+  BEPVY MySQL/JWT stack was removed; Supabase Auth lands once a
+  Supabase project is provisioned (tiers resolve via header/env).
 - `components/floorplan/` — canvas, toolbar, inspector, layers, status bar.
 - `components/loads/` — the drag-and-drop component library palette.
 - `components/wiring-overlay/` — react-three-fiber 3D view.

@@ -1,20 +1,33 @@
 "use client";
 
 /**
- * 3D wiring overlay: extruded walls with door/window cuts (deterministic
- * segment splitting per section 7.7 — no CSG dependency), panel, loads,
- * routed wiring at conduit height, plus the lighting layer (fixtures +
- * lux heatmap). CAD layers from the editor store apply here too.
+ * 3D wiring overlay — the CAD viewport's orbit view.
  *
- * Plan coordinates (x right, y down, meters) map to Three.js as
- * x -> x, y -> z, with +y up.
+ * Geometry (brief §7.7): walls extrude with deterministic door/window
+ * cuts (lintels + sill/head bands, no CSG), a floor plane per room,
+ * and a translucent flat roof slab; wiring runs at conduit height with
+ * drops to each load, color-coded by circuit (violations red).
+ *
+ * Performance (brief §4.5, after mlightcad/CAD-Viewer's technique):
+ *  - InstancedMesh for repeated geometry: one draw call for ALL load
+ *    markers and one for the entire lux heatmap, instead of a mesh per
+ *    object.
+ *  - Material caching: one shared material per surface kind; instance
+ *    colors carry per-object state instead of per-object materials.
+ *  - Level-of-detail: the heatmap (the most GPU-expensive layer) drops
+ *    to half resolution when the camera is far, restoring on zoom-in.
+ * Route polylines stay one drei <Line> per circuit run — counts are
+ * small (tens) and each needs its own dash state.
  */
-import { Canvas } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls, Text } from "@react-three/drei";
 
 import {
   ElectricalLoad,
   FloorPlan,
+  LuxSample,
   Opening,
   Panel,
   SimulationResult,
@@ -40,19 +53,67 @@ function loadHeight(type: ElectricalLoad["type"]): number {
   }
 }
 
+/* ---------- shared, cached materials (§4.5: material caching) ---------- */
+
+function useSharedMaterials() {
+  const materials = useMemo(
+    () => ({
+      wall: new THREE.MeshStandardMaterial({
+        color: "#9ca3af",
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.8,
+      }),
+      floor: new THREE.MeshStandardMaterial({
+        color: "#374151",
+        roughness: 0.9,
+      }),
+      roomFloor: new THREE.MeshStandardMaterial({
+        color: "#4b5f7a",
+        transparent: true,
+        opacity: 0.5,
+        roughness: 0.9,
+      }),
+      roof: new THREE.MeshStandardMaterial({
+        color: "#9ca3af",
+        transparent: true,
+        opacity: 0.12,
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+      panel: new THREE.MeshStandardMaterial({
+        color: "#1f2937",
+        metalness: 0.4,
+        roughness: 0.4,
+      }),
+      // White base; per-instance colors multiply against it.
+      loadInstance: new THREE.MeshStandardMaterial({ color: "#ffffff" }),
+      heatmapInstance: new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.45,
+      }),
+    }),
+    []
+  );
+
+  useLayoutEffect(() => {
+    return () => {
+      for (const material of Object.values(materials)) material.dispose();
+    };
+  }, [materials]);
+
+  return materials;
+}
+
+/* ---------- walls with opening cuts ---------- */
+
 interface WallBox {
-  /** Distance range along the wall, meters. */
   from: number;
   to: number;
-  /** Vertical range, meters. */
   bottom: number;
   top: number;
 }
 
-/**
- * Split one wall into boxes around its openings: solid full-height
- * segments, lintels above doors, and sill/head bands around windows.
- */
 function wallBoxes(wall: Wall, openings: Opening[]): WallBox[] {
   const length = Math.hypot(
     wall.end.x - wall.start.x,
@@ -89,7 +150,13 @@ function wallBoxes(wall: Wall, openings: Opening[]): WallBox[] {
   return boxes;
 }
 
-function Walls({ plan }: { plan: FloorPlan }) {
+function Walls({
+  plan,
+  material,
+}: {
+  plan: FloorPlan;
+  material: THREE.Material;
+}) {
   const openings = plan.openings ?? [];
 
   return (
@@ -111,8 +178,6 @@ function Walls({ plan }: { plan: FloorPlan }) {
 
         return wallBoxes(wall, openings).map((box, index) => {
           const mid = (box.from + box.to) / 2;
-          const midX = wall.start.x + ux * mid;
-          const midY = wall.start.y + uy * mid;
           const height = box.top - box.bottom;
 
           if (height <= 0 || box.to - box.from <= 0) return null;
@@ -120,16 +185,15 @@ function Walls({ plan }: { plan: FloorPlan }) {
           return (
             <mesh
               key={`${wall.id}-${index}`}
-              position={[midX, box.bottom + height / 2, midY]}
+              material={material}
+              position={[
+                wall.start.x + ux * mid,
+                box.bottom + height / 2,
+                wall.start.y + uy * mid,
+              ]}
               rotation={[0, -angle, 0]}
             >
               <boxGeometry args={[box.to - box.from, height, thickness]} />
-              <meshStandardMaterial
-                color="#9ca3af"
-                transparent
-                opacity={0.45}
-                roughness={0.8}
-              />
             </mesh>
           );
         });
@@ -138,17 +202,59 @@ function Walls({ plan }: { plan: FloorPlan }) {
   );
 }
 
-function Floor({ plan, showRooms }: { plan: FloorPlan; showRooms: boolean }) {
+/* ---------- floors per room + roof (§7.7) ---------- */
+
+function RoomFloorsAndRoof({
+  plan,
+  materials,
+  showRooms,
+  showRoof,
+}: {
+  plan: FloorPlan;
+  materials: ReturnType<typeof useSharedMaterials>;
+  showRooms: boolean;
+  showRoof: boolean;
+}) {
+  const roomGeometries = useMemo(
+    () =>
+      plan.rooms.map((room) => {
+        const shape = new THREE.Shape(
+          room.boundary.map((point) => new THREE.Vector2(point.x, point.y))
+        );
+
+        return { id: room.id, geometry: new THREE.ShapeGeometry(shape) };
+      }),
+    [plan.rooms]
+  );
+
+  useLayoutEffect(() => {
+    return () => roomGeometries.forEach((room) => room.geometry.dispose());
+  }, [roomGeometries]);
+
   return (
     <>
+      {/* base ground plane */}
       <mesh
-        position={[plan.width / 2, -0.01, plan.height / 2]}
+        material={materials.floor}
+        position={[plan.width / 2, -0.02, plan.height / 2]}
         rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
       >
         <planeGeometry args={[plan.width, plan.height]} />
-        <meshStandardMaterial color="#374151" roughness={0.9} />
       </mesh>
+
+      {/* floor plane per room */}
+      {roomGeometries.map((room) => (
+        <mesh
+          key={room.id}
+          geometry={room.geometry}
+          material={materials.roomFloor}
+          position={[0, 0.005, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[1, -1, 1]}
+        />
+      ))}
+
+      {/* room labels */}
       {showRooms &&
         plan.rooms.map((room) => {
           const cx =
@@ -161,115 +267,169 @@ function Floor({ plan, showRooms }: { plan: FloorPlan; showRooms: boolean }) {
           return (
             <Text
               key={room.id}
-              position={[cx, 0.02, cy]}
-              rotation={[-Math.PI / 2, 0, 0]}
-              fontSize={0.35}
-              color="#d1d5db"
               anchorX="center"
               anchorY="middle"
+              color="#d1d5db"
+              fontSize={0.35}
+              position={[cx, 0.03, cy]}
+              rotation={[-Math.PI / 2, 0, 0]}
             >
               {room.name}
             </Text>
           );
         })}
+
+      {/* flat roof slab — translucent so the wiring stays visible */}
+      {showRoof && (
+        <mesh
+          material={materials.roof}
+          position={[plan.width / 2, WALL_HEIGHT + 0.02, plan.height / 2]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <planeGeometry args={[plan.width, plan.height]} />
+        </mesh>
+      )}
     </>
   );
 }
 
-function LuxHeatmap({ result }: { result: SimulationResult }) {
+/* ---------- instanced loads (§4.5: instancing) ---------- */
+
+function InstancedLoads({
+  loads,
+  colors,
+  material,
+}: {
+  loads: ElectricalLoad[];
+  colors: string[];
+  material: THREE.Material;
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+  const color = useMemo(() => new THREE.Color(), []);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+
+    if (!mesh) return;
+    loads.forEach((load, index) => {
+      matrix.setPosition(
+        load.position.x,
+        loadHeight(load.type),
+        load.position.y
+      );
+      mesh.setMatrixAt(index, matrix);
+      mesh.setColorAt(index, color.set(colors[index]));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [loads, colors, matrix, color]);
+
+  if (loads.length === 0) return null;
+
   return (
-    <>
-      {result.luxHeatmap.map((sample, index) => {
-        const hue = Math.max(0, 220 - Math.min(sample.lux, 500) * 0.44);
-
-        return (
-          <mesh
-            key={index}
-            position={[sample.x, 0.03, sample.y]}
-            rotation={[-Math.PI / 2, 0, 0]}
-          >
-            <planeGeometry args={[0.48, 0.48]} />
-            <meshBasicMaterial
-              color={`hsl(${hue}, 80%, 50%)`}
-              transparent
-              opacity={0.45}
-            />
-          </mesh>
-        );
-      })}
-    </>
+    <instancedMesh
+      key={loads.length}
+      ref={meshRef}
+      args={[undefined, undefined, loads.length]}
+      material={material}
+    >
+      <sphereGeometry args={[0.12, 16, 12]} />
+    </instancedMesh>
   );
 }
 
-function PanelBox({ panel }: { panel: Panel }) {
+/* ---------- instanced lux heatmap with LOD (§4.5) ---------- */
+
+function InstancedHeatmap({
+  samples,
+  material,
+  planCenter,
+}: {
+  samples: LuxSample[];
+  material: THREE.Material;
+  planCenter: [number, number];
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const { camera } = useThree();
+  const [coarse, setCoarse] = useState(false);
+
+  // LOD: drop to half resolution when the camera is far from the plan.
+  useFrame(() => {
+    const distance = camera.position.distanceTo(
+      new THREE.Vector3(planCenter[0], 0, planCenter[1])
+    );
+    const shouldBeCoarse = distance > 24;
+
+    if (shouldBeCoarse !== coarse) setCoarse(shouldBeCoarse);
+  });
+
+  const visible = useMemo(
+    () => (coarse ? samples.filter((_, index) => index % 2 === 0) : samples),
+    [samples, coarse]
+  );
+
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+  const rotation = useMemo(
+    () =>
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
+    []
+  );
+  const scale = useMemo(() => new THREE.Vector3(1, 1, 1), []);
+  const color = useMemo(() => new THREE.Color(), []);
+  const position = useMemo(() => new THREE.Vector3(), []);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+
+    if (!mesh) return;
+    const size = coarse ? 1.4 : 1;
+
+    visible.forEach((sample, index) => {
+      position.set(sample.x, 0.04, sample.y);
+      scale.set(size, size, size);
+      matrix.compose(position, rotation, scale);
+      mesh.setMatrixAt(index, matrix);
+      const hue = Math.max(0, 220 - Math.min(sample.lux, 500) * 0.44) / 360;
+
+      mesh.setColorAt(index, color.setHSL(hue, 0.8, 0.5));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [visible, coarse, matrix, rotation, scale, color, position]);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <instancedMesh
+      key={visible.length}
+      ref={meshRef}
+      args={[undefined, undefined, visible.length]}
+      material={material}
+    >
+      <planeGeometry args={[0.48, 0.48]} />
+    </instancedMesh>
+  );
+}
+
+/* ---------- panel + routes ---------- */
+
+function PanelBox({
+  panel,
+  material,
+}: {
+  panel: Panel;
+  material: THREE.Material;
+}) {
   return (
     <group position={[panel.position.x, 0, panel.position.y]}>
-      <mesh position={[0, 1.4, 0]}>
+      <mesh material={material} position={[0, 1.4, 0]}>
         <boxGeometry args={[0.45, 0.65, 0.18]} />
-        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.4} />
       </mesh>
-      <Text
-        position={[0, 1.85, 0]}
-        fontSize={0.22}
-        color="#f9fafb"
-        anchorX="center"
-      >
+      <Text anchorX="center" color="#f9fafb" fontSize={0.22} position={[0, 1.85, 0]}>
         {panel.name}
       </Text>
     </group>
-  );
-}
-
-function Loads({
-  loads,
-  result,
-  circuitIds,
-  violating,
-}: {
-  loads: ElectricalLoad[];
-  result: SimulationResult | null;
-  circuitIds: string[];
-  violating: Set<string | undefined>;
-}) {
-  const circuitByLoad = new Map<string, string>();
-
-  for (const circuit of result?.circuits ?? []) {
-    for (const loadId of circuit.loadIds) circuitByLoad.set(loadId, circuit.id);
-  }
-
-  return (
-    <>
-      {loads.map((load) => {
-        const circuitId = circuitByLoad.get(load.id);
-        const color = violating.has(circuitId)
-          ? VIOLATION_COLOR
-          : circuitId
-            ? circuitColor(circuitId, circuitIds)
-            : "#9ca3af";
-        const height = loadHeight(load.type);
-
-        return (
-          <group key={load.id} position={[load.position.x, 0, load.position.y]}>
-            <mesh position={[0, height, 0]}>
-              <sphereGeometry args={[0.12, 16, 12]} />
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={load.type === "lighting" ? 0.8 : 0.4}
-              />
-            </mesh>
-            <Text
-              position={[0, height + 0.28, 0]}
-              fontSize={0.16}
-              color="#e5e7eb"
-              anchorX="center"
-            >
-              {load.name}
-            </Text>
-          </group>
-        );
-      })}
-    </>
   );
 }
 
@@ -310,12 +470,12 @@ function Routes({
         return (
           <Line
             key={route.loadId}
-            points={points}
             color={color}
-            lineWidth={violating.has(route.circuitId) ? 3.5 : 2}
             dashed={route.fallback}
             dashSize={0.25}
             gapSize={0.15}
+            lineWidth={violating.has(route.circuitId) ? 3.5 : 2}
+            points={points}
           />
         );
       })}
@@ -323,12 +483,15 @@ function Routes({
   );
 }
 
-export default function WiringOverlay3D() {
+/* ---------- scene ---------- */
+
+function Scene() {
   const floorPlan = useEditorStore((state) => state.floorPlan);
   const panel = useEditorStore((state) => state.panel);
   const loads = useEditorStore((state) => state.loads);
   const result = useEditorStore((state) => state.result);
   const layers = useEditorStore((state) => state.layers);
+  const materials = useSharedMaterials();
 
   const circuitIds = result?.circuits.map((circuit) => circuit.id) ?? [];
   const violating = new Set(
@@ -336,12 +499,87 @@ export default function WiringOverlay3D() {
       ? (result?.violations.map((violation) => violation.circuitId) ?? [])
       : []
   );
+  const circuitByLoad = new Map<string, string>();
+
+  for (const circuit of result?.circuits ?? []) {
+    for (const loadId of circuit.loadIds) circuitByLoad.set(loadId, circuit.id);
+  }
+
   const visibleLoads = loads.filter((load) =>
     load.type === "lighting" ? layers.lighting : layers.loads
   );
+  const loadColors = visibleLoads.map((load) => {
+    const circuitId = circuitByLoad.get(load.id);
+
+    return violating.has(circuitId)
+      ? VIOLATION_COLOR
+      : circuitId
+        ? circuitColor(circuitId, circuitIds)
+        : "#9ca3af";
+  });
 
   const centerX = floorPlan.width / 2;
   const centerZ = floorPlan.height / 2;
+
+  return (
+    <>
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[centerX, 12, centerZ + 6]} intensity={0.8} />
+
+      <RoomFloorsAndRoof
+        materials={materials}
+        plan={floorPlan}
+        showRoof={layers.walls}
+        showRooms={layers.rooms}
+      />
+      {layers.walls && <Walls material={materials.wall} plan={floorPlan} />}
+      {layers.heatmap && result && (
+        <InstancedHeatmap
+          material={materials.heatmapInstance}
+          planCenter={[centerX, centerZ]}
+          samples={result.luxHeatmap}
+        />
+      )}
+      {panel && <PanelBox material={materials.panel} panel={panel} />}
+
+      <InstancedLoads
+        colors={loadColors}
+        loads={visibleLoads}
+        material={materials.loadInstance}
+      />
+      {visibleLoads.map((load) => (
+        <Text
+          key={load.id}
+          anchorX="center"
+          color="#e5e7eb"
+          fontSize={0.16}
+          position={[
+            load.position.x,
+            loadHeight(load.type) + 0.28,
+            load.position.y,
+          ]}
+        >
+          {load.name}
+        </Text>
+      ))}
+
+      {layers.wiring && result && (
+        <Routes
+          circuitIds={circuitIds}
+          loads={loads}
+          panel={panel}
+          result={result}
+          violating={violating}
+        />
+      )}
+
+      <OrbitControls enableDamping target={[centerX, 1, centerZ]} />
+    </>
+  );
+}
+
+export default function WiringOverlay3D() {
+  const floorPlan = useEditorStore((state) => state.floorPlan);
   const radius = Math.max(floorPlan.width, floorPlan.height);
 
   return (
@@ -349,40 +587,14 @@ export default function WiringOverlay3D() {
       <Canvas
         camera={{
           position: [
-            centerX + radius * 0.7,
+            floorPlan.width / 2 + radius * 0.7,
             radius * 0.9,
-            centerZ + radius * 0.9,
+            floorPlan.height / 2 + radius * 0.9,
           ],
           fov: 50,
         }}
       >
-        <ambientLight intensity={0.7} />
-        <directionalLight
-          position={[centerX, 12, centerZ + 6]}
-          intensity={0.8}
-        />
-
-        <Floor plan={floorPlan} showRooms={layers.rooms} />
-        {layers.walls && <Walls plan={floorPlan} />}
-        {layers.heatmap && result && <LuxHeatmap result={result} />}
-        {panel && <PanelBox panel={panel} />}
-        <Loads
-          loads={visibleLoads}
-          result={result}
-          circuitIds={circuitIds}
-          violating={violating}
-        />
-        {layers.wiring && result && (
-          <Routes
-            result={result}
-            loads={loads}
-            panel={panel}
-            circuitIds={circuitIds}
-            violating={violating}
-          />
-        )}
-
-        <OrbitControls target={[centerX, 1, centerZ]} enableDamping />
+        <Scene />
       </Canvas>
     </div>
   );

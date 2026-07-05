@@ -4,7 +4,7 @@
 
 Solence is an automatic electrical wiring simulator for the Philippine market. It ingests a floor plan, auto-routes all branch wiring, auto-sizes breakers and conductors, renders a 3D wiring overlay, checks Philippine Electrical Code (PEC) compliance in real time, generates code-aware lighting layouts, and exports permit-ready documents.
 
-> Formerly **BEPVY_Sims**, a luminance/lamp-quantity simulator. That illumination engine wasn't discarded — it powers Solence's lighting design layer (auto fixture placement, per-room lux analysis, illuminance compliance), and the original standalone calculator remains at `/simulator`.
+> Formerly **BEPVY_Sims**, a luminance/lamp-quantity simulator. That illumination engine wasn't discarded — it powers Solence's lighting design layer (auto fixture placement, per-room lux analysis, illuminance compliance, lux heatmap), fully integrated into the project editor. The old standalone simulator page was removed once the integration shipped (brief §9.1).
 
 ## Core loop
 

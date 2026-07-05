@@ -22,6 +22,7 @@ import EditorToolbar from "@/components/floorplan/EditorToolbar";
 import FloorPlanCanvas from "@/components/floorplan/FloorPlanCanvas";
 import InspectorPanel from "@/components/floorplan/InspectorPanel";
 import LayersPanel from "@/components/floorplan/LayersPanel";
+import OutlinerPanel from "@/components/floorplan/OutlinerPanel";
 import StatusBar from "@/components/floorplan/StatusBar";
 import ComponentPalette from "@/components/loads/ComponentPalette";
 import WiringOverlay3D from "@/components/wiring-overlay/WiringOverlay3D";
@@ -185,6 +186,7 @@ export default function EditorPage() {
           <aside className="hidden lg:block rounded-lg bg-content1/60 backdrop-blur-md p-3 overflow-y-auto max-h-[600px] space-y-5">
             <ComponentPalette />
             <LayersPanel />
+            <OutlinerPanel />
           </aside>
 
           <main className="h-[480px] lg:h-[600px]">
@@ -214,6 +216,9 @@ export default function EditorPage() {
             </Tab>
             <Tab key="layers" title="Layers" className="lg:hidden">
               <LayersPanel />
+            </Tab>
+            <Tab key="outliner" title="Outliner" className="lg:hidden">
+              <OutlinerPanel />
             </Tab>
           </Tabs>
         </div>

@@ -1,7 +1,7 @@
 /**
  * Real site footer (brief §10.6 item 9): product links, company,
- * contact, legal — not a two-line minimal footer. Hidden on the editor
- * and simulator surfaces by ClientWrapper.
+ * contact, legal — not a two-line minimal footer. Hidden on the
+ * editor work surface by ClientWrapper.
  */
 import Link from "next/link";
 
@@ -11,7 +11,7 @@ const COLUMNS: { eyebrow: string; links: { label: string; href: string }[] }[] =
       eyebrow: "Product",
       links: [
         { label: "Projects", href: "/projects" },
-        { label: "Lighting Simulator", href: "/simulator" },
+        { label: "Lighting design layer", href: "/#features" },
         { label: "Pricing", href: "/#pricing" },
         { label: "Roadmap", href: "/#roadmap" },
       ],

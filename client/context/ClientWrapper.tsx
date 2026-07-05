@@ -6,8 +6,8 @@ import clsx from "clsx";
 import SiteFooter from "@/components/SiteFooter";
 
 /**
- * Route-aware page shell: full-bleed for work surfaces (simulator,
- * editor), contained for everything else. The real footer renders on
+ * Route-aware page shell: full-bleed for the editor work surface,
+ * contained for everything else. The real footer renders on
  * marketing/dashboard pages only — never under the editor.
  */
 export default function ClientWrapper({
@@ -16,10 +16,7 @@ export default function ClientWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isWorkSurface =
-    pathname.startsWith("/sim") ||
-    pathname.startsWith("/simulator") ||
-    /^\/projects\/[^/]+\/editor/.test(pathname);
+  const isWorkSurface = /^\/projects\/[^/]+\/editor/.test(pathname);
 
   return (
     <>
