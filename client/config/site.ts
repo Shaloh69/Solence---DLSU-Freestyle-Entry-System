@@ -35,23 +35,11 @@ export const siteConfig = {
     },
     {
       label: "About",
-      href: "/About",
+      href: "/about",
     },
     {
       label: "Lighting Simulator",
       href: "/simulator",
-    },
-    {
-      label: "Profile",
-      href: "/profile",
-    },
-    {
-      label: "Help & Feedback",
-      href: "/help-feedback",
-    },
-    {
-      label: "Logout",
-      href: "/logout",
     },
   ],
   // Enhanced lamp types with luminous flux values

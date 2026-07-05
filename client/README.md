@@ -13,8 +13,10 @@ the script's header.
 ## Map
 
 - `app/` — routes. `/projects` (list), `/projects/[id]/editor` (the
-  editor), `/simulator` (the original lighting calculator, kept live),
-  legacy auth API routes (MySQL-based, pending Supabase migration).
+  editor), `/simulator` (the original lighting calculator, kept live).
+  Auth is not wired yet — the legacy BEPVY MySQL/JWT stack was removed;
+  Supabase Auth lands once a Supabase project is provisioned (tiers
+  resolve via header/env until then).
 - `components/floorplan/` — canvas, toolbar, inspector, layers, status bar.
 - `components/loads/` — the drag-and-drop component library palette.
 - `components/wiring-overlay/` — react-three-fiber 3D view.

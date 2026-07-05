@@ -9,7 +9,6 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
@@ -17,12 +16,10 @@ import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { UserIcon, Logo } from "@/components/icons";
+import { Logo } from "@/components/icons";
 
-import { useAuthModals } from "@/context/useAuthModals";
 
 export const Navbar = () => {
-  const { openModal } = useAuthModals();
   return (
     <HeroUINavbar maxWidth="xl" position="sticky">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
@@ -57,16 +54,7 @@ export const Navbar = () => {
         <NavbarItem className="hidden sm:flex gap-2">
           <ThemeSwitch />
         </NavbarItem>
-        <NavbarItem className="hidden lg:flex">
-          <Button
-            onPress={() => openModal("login")}
-            startContent={<UserIcon />}
-            variant="ghost"
-            color="primary"
-          >
-            Log in
-          </Button>
-        </NavbarItem>
+
       </NavbarContent>
 
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
