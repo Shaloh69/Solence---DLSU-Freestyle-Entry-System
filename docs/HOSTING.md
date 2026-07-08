@@ -16,16 +16,32 @@ running the services (your main PC).
 > exactly this job, and Cloudflare Access (§4 below) adds a login wall
 > in front of it.
 
-## 0. Prerequisites
+## 0. Prerequisites — and the actual cost of "free"
 
-- A domain added to Cloudflare on the **Free plan** (Cloudflare itself
-  doesn't give away domain names, but the Tunnel/Access features used
-  here are free once *any* domain's nameservers point at Cloudflare —
-  transfer an existing domain or register a cheap one anywhere and add
-  it to your Cloudflare account first).
-- No domain yet / just want to test? Skip to **§5 Quick Tunnel** for a
-  zero-config `*.trycloudflare.com` URL — no Cloudflare account setup
-  needed at all, but the URL changes every run and there's no SSH option.
+**Cloudflare's Tunnel, Access, and Free-plan proxy are genuinely $0.**
+A **domain name is not** — nobody gives those away for free, including
+Cloudflare Registrar (they sell at cost, no markup, but "at cost" is
+still real money). Two ways to get the full setup below without paying
+anything:
+
+1. **[GitHub Student Developer Pack](https://education.github.com/pack)**
+   → free `.me` domain via Namecheap (1 year, genuinely $0) if you
+   qualify with a school email. Add that domain to Cloudflare's Free
+   plan (also $0) and follow §1 onward exactly as written.
+2. Already have a domain sitting somewhere unused? Add it to Cloudflare
+   (Free plan) and point its nameservers there — same result, $0.
+
+**No domain at all, or just want to test right now?** Skip to **§5
+Quick Tunnel** — genuinely zero setup, but the URL is random and
+changes every run, and quick tunnels don't support the multi-hostname
+config or SSH ingress (no persistent remote-admin access, no custom
+subdomains). Fine for a one-off demo link, not for the workflow this
+guide is built around.
+
+Avoid the old "free `.tk`/`.ml`/`.cf`" giveaway registrars if you see
+them recommended elsewhere — that program has largely collapsed and
+those domains get seized or abuse-flagged unpredictably; not worth
+building anything real on.
 
 Replace `yourdomain.com` everywhere below with your real domain.
 
@@ -166,6 +182,75 @@ Start-Process powershell -ArgumentList '-NoExit','-Command', `
 Then reconnect later and `Get-Content train.log -Tail 50 -Wait` to
 watch it, or check `nvidia-smi` for GPU activity, without needing the
 original session alive.
+
+## 8. Command reference — everything you'd normally run locally
+
+Once you're in over SSH (`ssh you@ssh.yourdomain.com`), any command you
+run locally works the same way — it's a full shell, not a restricted
+one. The set below covers this repo's actual day-to-day workflows so
+you're not reconstructing them from memory on a phone/laptop away from
+your desk. All paths assume `cd C:\Projects\Solence` first.
+
+**Repo / git**
+```powershell
+git status
+git pull
+git log --oneline -10
+git add -A; git commit -m "message"; git push
+```
+
+**Client + server (dev servers, tests, build)**
+```powershell
+npm run dev              # both, foreground — see note below on detaching
+npm run dev:client
+npm run dev:server
+npm test                 # server vitest suite
+npm run build
+```
+Dev servers are long-running like training — use the `Start-Process`
+detach pattern from §7 (or the visible-window pattern below) so
+closing the SSH session doesn't kill them.
+
+**Vision service / venv / training**
+```powershell
+cd solence-vision
+.\.venv\Scripts\Activate.ps1                              # or call .venv\Scripts\python.exe directly, no activation needed
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt --upgrade
+.\.venv\Scripts\python.exe -m pytest tests\                # regression gate after any retrain
+.\.venv\Scripts\python.exe scripts\download_datasets.py --dataset cubicasa5k
+.\.venv\Scripts\python.exe scripts\convert_to_yolo.py --dataset cubicasa5k
+.\.venv\Scripts\python.exe scripts\convert_to_unet_masks.py --dataset cubicasa5k
+.\.venv\Scripts\python.exe scripts\train_yolo.py --dataset cubicasa5k --epochs 100
+.\.venv\Scripts\python.exe scripts\train_unet.py --dataset cubicasa5k --epochs 40 --imgsz 512 --batch 2
+.\.venv\Scripts\python.exe scripts\run_inference.py --image path\to\plan.png
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
+```
+
+**Monitoring a detached/background process**
+```powershell
+nvidia-smi                                  # one-shot GPU snapshot
+nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader,l 5   # repeats every 5s
+Get-Content train.log -Tail 50 -Wait        # live-tail a redirected log
+Get-Process python*, node* | Format-Table Id, ProcessName, CPU
+Stop-Process -Id <pid>                      # kill a specific runaway process
+```
+
+**Tunnel / service management (on the host)**
+```powershell
+cloudflared tunnel list
+cloudflared tunnel info solence
+Get-Service cloudflared, sshd
+Restart-Service cloudflared
+```
+
+**Launching anything long-running so an SSH disconnect can't kill it**
+— the same detach pattern from §7, generalized:
+```powershell
+Start-Process powershell -ArgumentList '-NoExit','-Command','<your command here>' `
+  -RedirectStandardOutput C:\Projects\Solence\<name>.log `
+  -RedirectStandardError  C:\Projects\Solence\<name>.err.log
+```
+Reconnect later, `Get-Content <name>.log -Tail 50 -Wait` to check on it.
 
 ## Front-end/back-end env vars once tunneled
 
