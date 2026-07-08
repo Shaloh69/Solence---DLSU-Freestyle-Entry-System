@@ -35,6 +35,8 @@ engine.
 
 ## Hosting (Cloudflare Tunnel)
 
+> Current setup uses Tailscale + Quick Tunnel (no domain, see root README) — the config below only applies to the optional persistent-domain path in docs/HOSTING.md §4.
+
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). This service is
 normally called only by the Express API on the same host, so it
 **doesn't need a public hostname** — leave it off the tunnel unless you

@@ -23,6 +23,8 @@ Run/test/deploy instructions: [HOW-TO.md](HOW-TO.md). API contract:
 
 ## Hosting (Cloudflare Tunnel)
 
+> Current setup uses Tailscale + Quick Tunnel (no domain, see root README) — the config below only applies to the optional persistent-domain path in docs/HOSTING.md §4.
+
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). Once tunneled,
 allow the public frontend origin through CORS:
 

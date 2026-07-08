@@ -49,23 +49,27 @@ npm run dev            # client :3000 + API :4000 (in-memory storage until Supab
 
 Tests: `npm test` (server engine + API suites) · `cd solence-vision && pytest tests/` (fusion + API contract).
 
-## Hosting via Cloudflare Tunnel (free, no port forwarding)
+## Remote access — $0, no domain required
 
-Full walkthrough with every command: [docs/HOSTING.md](docs/HOSTING.md)
-— covers exposing all three services under your own domain and
-SSH access to run commands on the host remotely (`git pull`, manage
-the vision venv, kick off training) from any other machine.
+Full walkthrough: [docs/HOSTING.md](docs/HOSTING.md). Two independent
+free tools for two different needs:
 
 ```powershell
+# Run commands on your own PC from another device (git pull, train, etc.)
+# — Tailscale: free forever, stable private address, real SSH.
+winget install tailscale.tailscale
+tailscale up
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Start-Service sshd
+# then, from any other device signed into the same tailnet:
+ssh you@your-pc-name.your-tailnet.ts.net
+```
+
+```powershell
+# Hand someone a browser link to the running app (temporary, demo only)
+# — Cloudflare Quick Tunnel: zero setup, but a new random URL every run.
 winget install --id Cloudflare.cloudflared
-cloudflared tunnel login
-cloudflared tunnel create solence
-# then edit C:\Users\<you>\.cloudflared\config.yml — see docs/HOSTING.md §3
-cloudflared tunnel route dns solence app.yourdomain.com
-cloudflared tunnel route dns solence api.yourdomain.com
-cloudflared tunnel route dns solence vision.yourdomain.com
-cloudflared tunnel route dns solence ssh.yourdomain.com
-npm run tunnel
+cloudflared tunnel --url http://localhost:3000
 ```
 
 ## PEC data caveat
