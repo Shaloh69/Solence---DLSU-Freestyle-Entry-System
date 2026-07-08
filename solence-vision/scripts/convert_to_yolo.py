@@ -56,8 +56,14 @@ def normalize(polygon: Polygon, width: int, height: int) -> list[str] | None:
 
 
 def write_data_yaml(out_dir: Path) -> None:
+    # Ultralytics resolves a relative "path:" against its OWN cwd/global
+    # datasets_dir, not against the yaml file's directory — "path: ." only
+    # works if you happen to run training from inside out_dir. Write the
+    # absolute path so training works from any cwd, on any machine.
+    root = out_dir.resolve().as_posix()
+
     (out_dir / "data.yaml").write_text(
-        "path: .\ntrain: images/train\nval: images/val\nnames:\n"
+        f"path: {root}\ntrain: images/train\nval: images/val\nnames:\n"
         + "\n".join(f"  {i}: {name}" for i, name in enumerate(CLASSES)),
         encoding="utf-8",
     )
