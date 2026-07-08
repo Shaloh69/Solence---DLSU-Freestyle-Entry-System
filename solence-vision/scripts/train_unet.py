@@ -94,7 +94,7 @@ def main() -> None:
             loss = loss_fn(model(x), y)
             loss.backward()
             optimizer.step()
-            total += float(loss)
+            total += loss.item()
         train_loss = total / max(1, len(train_loader))
 
         val_msg = ""
@@ -104,7 +104,7 @@ def main() -> None:
             with torch.no_grad():
                 for x, y in val_loader:
                     x, y = x.to(device), y.to(device)
-                    val_total += float(loss_fn(model(x), y))
+                    val_total += loss_fn(model(x), y).item()
             val_msg = f" val_loss {val_total / max(1, len(val_loader)):.4f}"
 
         print(f"epoch {epoch + 1}/{args.epochs} loss {train_loss:.4f}{val_msg}")
