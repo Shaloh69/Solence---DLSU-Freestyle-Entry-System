@@ -28,9 +28,9 @@ def main() -> None:
 
     require_dataset_name(args.dataset)
     root = DATA_UNET / args.dataset
-    if not (root / "images").exists():
+    if not (root / "images" / "train").exists():
         die(
-            f"{root} not converted — run "
+            f"{root}/images/train not found — run "
             f"'python scripts/convert_to_unet_masks.py --dataset {args.dataset}' first."
         )
 
@@ -45,9 +45,9 @@ def main() -> None:
         return
 
     class WallDataset(Dataset):
-        def __init__(self, root: Path, imgsz: int):
-            self.images = sorted((root / "images").glob("*"))
-            self.masks_dir = root / "masks"
+        def __init__(self, root: Path, split: str, imgsz: int):
+            self.images = sorted((root / "images" / split).glob("*"))
+            self.masks_dir = root / "masks" / split
             self.imgsz = imgsz
 
         def __len__(self) -> int:
@@ -71,8 +71,16 @@ def main() -> None:
         print("WARNING: no CUDA device — training on CPU will be very slow.")
 
     model = smp.Unet(args.encoder, encoder_weights="imagenet", classes=1).to(device)
-    loader = DataLoader(
-        WallDataset(root, args.imgsz), batch_size=args.batch, shuffle=True
+    train_loader = DataLoader(
+        WallDataset(root, "train", args.imgsz),
+        batch_size=args.batch,
+        shuffle=True,
+    )
+    val_dataset = WallDataset(root, "val", args.imgsz)
+    val_loader = (
+        DataLoader(val_dataset, batch_size=args.batch, shuffle=False)
+        if len(val_dataset) > 0
+        else None
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     loss_fn = smp.losses.DiceLoss(mode="binary")
@@ -80,14 +88,26 @@ def main() -> None:
     for epoch in range(args.epochs):
         model.train()
         total = 0.0
-        for x, y in loader:
+        for x, y in train_loader:
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
             loss = loss_fn(model(x), y)
             loss.backward()
             optimizer.step()
             total += float(loss)
-        print(f"epoch {epoch + 1}/{args.epochs} loss {total / max(1, len(loader)):.4f}")
+        train_loss = total / max(1, len(train_loader))
+
+        val_msg = ""
+        if val_loader is not None:
+            model.eval()
+            val_total = 0.0
+            with torch.no_grad():
+                for x, y in val_loader:
+                    x, y = x.to(device), y.to(device)
+                    val_total += float(loss_fn(model(x), y))
+            val_msg = f" val_loss {val_total / max(1, len(val_loader)):.4f}"
+
+        print(f"epoch {epoch + 1}/{args.epochs} loss {train_loss:.4f}{val_msg}")
 
     MODELS_UNET.mkdir(parents=True, exist_ok=True)
     target = MODELS_UNET / "best.pt"
