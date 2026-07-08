@@ -28,6 +28,24 @@ the script's header.
 - `lib/component-library.ts`, `lib/circuit-colors.ts` — palette data and
   shared color coding.
 
+## Hosting (Cloudflare Tunnel)
+
+Full guide: [docs/HOSTING.md](../docs/HOSTING.md). Once the tunnel is
+running, point the client at the public API hostname instead of
+localhost:
+
+```powershell
+# client/.env.local
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+```
+
+Ingress line for this service in `~/.cloudflared/config.yml`:
+
+```yaml
+  - hostname: app.yourdomain.com
+    service: http://localhost:3000
+```
+
 ## Conventions
 
 - Server components by default; `"use client"` only where interaction,

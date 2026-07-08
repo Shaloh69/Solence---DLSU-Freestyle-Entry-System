@@ -55,6 +55,13 @@ Recognition endpoints return 503 until models are trained — see
 [solence-vision/HOW-TO.md](solence-vision/HOW-TO.md) for the full
 dataset → training → serving walkthrough.
 
+## 5. Hosting publicly / remote access
+
+To expose all three services under your own domain (free, via
+Cloudflare Tunnel) and get SSH access to run commands on this machine
+remotely (`git pull`, retrain models, etc. from another PC): see
+[docs/HOSTING.md](docs/HOSTING.md).
+
 ## Common failure modes
 
 - **Client 500s with a doubled path (`C:\Projects\...\D:\Projects-Shem\...`)**:

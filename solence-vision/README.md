@@ -33,6 +33,22 @@ fusion step cuts wall segments where opening boxes intersect them.
 Room-type labels feed the GFCI/AFCI compliance rules in the Express
 engine.
 
+## Hosting (Cloudflare Tunnel)
+
+Full guide: [docs/HOSTING.md](../docs/HOSTING.md). This service is
+normally called only by the Express API on the same host, so it
+**doesn't need a public hostname** — leave it off the tunnel unless you
+specifically want to hit it directly from outside for testing:
+
+```yaml
+  - hostname: vision.yourdomain.com
+    service: http://localhost:8000
+```
+
+Remote training on this host works over the same tunnel's SSH ingress
+(`docs/HOSTING.md` §7) — `ssh` in, `git pull`, then re-run the scripts
+in `scripts/` exactly as documented in [HOW-TO.md](HOW-TO.md).
+
 ## Extending
 
 - New dataset: register it in `scripts/_common.py` `DATASETS`, then the

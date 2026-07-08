@@ -49,6 +49,25 @@ npm run dev            # client :3000 + API :4000 (in-memory storage until Supab
 
 Tests: `npm test` (server engine + API suites) · `cd solence-vision && pytest tests/` (fusion + API contract).
 
+## Hosting via Cloudflare Tunnel (free, no port forwarding)
+
+Full walkthrough with every command: [docs/HOSTING.md](docs/HOSTING.md)
+— covers exposing all three services under your own domain and
+SSH access to run commands on the host remotely (`git pull`, manage
+the vision venv, kick off training) from any other machine.
+
+```powershell
+winget install --id Cloudflare.cloudflared
+cloudflared tunnel login
+cloudflared tunnel create solence
+# then edit C:\Users\<you>\.cloudflared\config.yml — see docs/HOSTING.md §3
+cloudflared tunnel route dns solence app.yourdomain.com
+cloudflared tunnel route dns solence api.yourdomain.com
+cloudflared tunnel route dns solence vision.yourdomain.com
+cloudflared tunnel route dns solence ssh.yourdomain.com
+npm run tunnel
+```
+
 ## PEC data caveat
 
 ⚠️ PEC ampacity tables, demand factors, rule thresholds, and IES illuminance targets in `server/src/engine/**` data files contain **placeholder values that must be supplied/verified by a licensed electrical engineer against the current PEC edition** before any output is used for a real permit submission. Every such file is flagged `PEC-VERIFY` or `LIGHTING-VERIFY`, and every exported PDF carries the disclaimer.

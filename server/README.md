@@ -21,6 +21,25 @@ Run/test/deploy instructions: [HOW-TO.md](HOW-TO.md). API contract:
 - `tests/` — vitest: engine unit tests + supertest API integration tests.
 - `supabase/schema.sql` — the Postgres schema to run in Supabase.
 
+## Hosting (Cloudflare Tunnel)
+
+Full guide: [docs/HOSTING.md](../docs/HOSTING.md). Once tunneled,
+allow the public frontend origin through CORS:
+
+```powershell
+# server/.env
+CORS_ORIGINS=https://app.yourdomain.com
+```
+
+Ingress line for this service in `~/.cloudflared/config.yml` (the
+`/ws` realtime gateway proxies over the same hostname — no separate
+WebSocket config needed):
+
+```yaml
+  - hostname: api.yourdomain.com
+    service: http://localhost:4000
+```
+
 ## Conventions
 
 - Engine code never imports Express types; routes never do math.
