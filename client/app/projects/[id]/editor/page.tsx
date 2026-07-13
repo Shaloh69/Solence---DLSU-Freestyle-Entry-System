@@ -91,7 +91,11 @@ export default function EditorPage() {
   );
 
   const resultsTabs = (
-    <Tabs aria-label="Results" variant="underlined" classNames={{ panel: "pt-0" }}>
+    <Tabs
+      aria-label="Results"
+      classNames={{ panel: "pt-0" }}
+      variant="underlined"
+    >
       <Tab
         key="compliance"
         title={
@@ -124,8 +128,8 @@ export default function EditorPage() {
           as={Link}
           href="/projects"
           size="sm"
-          variant="light"
           startContent={<ArrowLeft size={14} />}
+          variant="light"
         >
           Projects
         </Button>
@@ -138,9 +142,9 @@ export default function EditorPage() {
           <span>{error}</span>
           <Button
             isIconOnly
+            aria-label="Dismiss error"
             size="sm"
             variant="light"
-            aria-label="Dismiss error"
             onPress={() => store.clearError()}
           >
             <X size={14} />
@@ -158,12 +162,12 @@ export default function EditorPage() {
               : "Not simulated yet — open this project on a larger screen to draft."}
           </p>
           <Button
-            size="sm"
             className="mt-3"
-            variant="flat"
             isDisabled={!result}
             isLoading={exporting}
+            size="sm"
             startContent={!exporting && <FileDown size={14} />}
+            variant="flat"
             onPress={() => void exportPdf()}
           >
             Export PDF
@@ -205,19 +209,19 @@ export default function EditorPage() {
         <div className="rounded-lg bg-content1/60 backdrop-blur-md xl:hidden">
           <Tabs
             aria-label="Editor panels"
-            variant="underlined"
             classNames={{ panel: "p-3" }}
+            variant="underlined"
           >
             <Tab key="inspector" title="Inspector">
               <InspectorPanel />
             </Tab>
-            <Tab key="library" title="Library" className="lg:hidden">
+            <Tab key="library" className="lg:hidden" title="Library">
               <ComponentPalette />
             </Tab>
-            <Tab key="layers" title="Layers" className="lg:hidden">
+            <Tab key="layers" className="lg:hidden" title="Layers">
               <LayersPanel />
             </Tab>
-            <Tab key="outliner" title="Outliner" className="lg:hidden">
+            <Tab key="outliner" className="lg:hidden" title="Outliner">
               <OutlinerPanel />
             </Tab>
           </Tabs>

@@ -9,7 +9,12 @@
  * Events (server -> client), all JSON:
  *   { type: "subscribed",  projectId }
  *   { type: "simulation",  projectId, result: SimulationResult }
- *   { type: "ai-progress", projectId, jobId, stage, message? }   (future)
+ *   { type: "ai-progress", projectId, jobId, stage, message? }
+ *     stage: queued | running_wall_segmentation | running_detection |
+ *            fusing | done | applied | error — relayed from
+ *            solence-vision's job WebSocket by routes/vision.ts, plus a
+ *            final "applied" stage once the recognized floor plan has
+ *            been written into the project.
  *
  * Client -> server:
  *   { type: "subscribe", projectId }

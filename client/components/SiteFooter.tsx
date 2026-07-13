@@ -42,8 +42,7 @@ export default function SiteFooter() {
           <div className="col-span-2 md:col-span-1">
             <p className="font-display font-bold text-lg">Solence</p>
             <p className="text-xs text-default-500 mt-2 max-w-[24ch]">
-              Automatic, PEC-aware electrical design for Philippine
-              engineers.
+              Automatic, PEC-aware electrical design for Philippine engineers.
             </p>
             <p className="font-mono text-[11px] uppercase tracking-widest text-default-400 mt-4">
               A Team Lanzones product

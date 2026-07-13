@@ -8,12 +8,13 @@
  */
 import { create } from "zustand";
 import { toast } from "sonner";
+
 import {
   api,
   realtimeUrl,
   ElectricalLoad,
   FloorPlan,
-  Opening,
+  Furniture,
   Panel,
   Point,
   Room,
@@ -27,13 +28,23 @@ import {
   defaultVoltage,
   LibraryItem,
 } from "./component-library";
+import { FurnitureItem } from "./furniture-library";
 
-export type Tool = "select" | "wall" | "room" | "panel" | "load" | "door" | "window";
+export type Tool =
+  | "select"
+  | "wall"
+  | "room"
+  | "panel"
+  | "load"
+  | "furniture"
+  | "door"
+  | "window";
 export type Selection =
   | { kind: "wall"; id: string }
   | { kind: "room"; id: string }
   | { kind: "load"; id: string }
   | { kind: "opening"; id: string }
+  | { kind: "furniture"; id: string }
   | { kind: "panel" }
   | null;
 
@@ -42,6 +53,7 @@ export type LayerKey =
   | "rooms"
   | "loads"
   | "lighting"
+  | "furniture"
   | "wiring"
   | "heatmap"
   | "violations";
@@ -51,6 +63,7 @@ const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   rooms: true,
   loads: true,
   lighting: true,
+  furniture: true,
   wiring: true,
   heatmap: false,
   violations: true,
@@ -68,6 +81,7 @@ function emptyFloorPlan(): FloorPlan {
     walls: [],
     rooms: [],
     openings: [],
+    furniture: [],
   };
 }
 
@@ -76,8 +90,16 @@ function perimeterWalls(width: number, height: number): Wall[] {
 
   return [
     { id: `w-${stamp}-n`, start: { x: 0, y: 0 }, end: { x: width, y: 0 } },
-    { id: `w-${stamp}-e`, start: { x: width, y: 0 }, end: { x: width, y: height } },
-    { id: `w-${stamp}-s`, start: { x: width, y: height }, end: { x: 0, y: height } },
+    {
+      id: `w-${stamp}-e`,
+      start: { x: width, y: 0 },
+      end: { x: width, y: height },
+    },
+    {
+      id: `w-${stamp}-s`,
+      start: { x: width, y: height },
+      end: { x: 0, y: height },
+    },
     { id: `w-${stamp}-w`, start: { x: 0, y: height }, end: { x: 0, y: 0 } },
   ];
 }
@@ -86,7 +108,7 @@ function perimeterWalls(width: number, height: number): Wall[] {
 function nearestWall(
   point: Point,
   walls: Wall[],
-  maxDistance: number
+  maxDistance: number,
 ): { wall: Wall; distance: number; t: number; proj: Point } | null {
   let best: { wall: Wall; distance: number; t: number; proj: Point } | null =
     null;
@@ -102,8 +124,8 @@ function nearestWall(
       Math.max(
         0,
         ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) /
-          lengthSq
-      )
+          lengthSq,
+      ),
     );
     const proj = { x: wall.start.x + t * dx, y: wall.start.y + t * dy };
     const distance = Math.hypot(point.x - proj.x, point.y - proj.y);
@@ -120,6 +142,16 @@ let autoCheckTimer: ReturnType<typeof setTimeout> | null = null;
 let socket: WebSocket | null = null;
 let socketProjectId: string | null = null;
 
+const AI_TOAST_ID = "ai-recognition";
+const AI_STAGE_LABEL: Record<string, string> = {
+  queued: "Queued…",
+  running_wall_segmentation: "Segmenting walls (U-Net)…",
+  running_detection: "Detecting doors/windows/rooms (YOLO26)…",
+  fusing: "Fusing results…",
+  done: "Recognition complete — applying to floor plan…",
+  applied: "Floor plan updated from AI recognition",
+};
+
 interface EditorState {
   // Project working copy
   projectId: string | null;
@@ -132,6 +164,7 @@ interface EditorState {
   // UI state
   tool: Tool;
   libraryItem: LibraryItem | null;
+  furnitureItem: FurnitureItem | null;
   selection: Selection;
   view: "2d" | "3d";
   layers: Record<LayerKey, boolean>;
@@ -141,6 +174,7 @@ interface EditorState {
   isLoading: boolean;
   isSimulating: boolean;
   isLightingBusy: boolean;
+  isRecognizing: boolean;
   dirty: boolean;
   error: string | null;
 
@@ -148,10 +182,15 @@ interface EditorState {
   openProject(id: string): Promise<void>;
   saveAndSimulate(options?: { silent?: boolean }): Promise<void>;
   autoLighting(roomIds?: string[]): Promise<void>;
+  /** Upload a floor plan image for AI recognition (brief §7.4). Progress
+   * and the resulting floor-plan update arrive over the realtime
+   * gateway as `ai-progress` events, handled internally. */
+  recognizeFloorPlan(file: File): Promise<void>;
 
   // Editing
   setTool(tool: Tool): void;
   setLibraryItem(item: LibraryItem | null): void;
+  setFurnitureItem(item: FurnitureItem | null): void;
   setView(view: "2d" | "3d"): void;
   setLayer(layer: LayerKey, visible: boolean): void;
   setAutoCheck(on: boolean): void;
@@ -167,6 +206,8 @@ interface EditorState {
   placePanel(position: Point, system?: VoltageSystem): void;
   placeLoad(item: LibraryItem, position: Point): void;
   updateLoad(id: string, changes: Partial<ElectricalLoad>): void;
+  placeFurniture(item: FurnitureItem, position: Point): void;
+  rotateFurniture(id: string, rotation: number): void;
   /** Typed-coordinate placement: exact position (no snapping), room re-detected. */
   setLoadPosition(id: string, position: Point): void;
   moveItem(selection: Selection, position: Point): void;
@@ -198,8 +239,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
         if (
           a.y > position.y !== b.y > position.y &&
-          position.x <
-            ((b.x - a.x) * (position.y - a.y)) / (b.y - a.y) + a.x
+          position.x < ((b.x - a.x) * (position.y - a.y)) / (b.y - a.y) + a.x
         ) {
           inside = !inside;
         }
@@ -227,7 +267,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
   }
 
   function connectRealtime(projectId: string) {
-    if (socketProjectId === projectId && socket?.readyState === WebSocket.OPEN) {
+    if (
+      socketProjectId === projectId &&
+      socket?.readyState === WebSocket.OPEN
+    ) {
       return;
     }
     socket?.close();
@@ -249,6 +292,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
           event.projectId === get().projectId
         ) {
           applyResult(event.result as SimulationResult, { silent: true });
+        } else if (
+          event.type === "ai-progress" &&
+          event.projectId === get().projectId
+        ) {
+          handleAiProgress(
+            event as {
+              stage: string;
+              message?: string;
+            },
+          );
         }
       } catch {
         // ignore malformed events
@@ -265,13 +318,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   function applyResult(
     result: SimulationResult,
-    options: { silent?: boolean } = {}
+    options: { silent?: boolean } = {},
   ) {
     const previousErrors =
       get().result?.violations.filter((v) => v.severity === "error").length ??
       0;
     const errors = result.violations.filter(
-      (violation) => violation.severity === "error"
+      (violation) => violation.severity === "error",
     ).length;
 
     set({ result });
@@ -281,16 +334,51 @@ export const useEditorStore = create<EditorState>((set, get) => {
         `${errors} PEC violation${errors === 1 ? "" : "s"} in this design`,
         {
           description: result.violations.find(
-            (violation) => violation.severity === "error"
+            (violation) => violation.severity === "error",
           )?.message,
           duration: 10000,
-        }
+        },
       );
     } else if (!options.silent) {
       toast.success(
-        `Checked: ${result.circuits.length} circuits, ${result.violations.length} finding${result.violations.length === 1 ? "" : "s"}`
+        `Checked: ${result.circuits.length} circuits, ${result.violations.length} finding${result.violations.length === 1 ? "" : "s"}`,
       );
     }
+  }
+
+  function handleAiProgress(event: { stage: string; message?: string }) {
+    if (event.stage === "error") {
+      set({ isRecognizing: false });
+      toast.error(
+        `AI recognition failed: ${event.message ?? "unknown error"}`,
+        {
+          id: AI_TOAST_ID,
+        },
+      );
+
+      return;
+    }
+
+    const label = AI_STAGE_LABEL[event.stage] ?? event.message ?? event.stage;
+
+    if (event.stage === "applied") {
+      set({ isRecognizing: false });
+      toast.success(label, { id: AI_TOAST_ID });
+      const { projectId } = get();
+
+      if (projectId) {
+        void api.projects.get(projectId).then((project) => {
+          set({
+            floorPlan: project.floorPlan ?? emptyFloorPlan(),
+            selection: null,
+          });
+          void get().saveAndSimulate({ silent: true });
+        });
+      }
+
+      return;
+    }
+    toast.loading(label, { id: AI_TOAST_ID });
   }
 
   return {
@@ -303,6 +391,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     tool: "select",
     libraryItem: null,
+    furnitureItem: null,
     selection: null,
     view: "2d",
     layers: { ...DEFAULT_LAYERS },
@@ -312,6 +401,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     isLoading: false,
     isSimulating: false,
     isLightingBusy: false,
+    isRecognizing: false,
     dirty: false,
     error: null,
 
@@ -382,17 +472,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
         await api.projects.setFloorPlan(projectId, floorPlan);
         const { project, placements } = await api.projects.autoLighting(
           projectId,
-          { roomIds }
+          { roomIds },
         );
 
         set({ loads: project.loads, isLightingBusy: false });
         const total = placements.reduce(
           (sum, placement) => sum + placement.placedCount,
-          0
+          0,
         );
 
         toast.success(
-          `Placed ${total} fixture${total === 1 ? "" : "s"} across ${placements.length} room${placements.length === 1 ? "" : "s"} — drag or delete any of them`
+          `Placed ${total} fixture${total === 1 ? "" : "s"} across ${placements.length} room${placements.length === 1 ? "" : "s"} — drag or delete any of them`,
         );
         void get().saveAndSimulate({ silent: true });
       } catch (error) {
@@ -403,9 +493,40 @@ export const useEditorStore = create<EditorState>((set, get) => {
       }
     },
 
-    setTool: (tool) => set({ tool, libraryItem: null, selection: null }),
+    async recognizeFloorPlan(file) {
+      const { projectId } = get();
+
+      if (!projectId) return;
+      set({ isRecognizing: true });
+      toast.loading("Uploading floor plan for AI recognition…", {
+        id: AI_TOAST_ID,
+      });
+      try {
+        await api.projects.recognize(projectId, file);
+      } catch (error) {
+        set({ isRecognizing: false });
+        const message = error instanceof Error ? error.message : String(error);
+
+        toast.error(`Could not start recognition: ${message}`, {
+          id: AI_TOAST_ID,
+        });
+      }
+    },
+
+    setTool: (tool) =>
+      set({ tool, libraryItem: null, furnitureItem: null, selection: null }),
     setLibraryItem: (item) =>
-      set({ libraryItem: item, tool: item ? "load" : "select" }),
+      set({
+        libraryItem: item,
+        furnitureItem: null,
+        tool: item ? "load" : "select",
+      }),
+    setFurnitureItem: (item) =>
+      set({
+        furnitureItem: item,
+        libraryItem: null,
+        tool: item ? "furniture" : "select",
+      }),
     setView: (view) => set({ view }),
     setLayer: (layer, visible) =>
       set((state) => ({ layers: { ...state.layers, [layer]: visible } })),
@@ -498,11 +619,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const width = kind === "door" ? 0.9 : 1.2;
       const wallLen = Math.hypot(
         hit.wall.end.x - hit.wall.start.x,
-        hit.wall.end.y - hit.wall.start.y
+        hit.wall.end.y - hit.wall.start.y,
       );
       const offset = Math.min(
         Math.max(hit.t * wallLen - width / 2, 0),
-        Math.max(wallLen - width, 0)
+        Math.max(wallLen - width, 0),
       );
       const id = `o-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -524,7 +645,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         floorPlan: {
           ...state.floorPlan,
           rooms: state.floorPlan.rooms.map((room) =>
-            room.id === id ? { ...room, ...changes } : room
+            room.id === id ? { ...room, ...changes } : room,
           ),
         },
       }));
@@ -577,8 +698,45 @@ export const useEditorStore = create<EditorState>((set, get) => {
     updateLoad(id, changes) {
       set((state) => ({
         loads: state.loads.map((load) =>
-          load.id === id ? { ...load, ...changes } : load
+          load.id === id ? { ...load, ...changes } : load,
         ),
+      }));
+      touched();
+    },
+
+    placeFurniture(item, position) {
+      const snapped = snapLoadPosition(position);
+      const id = `f-${crypto.randomUUID().slice(0, 8)}`;
+      const piece: Furniture = {
+        id,
+        key: item.key,
+        label: item.label,
+        meshKey: item.meshKey,
+        position: snapped.point,
+        rotation: 0,
+        width: item.width,
+        depth: item.depth,
+        height: item.height,
+      };
+
+      set((state) => ({
+        floorPlan: {
+          ...state.floorPlan,
+          furniture: [...(state.floorPlan.furniture ?? []), piece],
+        },
+        selection: { kind: "furniture", id },
+      }));
+      touched();
+    },
+
+    rotateFurniture(id, rotation) {
+      set((state) => ({
+        floorPlan: {
+          ...state.floorPlan,
+          furniture: (state.floorPlan.furniture ?? []).map((piece) =>
+            piece.id === id ? { ...piece, rotation } : piece,
+          ),
+        },
       }));
       touched();
     },
@@ -588,7 +746,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       set((state) => ({
         loads: state.loads.map((load) =>
-          load.id === id ? { ...load, position, roomId: room?.id } : load
+          load.id === id ? { ...load, position, roomId: room?.id } : load,
         ),
       }));
       touched();
@@ -605,12 +763,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
           loads: state.loads.map((load) =>
             load.id === selection.id
               ? { ...load, position: snapped.point, roomId: room?.id }
-              : load
+              : load,
           ),
         }));
       } else if (selection.kind === "panel") {
         set((state) => ({
           panel: state.panel ? { ...state.panel, position } : state.panel,
+        }));
+      } else if (selection.kind === "furniture") {
+        const snapped = snapLoadPosition(position);
+
+        set((state) => ({
+          snappedToWall: snapped.snapped,
+          floorPlan: {
+            ...state.floorPlan,
+            furniture: (state.floorPlan.furniture ?? []).map((piece) =>
+              piece.id === selection.id
+                ? { ...piece, position: snapped.point }
+                : piece,
+            ),
+          },
         }));
       } else {
         return;
@@ -627,15 +799,25 @@ export const useEditorStore = create<EditorState>((set, get) => {
           loads: state.loads.filter((load) => load.id !== selection.id),
           selection: null,
         }));
+      } else if (selection.kind === "furniture") {
+        set((state) => ({
+          floorPlan: {
+            ...state.floorPlan,
+            furniture: (state.floorPlan.furniture ?? []).filter(
+              (piece) => piece.id !== selection.id,
+            ),
+          },
+          selection: null,
+        }));
       } else if (selection.kind === "wall") {
         set((state) => ({
           floorPlan: {
             ...state.floorPlan,
             walls: state.floorPlan.walls.filter(
-              (wall) => wall.id !== selection.id
+              (wall) => wall.id !== selection.id,
             ),
             openings: (state.floorPlan.openings ?? []).filter(
-              (opening) => opening.wallId !== selection.id
+              (opening) => opening.wallId !== selection.id,
             ),
           },
           selection: null,
@@ -645,7 +827,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           floorPlan: {
             ...state.floorPlan,
             openings: (state.floorPlan.openings ?? []).filter(
-              (opening) => opening.id !== selection.id
+              (opening) => opening.id !== selection.id,
             ),
           },
           selection: null,
@@ -655,13 +837,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
           floorPlan: {
             ...state.floorPlan,
             rooms: state.floorPlan.rooms.filter(
-              (room) => room.id !== selection.id
+              (room) => room.id !== selection.id,
             ),
           },
           loads: state.loads.map((load) =>
             load.roomId === selection.id
               ? { ...load, roomId: undefined }
-              : load
+              : load,
           ),
           selection: null,
         }));

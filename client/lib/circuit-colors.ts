@@ -18,7 +18,10 @@ export const CIRCUIT_PALETTE = [
 
 export const VIOLATION_COLOR = "#E15759";
 
-export function circuitColor(circuitId: string | undefined, circuitIds: string[]): string {
+export function circuitColor(
+  circuitId: string | undefined,
+  circuitIds: string[],
+): string {
   if (!circuitId) return "#888888";
   const index = circuitIds.indexOf(circuitId);
 

@@ -91,7 +91,7 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   const threePhase = panel.system === "3P4W-230/400";
   const violations = [
-    ...runComplianceChecks(circuits, { threePhase }),
+    ...runComplianceChecks(circuits, loads, { threePhase }),
     ...runProjectChecks(floorPlan.rooms, loads),
   ];
 

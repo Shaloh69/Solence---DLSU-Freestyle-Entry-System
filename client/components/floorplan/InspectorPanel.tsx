@@ -51,16 +51,15 @@ export default function InspectorPanel() {
         .then((dataUrl) => store.setBackgroundImage(dataUrl))
         .catch((error: unknown) =>
           toast.error(
-            `PDF import failed: ${error instanceof Error ? error.message : String(error)}`
-          )
+            `PDF import failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
         );
 
       return;
     }
     const reader = new FileReader();
 
-    reader.onload = () =>
-      store.setBackgroundImage(reader.result as string);
+    reader.onload = () => store.setBackgroundImage(reader.result as string);
     reader.readAsDataURL(file);
   }
 
@@ -71,6 +70,10 @@ export default function InspectorPanel() {
   const selectedLoad =
     selection?.kind === "load"
       ? loads.find((load) => load.id === selection.id)
+      : undefined;
+  const selectedFurniture =
+    selection?.kind === "furniture"
+      ? (floorPlan.furniture ?? []).find((piece) => piece.id === selection.id)
       : undefined;
 
   return (
@@ -83,11 +86,11 @@ export default function InspectorPanel() {
         <>
           <div className="flex gap-2">
             <Input
-              type="number"
-              size="sm"
               label="Width (m)"
-              value={String(floorPlan.width)}
               min={2}
+              size="sm"
+              type="number"
+              value={String(floorPlan.width)}
               onValueChange={(value) => {
                 const width = parseFloat(value);
 
@@ -95,11 +98,11 @@ export default function InspectorPanel() {
               }}
             />
             <Input
-              type="number"
-              size="sm"
               label="Height (m)"
-              value={String(floorPlan.height)}
               min={2}
+              size="sm"
+              type="number"
+              value={String(floorPlan.height)}
               onValueChange={(value) => {
                 const height = parseFloat(value);
 
@@ -111,8 +114,8 @@ export default function InspectorPanel() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant="flat"
               startContent={<Square size={14} />}
+              variant="flat"
               onPress={() => store.addPerimeter()}
             >
               Add perimeter walls
@@ -122,9 +125,9 @@ export default function InspectorPanel() {
           <div>
             <input
               ref={fileInput}
-              type="file"
               accept="image/*,application/pdf"
               className="hidden"
+              type="file"
               onChange={(event) => {
                 const file = event.target.files?.[0];
 
@@ -135,8 +138,8 @@ export default function InspectorPanel() {
             <div className="flex gap-2">
               <Button
                 size="sm"
-                variant="flat"
                 startContent={<ImagePlus size={14} />}
+                variant="flat"
                 onPress={() => fileInput.current?.click()}
               >
                 {floorPlan.backgroundImage ? "Replace" : "Upload"} plan
@@ -144,9 +147,9 @@ export default function InspectorPanel() {
               </Button>
               {floorPlan.backgroundImage && (
                 <Button
+                  color="danger"
                   size="sm"
                   variant="flat"
-                  color="danger"
                   onPress={() => store.setBackgroundImage(undefined)}
                 >
                   Remove
@@ -159,20 +162,20 @@ export default function InspectorPanel() {
           </div>
 
           <Select
-            size="sm"
-            label="Panel system"
-            selectedKeys={panel ? [panel.system] : ["1P3W-120/240"]}
-            onSelectionChange={(keys) => {
-              const system = [...keys][0] as VoltageSystem;
-
-              if (panel) store.placePanel(panel.position, system);
-            }}
-            isDisabled={!panel}
             description={
               panel
                 ? undefined
                 : "Place the panel first (Panel tool), then pick its system."
             }
+            isDisabled={!panel}
+            label="Panel system"
+            selectedKeys={panel ? [panel.system] : ["1P3W-120/240"]}
+            size="sm"
+            onSelectionChange={(keys) => {
+              const system = [...keys][0] as VoltageSystem;
+
+              if (panel) store.placePanel(panel.position, system);
+            }}
           >
             {SYSTEMS.map((system) => (
               <SelectItem key={system.key}>{system.label}</SelectItem>
@@ -187,10 +190,10 @@ export default function InspectorPanel() {
             Wall segment (deleting it also removes its doors/windows)
           </p>
           <Button
-            size="sm"
             color="danger"
-            variant="flat"
+            size="sm"
             startContent={<Trash2 size={14} />}
+            variant="flat"
             onPress={() => store.deleteSelection()}
           >
             Delete wall
@@ -207,10 +210,10 @@ export default function InspectorPanel() {
               : "Door — wiring may route through the doorway"}
           </p>
           <Button
-            size="sm"
             color="danger"
-            variant="flat"
+            size="sm"
             startContent={<Trash2 size={14} />}
+            variant="flat"
             onPress={() => store.deleteSelection()}
           >
             Delete opening
@@ -221,8 +224,8 @@ export default function InspectorPanel() {
       {selection?.kind === "panel" && panel && (
         <div className="space-y-3">
           <Input
-            size="sm"
             label="Panel name"
+            size="sm"
             value={panel.name}
             onValueChange={(name) =>
               useEditorStore.setState((state) => ({
@@ -231,9 +234,9 @@ export default function InspectorPanel() {
             }
           />
           <Select
-            size="sm"
             label="System"
             selectedKeys={[panel.system]}
+            size="sm"
             onSelectionChange={(keys) => {
               const system = [...keys][0] as VoltageSystem;
 
@@ -247,11 +250,11 @@ export default function InspectorPanel() {
           {/* Exact coordinate input (CAD precision, brief §4.1) */}
           <div className="flex gap-2">
             <Input
-              size="sm"
-              type="number"
-              step={0.05}
-              label="X (m)"
               classNames={{ input: "font-mono" }}
+              label="X (m)"
+              size="sm"
+              step={0.05}
+              type="number"
               value={String(panel.position.x)}
               onValueChange={(value) => {
                 const x = parseFloat(value);
@@ -262,11 +265,11 @@ export default function InspectorPanel() {
               }}
             />
             <Input
-              size="sm"
-              type="number"
-              step={0.05}
-              label="Y (m)"
               classNames={{ input: "font-mono" }}
+              label="Y (m)"
+              size="sm"
+              step={0.05}
+              type="number"
               value={String(panel.position.y)}
               onValueChange={(value) => {
                 const y = parseFloat(value);
@@ -281,10 +284,10 @@ export default function InspectorPanel() {
             Main breaker is auto-sized from feeder demand.
           </p>
           <Button
-            size="sm"
             color="danger"
-            variant="flat"
+            size="sm"
             startContent={<Trash2 size={14} />}
+            variant="flat"
             onPress={() => store.deleteSelection()}
           >
             Remove panel
@@ -295,17 +298,17 @@ export default function InspectorPanel() {
       {selectedRoom && (
         <div className="space-y-3">
           <Input
-            size="sm"
             label="Room name"
+            size="sm"
             value={selectedRoom.name}
             onValueChange={(name) =>
               store.updateRoom(selectedRoom.id, { name })
             }
           />
           <Select
-            size="sm"
             label="Room type"
             selectedKeys={[selectedRoom.type]}
+            size="sm"
             onSelectionChange={(keys) =>
               store.updateRoom(selectedRoom.id, {
                 type: [...keys][0] as RoomType,
@@ -317,20 +320,20 @@ export default function InspectorPanel() {
             ))}
           </Select>
           <Button
-            size="sm"
             color="secondary"
-            variant="flat"
-            startContent={<Lightbulb size={14} />}
             isLoading={store.isLightingBusy}
+            size="sm"
+            startContent={<Lightbulb size={14} />}
+            variant="flat"
             onPress={() => void store.autoLighting([selectedRoom.id])}
           >
             Auto-light this room
           </Button>
           <Button
-            size="sm"
             color="danger"
-            variant="flat"
+            size="sm"
             startContent={<Trash2 size={14} />}
+            variant="flat"
             onPress={() => store.deleteSelection()}
           >
             Delete room
@@ -341,19 +344,21 @@ export default function InspectorPanel() {
       {selectedLoad && (
         <div className="space-y-3">
           <Input
-            size="sm"
             label="Name"
+            size="sm"
             value={selectedLoad.name}
-            onValueChange={(name) => store.updateLoad(selectedLoad.id, { name })}
+            onValueChange={(name) =>
+              store.updateLoad(selectedLoad.id, { name })
+            }
           />
           {/* Exact coordinate input (CAD precision, brief §4.1) */}
           <div className="flex gap-2">
             <Input
-              size="sm"
-              type="number"
-              step={0.05}
-              label="X (m)"
               classNames={{ input: "font-mono" }}
+              label="X (m)"
+              size="sm"
+              step={0.05}
+              type="number"
               value={String(selectedLoad.position.x)}
               onValueChange={(value) => {
                 const x = parseFloat(value);
@@ -367,11 +372,11 @@ export default function InspectorPanel() {
               }}
             />
             <Input
-              size="sm"
-              type="number"
-              step={0.05}
-              label="Y (m)"
               classNames={{ input: "font-mono" }}
+              label="Y (m)"
+              size="sm"
+              step={0.05}
+              type="number"
               value={String(selectedLoad.position.y)}
               onValueChange={(value) => {
                 const y = parseFloat(value);
@@ -387,11 +392,11 @@ export default function InspectorPanel() {
           </div>
           <div className="flex gap-2">
             <Input
+              label="Rating (VA)"
+              min={1}
               size="sm"
               type="number"
-              label="Rating (VA)"
               value={String(selectedLoad.va)}
-              min={1}
               onValueChange={(value) => {
                 const va = parseFloat(value);
 
@@ -399,22 +404,21 @@ export default function InspectorPanel() {
               }}
             />
             <Input
+              label="Voltage (V)"
+              min={1}
               size="sm"
               type="number"
-              label="Voltage (V)"
               value={String(selectedLoad.voltage)}
-              min={1}
               onValueChange={(value) => {
                 const voltage = parseFloat(value);
 
-                if (voltage > 0)
-                  store.updateLoad(selectedLoad.id, { voltage });
+                if (voltage > 0) store.updateLoad(selectedLoad.id, { voltage });
               }}
             />
           </div>
           <Switch
-            size="sm"
             isSelected={selectedLoad.continuous}
+            size="sm"
             onValueChange={(continuous) =>
               store.updateLoad(selectedLoad.id, { continuous })
             }
@@ -423,8 +427,8 @@ export default function InspectorPanel() {
           </Switch>
           {selectedLoad.type === "outlet" && (
             <Switch
-              size="sm"
               isSelected={selectedLoad.gfci ?? false}
+              size="sm"
               onValueChange={(gfci) =>
                 store.updateLoad(selectedLoad.id, { gfci })
               }
@@ -435,40 +439,131 @@ export default function InspectorPanel() {
             </Switch>
           )}
           {selectedLoad.type === "lighting" && (
-            <Input
-              size="sm"
-              type="number"
-              label="Luminous flux (lm)"
-              value={String(selectedLoad.lumens ?? "")}
-              placeholder="estimated from VA if empty"
-              min={1}
-              onValueChange={(value) => {
-                const lumens = parseFloat(value);
+            <>
+              <Input
+                label="Luminous flux (lm)"
+                min={1}
+                placeholder="estimated from VA if empty"
+                size="sm"
+                type="number"
+                value={String(selectedLoad.lumens ?? "")}
+                onValueChange={(value) => {
+                  const lumens = parseFloat(value);
 
-                store.updateLoad(selectedLoad.id, {
-                  lumens: lumens > 0 ? lumens : undefined,
-                });
-              }}
-            />
+                  store.updateLoad(selectedLoad.id, {
+                    lumens: lumens > 0 ? lumens : undefined,
+                  });
+                }}
+              />
+              <Switch
+                isSelected={selectedLoad.egress ?? false}
+                size="sm"
+                onValueChange={(egress) =>
+                  store.updateLoad(selectedLoad.id, { egress })
+                }
+              >
+                <span className="text-xs">
+                  Egress/emergency fixture (needs a dedicated circuit)
+                </span>
+              </Switch>
+            </>
           )}
           <p className="text-xs text-default-400">
             Type: {selectedLoad.type}
             {selectedLoad.roomId
               ? ` · Room: ${
                   floorPlan.rooms.find(
-                    (room) => room.id === selectedLoad.roomId
+                    (room) => room.id === selectedLoad.roomId,
                   )?.name ?? selectedLoad.roomId
                 }`
               : " · No room"}
           </p>
           <Button
-            size="sm"
             color="danger"
-            variant="flat"
+            size="sm"
             startContent={<Trash2 size={14} />}
+            variant="flat"
             onPress={() => store.deleteSelection()}
           >
             Delete load
+          </Button>
+        </div>
+      )}
+
+      {selectedFurniture && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Square className="text-brand-amber" size={16} />
+            <span className="text-sm font-medium">Furniture</span>
+          </div>
+          <p className="text-xs text-default-400">
+            {selectedFurniture.label} — {selectedFurniture.width}m ×{" "}
+            {selectedFurniture.depth}m footprint. Not part of the electrical
+            design.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              label="X (m)"
+              size="sm"
+              type="number"
+              value={String(selectedFurniture.position.x)}
+              onValueChange={(value) => {
+                const x = parseFloat(value);
+
+                if (!Number.isNaN(x)) {
+                  store.moveItem(selection, {
+                    ...selectedFurniture.position,
+                    x,
+                  });
+                }
+              }}
+            />
+            <Input
+              label="Y (m)"
+              size="sm"
+              type="number"
+              value={String(selectedFurniture.position.y)}
+              onValueChange={(value) => {
+                const y = parseFloat(value);
+
+                if (!Number.isNaN(y)) {
+                  store.moveItem(selection, {
+                    ...selectedFurniture.position,
+                    y,
+                  });
+                }
+              }}
+            />
+          </div>
+          <Input
+            label="Rotation (degrees)"
+            size="sm"
+            type="number"
+            value={String(
+              Math.round((selectedFurniture.rotation * 180) / Math.PI),
+            )}
+            onValueChange={(value) => {
+              const degrees = parseFloat(value);
+
+              if (!Number.isNaN(degrees)) {
+                store.rotateFurniture(
+                  selectedFurniture.id,
+                  (degrees * Math.PI) / 180,
+                );
+              }
+            }}
+          />
+          <p className="text-xs text-default-400">
+            Shortcut: [ / ] rotates the selected piece 15° in the 2D canvas.
+          </p>
+          <Button
+            color="danger"
+            size="sm"
+            startContent={<Trash2 size={14} />}
+            variant="flat"
+            onPress={() => store.deleteSelection()}
+          >
+            Delete furniture
           </Button>
         </div>
       )}

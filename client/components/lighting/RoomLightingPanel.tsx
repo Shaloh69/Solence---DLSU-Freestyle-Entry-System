@@ -72,7 +72,7 @@ export default function RoomLightingPanel() {
                 </TableCell>
                 <TableCell>{analysis.targetLux}</TableCell>
                 <TableCell>
-                  <Chip size="sm" color={status.color} variant="flat">
+                  <Chip color={status.color} size="sm" variant="flat">
                     {status.label}
                   </Chip>
                 </TableCell>

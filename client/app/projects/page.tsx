@@ -26,7 +26,7 @@ export default function ProjectsPage() {
       setError(
         err instanceof Error
           ? `Cannot reach the Solence API (${err.message}). Is the server running on port 4000?`
-          : String(err)
+          : String(err),
       );
     }
   }, []);
@@ -68,8 +68,8 @@ export default function ProjectsPage() {
         <Input
           placeholder="New project name (e.g. Bungalow — Lot 4)"
           value={name}
-          onValueChange={setName}
           onKeyDown={(event) => event.key === "Enter" && void create()}
+          onValueChange={setName}
         />
         <Button
           color="primary"
@@ -131,17 +131,17 @@ export default function ProjectsPage() {
             <CardFooter className="gap-2 justify-end pt-0">
               <Button
                 size="sm"
-                variant="flat"
                 startContent={<FolderOpen size={14} />}
+                variant="flat"
                 onPress={() => router.push(`/projects/${project.id}/editor`)}
               >
                 Open
               </Button>
               <Button
-                size="sm"
-                variant="flat"
                 color="danger"
+                size="sm"
                 startContent={<Trash2 size={14} />}
+                variant="flat"
                 onPress={() => void remove(project.id)}
               >
                 Delete

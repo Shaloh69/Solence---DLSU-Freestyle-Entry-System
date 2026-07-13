@@ -43,12 +43,25 @@ export const openingSchema = z.object({
   kind: z.enum(["door", "window"]),
 });
 
+export const furnitureSchema = z.object({
+  id: z.string().min(1),
+  key: z.string().min(1),
+  label: z.string().min(1),
+  meshKey: z.string().min(1),
+  position: pointSchema,
+  rotation: z.number().finite(),
+  width: z.number().positive().max(20),
+  depth: z.number().positive().max(20),
+  height: z.number().positive().max(10),
+});
+
 export const floorPlanSchema = z.object({
   width: z.number().positive().max(1000),
   height: z.number().positive().max(1000),
   walls: z.array(wallSchema),
   rooms: z.array(roomSchema),
   openings: z.array(openingSchema).optional(),
+  furniture: z.array(furnitureSchema).optional(),
   backgroundImage: z
     .string()
     .regex(/^data:image\//, "backgroundImage must be an image data URL")
@@ -83,6 +96,7 @@ export const loadSchema = z.object({
   roomId: z.string().optional(),
   lumens: z.number().positive().optional(),
   gfci: z.boolean().optional(),
+  egress: z.boolean().optional(),
 });
 
 export const bulkLoadsSchema = z.array(loadSchema).max(500);

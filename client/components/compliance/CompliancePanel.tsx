@@ -55,8 +55,8 @@ export default function CompliancePanel() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Chip
-                size="sm"
                 color={violation.severity === "error" ? "danger" : "warning"}
+                size="sm"
                 variant="flat"
               >
                 {violation.ruleId}
@@ -82,7 +82,7 @@ export default function CompliancePanel() {
         >
           <AlertTriangle className="text-warning shrink-0 mt-0.5" size={16} />
           <div>
-            <Chip size="sm" color="warning" variant="flat">
+            <Chip color="warning" size="sm" variant="flat">
               routing
             </Chip>
             <p className="text-sm mt-1">

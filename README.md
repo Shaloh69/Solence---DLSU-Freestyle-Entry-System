@@ -21,7 +21,7 @@ Solence is an automatic electrical wiring simulator for the Philippine market. I
 ```
 /client            Next.js 15 frontend — CAD-style editor (HeroUI, Tailwind, R3F)
 /server            Express + TypeScript API — the entire domain engine
-/solence-vision    Python + FastAPI AI floor-plan recognition (v2, scaffolded)
+/solence-vision    Python + FastAPI AI floor-plan recognition (v2, models trained)
 ```
 
 Each folder has its own README explaining what lives inside and how to

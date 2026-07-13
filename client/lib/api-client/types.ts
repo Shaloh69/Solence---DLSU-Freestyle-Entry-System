@@ -46,12 +46,32 @@ export interface Opening {
   kind: "door" | "window";
 }
 
+/**
+ * Interior spatial-planning object (brief §11.1) — a SEPARATE category
+ * from ElectricalLoad: no current draw, no load-calc/sizing/compliance
+ * involvement, no PEC rules. Purely for visual/spatial context in the
+ * 3D shell and optional outlet-placement judgment calls.
+ */
+export interface Furniture {
+  id: string;
+  key: string;
+  label: string;
+  meshKey: string;
+  position: Point;
+  /** Radians, 0 = footprint's "width" axis along plan X. */
+  rotation: number;
+  width: number;
+  depth: number;
+  height: number;
+}
+
 export interface FloorPlan {
   width: number;
   height: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
+  furniture?: Furniture[];
   /** Optional trace-layer image as a data URL. */
   backgroundImage?: string;
 }
@@ -81,6 +101,8 @@ export interface ElectricalLoad {
   lumens?: number;
   /** Whether an outlet is GFCI-protected. */
   gfci?: boolean;
+  /** Exit/egress lighting fixture (commercial scope) — needs a dedicated circuit. */
+  egress?: boolean;
 }
 
 export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";

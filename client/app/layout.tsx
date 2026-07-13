@@ -1,13 +1,15 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Link } from "@heroui/link";
 import clsx from "clsx";
 import { Toaster } from "sonner";
+
+import ClientWrapper from "../context/ClientWrapper";
+
 import { Providers } from "./providers";
+
 import { siteConfig } from "@/config/site";
 import { fontDisplay, fontMono, fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
-import ClientWrapper from "../context/ClientWrapper";
 
 export const metadata: Metadata = {
   title: {
@@ -40,7 +42,7 @@ export default function RootLayout({
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable,
           fontMono.variable,
-          fontDisplay.variable
+          fontDisplay.variable,
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
@@ -48,7 +50,7 @@ export default function RootLayout({
             <Navbar />
             <ClientWrapper>{children}</ClientWrapper>
           </div>
-          <Toaster richColors closeButton position="bottom-right" />
+          <Toaster closeButton richColors position="bottom-right" />
         </Providers>
       </body>
     </html>

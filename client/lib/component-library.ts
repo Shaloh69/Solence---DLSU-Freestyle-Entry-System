@@ -18,22 +18,114 @@ export interface LibraryItem {
 }
 
 export const COMPONENT_LIBRARY: LibraryItem[] = [
-  { key: "led-downlight", label: "LED Downlight", type: "lighting", va: 12, continuous: true, icon: "lightbulb" },
-  { key: "led-tube", label: "LED Tube Light", type: "lighting", va: 20, continuous: true, icon: "lightbulb" },
-  { key: "outlet-duplex", label: "Duplex Outlet", type: "outlet", va: 180, continuous: false, icon: "plug" },
-  { key: "outlet-counter", label: "Counter Outlet", type: "outlet", va: 360, continuous: false, icon: "plug" },
-  { key: "refrigerator", label: "Refrigerator", type: "appliance", va: 1200, continuous: false, icon: "refrigerator" },
-  { key: "microwave", label: "Microwave", type: "appliance", va: 1100, continuous: false, icon: "microwave" },
-  { key: "washing-machine", label: "Washing Machine", type: "laundry", va: 1500, continuous: false, icon: "washing-machine" },
-  { key: "aircon-window", label: "A/C Window Unit", type: "hvac", va: 1100, continuous: true, icon: "air-vent", heavy: true },
-  { key: "aircon-split", label: "A/C Split Type", type: "hvac", va: 1800, continuous: true, icon: "air-vent", heavy: true },
-  { key: "water-heater", label: "Water Heater", type: "equipment", va: 3500, continuous: false, icon: "flame", heavy: true },
-  { key: "water-pump", label: "Water Pump", type: "motor", va: 750, continuous: false, icon: "cog", heavy: true },
-  { key: "range", label: "Electric Range", type: "equipment", va: 8000, continuous: false, icon: "cooking-pot", heavy: true },
+  {
+    key: "led-downlight",
+    label: "LED Downlight",
+    type: "lighting",
+    va: 12,
+    continuous: true,
+    icon: "lightbulb",
+  },
+  {
+    key: "led-tube",
+    label: "LED Tube Light",
+    type: "lighting",
+    va: 20,
+    continuous: true,
+    icon: "lightbulb",
+  },
+  {
+    key: "outlet-duplex",
+    label: "Duplex Outlet",
+    type: "outlet",
+    va: 180,
+    continuous: false,
+    icon: "plug",
+  },
+  {
+    key: "outlet-counter",
+    label: "Counter Outlet",
+    type: "outlet",
+    va: 360,
+    continuous: false,
+    icon: "plug",
+  },
+  {
+    key: "refrigerator",
+    label: "Refrigerator",
+    type: "appliance",
+    va: 1200,
+    continuous: false,
+    icon: "refrigerator",
+  },
+  {
+    key: "microwave",
+    label: "Microwave",
+    type: "appliance",
+    va: 1100,
+    continuous: false,
+    icon: "microwave",
+  },
+  {
+    key: "washing-machine",
+    label: "Washing Machine",
+    type: "laundry",
+    va: 1500,
+    continuous: false,
+    icon: "washing-machine",
+  },
+  {
+    key: "aircon-window",
+    label: "A/C Window Unit",
+    type: "hvac",
+    va: 1100,
+    continuous: true,
+    icon: "air-vent",
+    heavy: true,
+  },
+  {
+    key: "aircon-split",
+    label: "A/C Split Type",
+    type: "hvac",
+    va: 1800,
+    continuous: true,
+    icon: "air-vent",
+    heavy: true,
+  },
+  {
+    key: "water-heater",
+    label: "Water Heater",
+    type: "equipment",
+    va: 3500,
+    continuous: false,
+    icon: "flame",
+    heavy: true,
+  },
+  {
+    key: "water-pump",
+    label: "Water Pump",
+    type: "motor",
+    va: 750,
+    continuous: false,
+    icon: "cog",
+    heavy: true,
+  },
+  {
+    key: "range",
+    label: "Electric Range",
+    type: "equipment",
+    va: 8000,
+    continuous: false,
+    icon: "cooking-pot",
+    heavy: true,
+  },
 ];
 
 /** Default operating voltage for a library item under a panel system. */
-export function defaultVoltage(system: VoltageSystem, item: LibraryItem): number {
+export function defaultVoltage(
+  system: VoltageSystem,
+  item: LibraryItem,
+): number {
   switch (system) {
     case "1P2W-120":
       return 120;

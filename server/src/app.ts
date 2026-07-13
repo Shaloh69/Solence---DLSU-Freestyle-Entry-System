@@ -3,6 +3,7 @@ import cors from "cors";
 import { config } from "./config.js";
 import { healthRouter } from "./routes/health.js";
 import { projectsRouter } from "./routes/projects.js";
+import { visionRouter } from "./routes/vision.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { tierMiddleware } from "./middleware/tier.js";
 import {
@@ -38,6 +39,7 @@ export function createApp(options: AppOptions = {}) {
 
   app.use("/api", healthRouter);
   app.use("/api", projectsRouter(repository));
+  app.use("/api", visionRouter(repository));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

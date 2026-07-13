@@ -21,19 +21,25 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Line, OrbitControls, Text } from "@react-three/drei";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import {
+  Line,
+  OrbitControls,
+  Text,
+  TransformControls,
+} from "@react-three/drei";
 
 import {
   ElectricalLoad,
   FloorPlan,
+  Furniture,
   LuxSample,
   Opening,
   Panel,
   SimulationResult,
   Wall,
 } from "@/lib/api-client";
-import { useEditorStore } from "@/lib/editor-store";
+import { Selection, useEditorStore } from "@/lib/editor-store";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
 
 const WALL_HEIGHT = 2.7;
@@ -93,7 +99,7 @@ function useSharedMaterials() {
         opacity: 0.45,
       }),
     }),
-    []
+    [],
   );
 
   useLayoutEffect(() => {
@@ -117,7 +123,7 @@ interface WallBox {
 function wallBoxes(wall: Wall, openings: Opening[]): WallBox[] {
   const length = Math.hypot(
     wall.end.x - wall.start.x,
-    wall.end.y - wall.start.y
+    wall.end.y - wall.start.y,
   );
 
   if (length === 0) return [];
@@ -164,13 +170,13 @@ function Walls({
       {plan.walls.map((wall) => {
         const length = Math.hypot(
           wall.end.x - wall.start.x,
-          wall.end.y - wall.start.y
+          wall.end.y - wall.start.y,
         );
 
         if (length === 0) return null;
         const angle = Math.atan2(
           wall.end.y - wall.start.y,
-          wall.end.x - wall.start.x
+          wall.end.x - wall.start.x,
         );
         const ux = (wall.end.x - wall.start.x) / length;
         const uy = (wall.end.y - wall.start.y) / length;
@@ -219,12 +225,12 @@ function RoomFloorsAndRoof({
     () =>
       plan.rooms.map((room) => {
         const shape = new THREE.Shape(
-          room.boundary.map((point) => new THREE.Vector2(point.x, point.y))
+          room.boundary.map((point) => new THREE.Vector2(point.x, point.y)),
         );
 
         return { id: room.id, geometry: new THREE.ShapeGeometry(shape) };
       }),
-    [plan.rooms]
+    [plan.rooms],
   );
 
   useLayoutEffect(() => {
@@ -299,10 +305,12 @@ function InstancedLoads({
   loads,
   colors,
   material,
+  onSelect,
 }: {
   loads: ElectricalLoad[];
   colors: string[];
   material: THREE.Material;
+  onSelect: (id: string) => void;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const matrix = useMemo(() => new THREE.Matrix4(), []);
@@ -316,7 +324,7 @@ function InstancedLoads({
       matrix.setPosition(
         load.position.x,
         loadHeight(load.type),
-        load.position.y
+        load.position.y,
       );
       mesh.setMatrixAt(index, matrix);
       mesh.setColorAt(index, color.set(colors[index]));
@@ -333,9 +341,186 @@ function InstancedLoads({
       ref={meshRef}
       args={[undefined, undefined, loads.length]}
       material={material}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        const index = event.instanceId;
+
+        if (index != null && loads[index]) onSelect(loads[index].id);
+      }}
     >
       <sphereGeometry args={[0.12, 16, 12]} />
     </instancedMesh>
+  );
+}
+
+/* ---------- furniture (§11.1) — individual meshes, low counts ---------- */
+
+function furnitureGeometryArgs(piece: Furniture): [number, number, number] {
+  return [piece.width, piece.height, piece.depth];
+}
+
+function FurniturePieces({
+  pieces,
+  selectedId,
+  onSelect,
+}: {
+  pieces: Furniture[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const material = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#d97706", roughness: 0.7 }),
+    [],
+  );
+
+  useLayoutEffect(() => () => material.dispose(), [material]);
+
+  return (
+    <>
+      {pieces.map((piece) => (
+        <mesh
+          key={piece.id}
+          material={material}
+          position={[piece.position.x, piece.height / 2, piece.position.y]}
+          rotation={[0, -piece.rotation, 0]}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(piece.id);
+          }}
+        >
+          <boxGeometry args={furnitureGeometryArgs(piece)} />
+          {piece.id === selectedId && (
+            <lineSegments>
+              <edgesGeometry
+                args={[new THREE.BoxGeometry(...furnitureGeometryArgs(piece))]}
+              />
+              <lineBasicMaterial color="#14B8A6" />
+            </lineSegments>
+          )}
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+/* ---------- selection gizmo (§11.2) — bidirectional 2D/3D manipulation ---------- */
+
+function SelectionGizmo({
+  mode,
+  onDragStateChange,
+}: {
+  mode: "translate" | "rotate";
+  onDragStateChange: (dragging: boolean) => void;
+}) {
+  const selection = useEditorStore((state) => state.selection);
+  const loads = useEditorStore((state) => state.loads);
+  const panel = useEditorStore((state) => state.panel);
+  const floorPlan = useEditorStore((state) => state.floorPlan);
+  const moveItem = useEditorStore((state) => state.moveItem);
+  const rotateFurniture = useEditorStore((state) => state.rotateFurniture);
+  const proxyRef = useRef<THREE.Mesh>(null);
+
+  const target = useMemo(() => {
+    if (selection?.kind === "load") {
+      const load = loads.find((candidate) => candidate.id === selection.id);
+
+      if (!load) return null;
+
+      return {
+        selection,
+        position: [load.position.x, loadHeight(load.type), load.position.y] as [
+          number,
+          number,
+          number,
+        ],
+        rotationY: 0,
+        rotatable: false,
+      };
+    }
+    if (selection?.kind === "panel" && panel) {
+      return {
+        selection,
+        position: [panel.position.x, 1.4, panel.position.y] as [
+          number,
+          number,
+          number,
+        ],
+        rotationY: 0,
+        rotatable: false,
+      };
+    }
+    if (selection?.kind === "furniture") {
+      const piece = (floorPlan.furniture ?? []).find(
+        (candidate) => candidate.id === selection.id,
+      );
+
+      if (!piece) return null;
+
+      return {
+        selection,
+        position: [piece.position.x, piece.height / 2, piece.position.y] as [
+          number,
+          number,
+          number,
+        ],
+        rotationY: -piece.rotation,
+        rotatable: true,
+      };
+    }
+
+    return null;
+  }, [selection, loads, panel, floorPlan.furniture]);
+
+  useLayoutEffect(() => {
+    const proxy = proxyRef.current;
+
+    if (!proxy || !target) return;
+    proxy.position.set(...target.position);
+    proxy.rotation.set(0, target.rotationY, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    target?.selection,
+    target?.position[0],
+    target?.position[1],
+    target?.position[2],
+    target?.rotationY,
+  ]);
+
+  if (!target) return null;
+
+  function syncFromProxy() {
+    const proxy = proxyRef.current;
+
+    if (!proxy || !target) return;
+    const point = { x: proxy.position.x, y: proxy.position.z };
+
+    if (target.selection.kind === "furniture") {
+      moveItem(target.selection as Selection, point);
+      rotateFurniture(
+        (target.selection as { id: string }).id,
+        -proxy.rotation.y,
+      );
+    } else {
+      moveItem(target.selection as Selection, point);
+    }
+  }
+
+  const effectiveMode = target.rotatable ? mode : "translate";
+
+  return (
+    <TransformControls
+      mode={effectiveMode}
+      showX={effectiveMode === "translate"}
+      showY={effectiveMode === "rotate"}
+      showZ={effectiveMode === "translate"}
+      onChange={syncFromProxy}
+      onMouseDown={() => onDragStateChange(true)}
+      onMouseUp={() => onDragStateChange(false)}
+    >
+      <mesh ref={proxyRef} visible={false}>
+        <boxGeometry args={[0.35, 0.35, 0.35]} />
+      </mesh>
+    </TransformControls>
   );
 }
 
@@ -357,7 +542,7 @@ function InstancedHeatmap({
   // LOD: drop to half resolution when the camera is far from the plan.
   useFrame(() => {
     const distance = camera.position.distanceTo(
-      new THREE.Vector3(planCenter[0], 0, planCenter[1])
+      new THREE.Vector3(planCenter[0], 0, planCenter[1]),
     );
     const shouldBeCoarse = distance > 24;
 
@@ -366,14 +551,14 @@ function InstancedHeatmap({
 
   const visible = useMemo(
     () => (coarse ? samples.filter((_, index) => index % 2 === 0) : samples),
-    [samples, coarse]
+    [samples, coarse],
   );
 
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   const rotation = useMemo(
     () =>
       new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
-    []
+    [],
   );
   const scale = useMemo(() => new THREE.Vector3(1, 1, 1), []);
   const color = useMemo(() => new THREE.Color(), []);
@@ -417,16 +602,30 @@ function InstancedHeatmap({
 function PanelBox({
   panel,
   material,
+  onSelect,
 }: {
   panel: Panel;
   material: THREE.Material;
+  onSelect: () => void;
 }) {
   return (
     <group position={[panel.position.x, 0, panel.position.y]}>
-      <mesh material={material} position={[0, 1.4, 0]}>
+      <mesh
+        material={material}
+        position={[0, 1.4, 0]}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect();
+        }}
+      >
         <boxGeometry args={[0.45, 0.65, 0.18]} />
       </mesh>
-      <Text anchorX="center" color="#f9fafb" fontSize={0.22} position={[0, 1.85, 0]}>
+      <Text
+        anchorX="center"
+        color="#f9fafb"
+        fontSize={0.22}
+        position={[0, 1.85, 0]}
+      >
         {panel.name}
       </Text>
     </group>
@@ -462,7 +661,7 @@ function Routes({
         const points: [number, number, number][] = [
           [first.x, panel ? 1.4 : 0.3, first.y],
           ...route.points.map(
-            (p) => [p.x, CONDUIT_HEIGHT, p.y] as [number, number, number]
+            (p) => [p.x, CONDUIT_HEIGHT, p.y] as [number, number, number],
           ),
           [last.x, load ? loadHeight(load.type) : 0.3, last.y],
         ];
@@ -471,8 +670,8 @@ function Routes({
           <Line
             key={route.loadId}
             color={color}
-            dashed={route.fallback}
             dashSize={0.25}
+            dashed={route.fallback}
             gapSize={0.15}
             lineWidth={violating.has(route.circuitId) ? 3.5 : 2}
             points={points}
@@ -485,19 +684,22 @@ function Routes({
 
 /* ---------- scene ---------- */
 
-function Scene() {
+function Scene({ gizmoMode }: { gizmoMode: "translate" | "rotate" }) {
   const floorPlan = useEditorStore((state) => state.floorPlan);
   const panel = useEditorStore((state) => state.panel);
   const loads = useEditorStore((state) => state.loads);
   const result = useEditorStore((state) => state.result);
   const layers = useEditorStore((state) => state.layers);
+  const selection = useEditorStore((state) => state.selection);
+  const setSelection = useEditorStore((state) => state.setSelection);
   const materials = useSharedMaterials();
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
 
   const circuitIds = result?.circuits.map((circuit) => circuit.id) ?? [];
   const violating = new Set(
     layers.violations
       ? (result?.violations.map((violation) => violation.circuitId) ?? [])
-      : []
+      : [],
   );
   const circuitByLoad = new Map<string, string>();
 
@@ -506,7 +708,7 @@ function Scene() {
   }
 
   const visibleLoads = loads.filter((load) =>
-    load.type === "lighting" ? layers.lighting : layers.loads
+    load.type === "lighting" ? layers.lighting : layers.loads,
   );
   const loadColors = visibleLoads.map((load) => {
     const circuitId = circuitByLoad.get(load.id);
@@ -524,7 +726,7 @@ function Scene() {
   return (
     <>
       <ambientLight intensity={0.7} />
-      <directionalLight position={[centerX, 12, centerZ + 6]} intensity={0.8} />
+      <directionalLight intensity={0.8} position={[centerX, 12, centerZ + 6]} />
 
       <RoomFloorsAndRoof
         materials={materials}
@@ -540,13 +742,27 @@ function Scene() {
           samples={result.luxHeatmap}
         />
       )}
-      {panel && <PanelBox material={materials.panel} panel={panel} />}
+      {panel && (
+        <PanelBox
+          material={materials.panel}
+          panel={panel}
+          onSelect={() => setSelection({ kind: "panel" })}
+        />
+      )}
 
       <InstancedLoads
         colors={loadColors}
         loads={visibleLoads}
         material={materials.loadInstance}
+        onSelect={(id) => setSelection({ kind: "load", id })}
       />
+      {layers.furniture && (
+        <FurniturePieces
+          pieces={floorPlan.furniture ?? []}
+          selectedId={selection?.kind === "furniture" ? selection.id : null}
+          onSelect={(id) => setSelection({ kind: "furniture", id })}
+        />
+      )}
       {visibleLoads.map((load) => (
         <Text
           key={load.id}
@@ -573,17 +789,33 @@ function Scene() {
         />
       )}
 
-      <OrbitControls enableDamping target={[centerX, 1, centerZ]} />
+      {selection && (
+        <SelectionGizmo
+          mode={gizmoMode}
+          onDragStateChange={(dragging) => setOrbitEnabled(!dragging)}
+        />
+      )}
+
+      <OrbitControls
+        enableDamping
+        enabled={orbitEnabled}
+        target={[centerX, 1, centerZ]}
+      />
     </>
   );
 }
 
 export default function WiringOverlay3D() {
   const floorPlan = useEditorStore((state) => state.floorPlan);
+  const selection = useEditorStore((state) => state.selection);
+  const setSelection = useEditorStore((state) => state.setSelection);
   const radius = Math.max(floorPlan.width, floorPlan.height);
+  const [gizmoMode, setGizmoMode] = useState<"translate" | "rotate">(
+    "translate",
+  );
 
   return (
-    <div className="w-full h-full rounded-lg overflow-hidden bg-content1/40">
+    <div className="relative w-full h-full rounded-lg overflow-hidden bg-content1/40">
       <Canvas
         camera={{
           position: [
@@ -593,9 +825,28 @@ export default function WiringOverlay3D() {
           ],
           fov: 50,
         }}
+        onPointerMissed={() => setSelection(null)}
       >
-        <Scene />
+        <Scene gizmoMode={gizmoMode} />
       </Canvas>
+      {selection?.kind === "furniture" && (
+        <div className="absolute top-2 right-2 flex gap-1 rounded-lg bg-content1/90 p-1 border border-default-200">
+          <button
+            className={`px-2 py-1 rounded text-xs ${gizmoMode === "translate" ? "bg-brand-teal/30 text-brand-teal" : "text-default-500"}`}
+            type="button"
+            onClick={() => setGizmoMode("translate")}
+          >
+            Move
+          </button>
+          <button
+            className={`px-2 py-1 rounded text-xs ${gizmoMode === "rotate" ? "bg-brand-teal/30 text-brand-teal" : "text-default-500"}`}
+            type="button"
+            onClick={() => setGizmoMode("rotate")}
+          >
+            Rotate
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,10 +6,10 @@ door/window openings, and typed room instances — the same JSON shape the
 Express API's rasterizer consumes from manually drawn plans, so the
 routing/compliance engine never knows the plan came from a model.
 
-**Status: scaffolded, not trained.** The service, fusion logic, scripts,
-and tests are real and runnable; recognition returns 503 until models
-are trained per [HOW-TO.md](HOW-TO.md). The core simulator does not
-depend on this service existing.
+**Status: both models trained.** U-Net (wall segmentation) and YOLO26-seg
+(door/window/room detection) are trained and loaded — `/health` reports
+`{"unet":true,"yolo":true}`. The core simulator does not depend on this
+service existing, but recognition is live, not just scaffolded.
 
 ## What lives here
 
@@ -47,8 +47,8 @@ specifically want to hit it directly from outside for testing:
     service: http://localhost:8000
 ```
 
-Remote training on this host works over the same tunnel's SSH ingress
-(`docs/HOSTING.md` §7) — `ssh` in, `git pull`, then re-run the scripts
+Remote training on this host works over the Tailscale SSH setup
+(`docs/HOSTING.md` §1) — `ssh` in, `git pull`, then re-run the scripts
 in `scripts/` exactly as documented in [HOW-TO.md](HOW-TO.md).
 
 ## Extending

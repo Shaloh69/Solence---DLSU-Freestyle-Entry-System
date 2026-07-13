@@ -1,7 +1,7 @@
 # Solence — agent instructions
 
 Monorepo: `client/` (Next.js 15 CAD editor), `server/` (Express engine
-API), `solence-vision/` (Python AI service, scaffolded). Map:
+API), `solence-vision/` (Python AI service, models trained). Map:
 [README.md](README.md) · run locally: [HOW-TO.md](HOW-TO.md) · API
 contract: [server/docs/api.md](server/docs/api.md).
 

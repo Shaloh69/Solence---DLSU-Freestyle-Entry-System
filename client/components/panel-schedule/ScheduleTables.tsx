@@ -15,7 +15,11 @@ import {
 import { Chip } from "@heroui/chip";
 
 import { useEditorStore } from "@/lib/editor-store";
-import { circuitColor, PHASE_COLORS, VIOLATION_COLOR } from "@/lib/circuit-colors";
+import {
+  circuitColor,
+  PHASE_COLORS,
+  VIOLATION_COLOR,
+} from "@/lib/circuit-colors";
 
 export function PanelScheduleTable() {
   const result = useEditorStore((state) => state.result);
@@ -31,7 +35,7 @@ export function PanelScheduleTable() {
   const { schedule } = result;
   const circuitIds = result.circuits.map((circuit) => circuit.id);
   const violating = new Set(
-    result.violations.map((violation) => violation.circuitId)
+    result.violations.map((violation) => violation.circuitId),
   );
 
   return (
@@ -49,7 +53,7 @@ export function PanelScheduleTable() {
         <Chip size="sm" variant="flat">
           Feeder: {schedule.feederAmps} A
         </Chip>
-        <Chip size="sm" color="primary" variant="flat">
+        <Chip color="primary" size="sm" variant="flat">
           Main breaker: {schedule.mainBreakerAmps} A
         </Chip>
         {(["A", "B", "C"] as const).map((phase) =>
@@ -57,12 +61,12 @@ export function PanelScheduleTable() {
             <Chip
               key={phase}
               size="sm"
-              variant="dot"
               style={{ borderColor: PHASE_COLORS[phase] }}
+              variant="dot"
             >
               Phase {phase}: {schedule.phaseVa[phase].toLocaleString()} VA
             </Chip>
-          ) : null
+          ) : null,
         )}
       </div>
 

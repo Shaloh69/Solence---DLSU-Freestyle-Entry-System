@@ -18,7 +18,8 @@ import {
 export * from "./types";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
+  "http://localhost:4000";
 
 /** WebSocket endpoint for the realtime gateway (server/docs/api.md). */
 export function realtimeUrl(): string {
@@ -29,7 +30,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public issues?: unknown
+    public issues?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -39,7 +40,7 @@ export class ApiError extends Error {
 async function request<T>(
   method: string,
   path: string,
-  body?: unknown
+  body?: unknown,
 ): Promise<T> {
   const response = await fetch(`${BASE_URL}/api${path}`, {
     method,
@@ -55,7 +56,7 @@ async function request<T>(
     throw new ApiError(
       response.status,
       payload?.error ?? `Request failed with status ${response.status}`,
-      payload?.issues
+      payload?.issues,
     );
   }
 
@@ -66,7 +67,7 @@ export const api = {
   health: () =>
     request<{ status: string; service: string; supabase: string }>(
       "GET",
-      "/health"
+      "/health",
     ),
 
   projects: {
@@ -95,13 +96,43 @@ export const api = {
       request<{ project: Project; placements: AutoLightingPlacement[] }>(
         "POST",
         `/projects/${id}/lighting/auto`,
-        options ?? {}
+        options ?? {},
       ),
 
     simulate: (id: string, options?: SimulateOptions) =>
-      request<SimulationResult>("POST", `/projects/${id}/simulate`, options ?? {}),
+      request<SimulationResult>(
+        "POST",
+        `/projects/${id}/simulate`,
+        options ?? {},
+      ),
     results: (id: string) =>
       request<SimulationResult>("GET", `/projects/${id}/results`),
+
+    /** Upload a floor plan image for AI recognition (brief §7.4). Progress
+     * arrives over the realtime `/ws` gateway as `ai-progress` events;
+     * this call only returns the job id. */
+    recognize: async (
+      id: string,
+      file: File | Blob,
+    ): Promise<{ jobId: string }> => {
+      const form = new FormData();
+
+      form.append("image", file, file instanceof File ? file.name : "plan.png");
+      const response = await fetch(`${BASE_URL}/api/projects/${id}/recognize`, {
+        method: "POST",
+        body: form,
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new ApiError(
+          response.status,
+          payload?.error ?? `Recognition failed with status ${response.status}`,
+        );
+      }
+
+      return payload as { jobId: string };
+    },
 
     exportPdf: async (id: string): Promise<Blob> => {
       const response = await fetch(`${BASE_URL}/api/projects/${id}/export`, {
@@ -113,7 +144,7 @@ export const api = {
 
         throw new ApiError(
           response.status,
-          payload?.error ?? `Export failed with status ${response.status}`
+          payload?.error ?? `Export failed with status ${response.status}`,
         );
       }
 

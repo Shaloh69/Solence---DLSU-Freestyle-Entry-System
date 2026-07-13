@@ -5,13 +5,13 @@
  */
 export async function pdfFirstPageToDataUrl(
   file: File,
-  targetWidth = 1600
+  targetWidth = 1600,
 ): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
 
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
+    import.meta.url,
   ).toString();
 
   const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() });

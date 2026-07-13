@@ -14,6 +14,7 @@ const LAYERS: { key: LayerKey; label: string }[] = [
   { key: "rooms", label: "Rooms" },
   { key: "loads", label: "Loads" },
   { key: "lighting", label: "Lighting fixtures" },
+  { key: "furniture", label: "Furniture" },
   { key: "wiring", label: "Wiring" },
   { key: "heatmap", label: "Lux heatmap" },
   { key: "violations", label: "Violation highlights" },
@@ -25,13 +26,15 @@ export default function LayersPanel() {
 
   return (
     <div>
-      <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-default-500 mb-2">Layers</h3>
+      <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-default-500 mb-2">
+        Layers
+      </h3>
       <div className="flex flex-col gap-1.5">
         {LAYERS.map((layer) => (
           <Checkbox
             key={layer.key}
-            size="sm"
             isSelected={layers[layer.key]}
+            size="sm"
             onValueChange={(visible) => setLayer(layer.key, visible)}
           >
             <span className="text-xs">{layer.label}</span>

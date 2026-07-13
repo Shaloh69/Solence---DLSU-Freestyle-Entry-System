@@ -43,18 +43,18 @@ export const Navbar = () => {
 
   return (
     <HeroUINavbar
-      isBlurred={scrolled}
-      maxWidth="xl"
-      position="sticky"
       shouldHideOnScroll
       classNames={{
         base: clsx(
           "transition-colors duration-300",
           scrolled
             ? "bg-background/70 border-b border-default-200"
-            : "bg-transparent"
+            : "bg-transparent",
         ),
       }}
+      isBlurred={scrolled}
+      maxWidth="xl"
+      position="sticky"
     >
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand as="li" className="gap-3 max-w-fit">
@@ -114,7 +114,7 @@ export const Navbar = () => {
               <Link
                 className={clsx(
                   "text-lg",
-                  pathname === item.href ? "text-primary" : "text-foreground"
+                  pathname === item.href ? "text-primary" : "text-foreground",
                 )}
                 href={item.href}
                 size="lg"

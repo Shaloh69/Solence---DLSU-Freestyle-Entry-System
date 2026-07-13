@@ -23,7 +23,7 @@ export default function ClientWrapper({
       <main
         className={clsx(
           "pt-16 flex-grow bg-transparent relative",
-          isWorkSurface ? "flex w-full" : "container mx-auto max-w-7xl px-6"
+          isWorkSurface ? "flex w-full" : "container mx-auto max-w-7xl px-6",
         )}
       >
         {children}

@@ -67,14 +67,15 @@ function CloudBand({ seed, scale }: { seed: number; scale: number }) {
   }));
 
   return (
-    <svg
-      fill="white"
-      preserveAspectRatio="none"
-      viewBox="0 0 900 120"
-    >
+    <svg fill="white" preserveAspectRatio="none" viewBox="0 0 900 120">
       {puffs.map((puff, index) => (
         <g key={index}>
-          <ellipse cx={puff.cx} cy={puff.cy} rx={puff.r * 1.9} ry={puff.r * 0.55} />
+          <ellipse
+            cx={puff.cx}
+            cy={puff.cy}
+            rx={puff.r * 1.9}
+            ry={puff.r * 0.55}
+          />
           <ellipse
             cx={puff.cx - puff.r * 0.7}
             cy={puff.cy + puff.r * 0.18}
@@ -103,8 +104,7 @@ export default function SkyBackground() {
     }
     document.addEventListener("visibilitychange", onVisibility);
 
-    return () =>
-      document.removeEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   return (
@@ -113,16 +113,16 @@ export default function SkyBackground() {
       <div className="sky-day">
         <div className="sky-sun" />
         <div className="sky-clouds sky-clouds-far">
-          <CloudBand seed={3} scale={0.7} />
-          <CloudBand seed={3} scale={0.7} />
+          <CloudBand scale={0.7} seed={3} />
+          <CloudBand scale={0.7} seed={3} />
         </div>
         <div className="sky-clouds sky-clouds-mid">
-          <CloudBand seed={11} scale={1} />
-          <CloudBand seed={11} scale={1} />
+          <CloudBand scale={1} seed={11} />
+          <CloudBand scale={1} seed={11} />
         </div>
         <div className="sky-clouds sky-clouds-near">
-          <CloudBand seed={27} scale={1.35} />
-          <CloudBand seed={27} scale={1.35} />
+          <CloudBand scale={1.35} seed={27} />
+          <CloudBand scale={1.35} seed={27} />
         </div>
       </div>
 

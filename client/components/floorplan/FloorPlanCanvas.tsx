@@ -8,9 +8,11 @@
  * Routed wiring is color-coded by circuit; violations render red.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
 import { Opening, Point, Wall } from "@/lib/api-client";
 import { useEditorStore } from "@/lib/editor-store";
 import { COMPONENT_LIBRARY } from "@/lib/component-library";
+import { FURNITURE_LIBRARY } from "@/lib/furniture-library";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
 
 const SNAP = 0.25; // meters
@@ -23,7 +25,7 @@ function snap(value: number): number {
 function openingGeometry(opening: Opening, wall: Wall) {
   const length = Math.hypot(
     wall.end.x - wall.start.x,
-    wall.end.y - wall.start.y
+    wall.end.y - wall.start.y,
   );
 
   if (length === 0) return null;
@@ -68,6 +70,7 @@ export default function FloorPlanCanvas() {
     result,
     tool,
     libraryItem,
+    furnitureItem,
     selection,
     layers,
   } = store;
@@ -94,7 +97,7 @@ export default function FloorPlanCanvas() {
         y: Math.min(floorPlan.height, Math.max(0, y)),
       };
     },
-    [floorPlan.width, floorPlan.height]
+    [floorPlan.width, floorPlan.height],
   );
 
   function handleCanvasClick(event: React.MouseEvent) {
@@ -119,6 +122,8 @@ export default function FloorPlanCanvas() {
       store.addOpening(tool, raw); // raw: openings need the exact wall hit
     } else if (tool === "load" && libraryItem) {
       store.placeLoad(libraryItem, point);
+    } else if (tool === "furniture" && furnitureItem) {
+      store.placeFurniture(furnitureItem, point);
     } else if (tool === "select") {
       store.setSelection(null);
     }
@@ -137,13 +142,28 @@ export default function FloorPlanCanvas() {
 
   function handleDrop(event: React.DragEvent) {
     event.preventDefault();
-    const key = event.dataTransfer.getData("application/x-solence-component");
-    const item = COMPONENT_LIBRARY.find((candidate) => candidate.key === key);
-
-    if (!item) return;
+    const componentKey = event.dataTransfer.getData(
+      "application/x-solence-component",
+    );
+    const furnitureKey = event.dataTransfer.getData(
+      "application/x-solence-furniture",
+    );
     const raw = toPlanPoint(event);
+    const point = { x: snap(raw.x), y: snap(raw.y) };
 
-    store.placeLoad(item, { x: snap(raw.x), y: snap(raw.y) });
+    if (componentKey) {
+      const item = COMPONENT_LIBRARY.find(
+        (candidate) => candidate.key === componentKey,
+      );
+
+      if (item) store.placeLoad(item, point);
+    } else if (furnitureKey) {
+      const item = FURNITURE_LIBRARY.find(
+        (candidate) => candidate.key === furnitureKey,
+      );
+
+      if (item) store.placeFurniture(item, point);
+    }
   }
 
   // CAD keyboard shortcuts.
@@ -166,6 +186,22 @@ export default function FloorPlanCanvas() {
 
       if (toolByKey[key] && !event.ctrlKey && !event.metaKey) {
         state.setTool(toolByKey[key]);
+      } else if (
+        (event.key === "[" || event.key === "]") &&
+        state.selection &&
+        state.selection.kind === "furniture"
+      ) {
+        const furnitureSelection = state.selection;
+        const piece = (state.floorPlan.furniture ?? []).find(
+          (candidate) => candidate.id === furnitureSelection.id,
+        );
+
+        if (piece) {
+          const step = Math.PI / 12; // 15 degrees
+          const delta = event.key === "]" ? step : -step;
+
+          state.rotateFurniture(piece.id, piece.rotation + delta);
+        }
       } else if (event.key === "Delete" || event.key === "Backspace") {
         state.deleteSelection();
       } else if (event.key === "Escape") {
@@ -184,7 +220,7 @@ export default function FloorPlanCanvas() {
       ? (result?.violations
           .map((violation) => violation.circuitId)
           .filter(Boolean) ?? [])
-      : []
+      : [],
   );
   const circuitByLoad = new Map<string, string>();
 
@@ -199,62 +235,62 @@ export default function FloorPlanCanvas() {
     gridLines.push(
       <line
         key={`gx${x}`}
-        x1={x}
-        y1={0}
-        x2={x}
-        y2={floorPlan.height}
         stroke="currentColor"
         strokeOpacity={0.08}
         strokeWidth={0.02}
-      />
+        x1={x}
+        x2={x}
+        y1={0}
+        y2={floorPlan.height}
+      />,
     );
   }
   for (let y = 0; y <= floorPlan.height; y += 1) {
     gridLines.push(
       <line
         key={`gy${y}`}
-        x1={0}
-        y1={y}
-        x2={floorPlan.width}
-        y2={y}
         stroke="currentColor"
         strokeOpacity={0.08}
         strokeWidth={0.02}
-      />
+        x1={0}
+        x2={floorPlan.width}
+        y1={y}
+        y2={y}
+      />,
     );
   }
 
   const visibleLoads = loads.filter((load) =>
-    load.type === "lighting" ? layers.lighting : layers.loads
+    load.type === "lighting" ? layers.lighting : layers.loads,
   );
 
   return (
     <svg
       ref={svgRef}
-      className="w-full h-full bg-content1/40 rounded-lg touch-none select-none"
-      viewBox={`0 0 ${floorPlan.width} ${floorPlan.height}`}
-      role="application"
       aria-label="Floor plan editor canvas"
+      className="w-full h-full bg-content1/40 rounded-lg touch-none select-none"
+      role="application"
+      viewBox={`0 0 ${floorPlan.width} ${floorPlan.height}`}
       onClick={handleCanvasClick}
-      onPointerMove={handlePointerMove}
-      onPointerUp={() => setDraggingSelection(false)}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
       onPointerLeave={() => {
         setCursorLocal(null);
         store.setCursor(null);
         setDraggingSelection(false);
       }}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={handleDrop}
+      onPointerMove={handlePointerMove}
+      onPointerUp={() => setDraggingSelection(false)}
     >
       {floorPlan.backgroundImage && (
         <image
-          href={floorPlan.backgroundImage}
-          x={0}
-          y={0}
-          width={floorPlan.width}
           height={floorPlan.height}
+          href={floorPlan.backgroundImage}
           opacity={0.35}
           preserveAspectRatio="xMidYMid meet"
+          width={floorPlan.width}
+          x={0}
+          y={0}
         />
       )}
 
@@ -265,13 +301,13 @@ export default function FloorPlanCanvas() {
         result?.luxHeatmap.map((sample, index) => (
           <rect
             key={index}
-            x={sample.x - 0.25}
-            y={sample.y - 0.25}
-            width={0.5}
-            height={0.5}
             fill={luxColor(sample.lux)}
+            height={0.5}
             opacity={0.4}
             pointerEvents="none"
+            width={0.5}
+            x={sample.x - 0.25}
+            y={sample.y - 0.25}
           />
         ))}
 
@@ -287,19 +323,19 @@ export default function FloorPlanCanvas() {
             room.boundary.reduce((sum, p) => sum + p.y, 0) /
             room.boundary.length;
           const lighting = result?.roomLighting.find(
-            (analysis) => analysis.roomId === room.id
+            (analysis) => analysis.roomId === room.id,
           );
 
           return (
             <g key={room.id}>
               <polygon
-                points={room.boundary.map((p) => `${p.x},${p.y}`).join(" ")}
+                className="cursor-pointer"
                 fill="#14B8A6"
                 fillOpacity={selected ? 0.25 : 0.08}
+                points={room.boundary.map((p) => `${p.x},${p.y}`).join(" ")}
                 stroke="#14B8A6"
                 strokeOpacity={0.5}
                 strokeWidth={0.03}
-                className="cursor-pointer"
                 onClick={(event) => {
                   if (tool !== "select") return;
                   event.stopPropagation();
@@ -307,24 +343,24 @@ export default function FloorPlanCanvas() {
                 }}
               />
               <text
-                x={cx}
-                y={cy}
-                fontSize={0.32}
-                textAnchor="middle"
                 fill="currentColor"
+                fontSize={0.32}
                 opacity={0.7}
                 pointerEvents="none"
+                textAnchor="middle"
+                x={cx}
+                y={cy}
               >
                 {room.name}
               </text>
               <text
-                x={cx}
-                y={cy + 0.4}
-                fontSize={0.22}
-                textAnchor="middle"
                 fill="currentColor"
+                fontSize={0.22}
                 opacity={0.45}
                 pointerEvents="none"
+                textAnchor="middle"
+                x={cx}
+                y={cy + 0.4}
               >
                 {room.type}
                 {lighting && lighting.fixtureCount > 0
@@ -346,15 +382,15 @@ export default function FloorPlanCanvas() {
           return (
             <polyline
               key={route.loadId}
-              points={route.points.map((p) => `${p.x},${p.y}`).join(" ")}
               fill="none"
-              stroke={color}
-              strokeWidth={violating ? 0.09 : 0.06}
-              strokeDasharray={route.fallback ? "0.2 0.12" : undefined}
-              strokeLinejoin="round"
-              strokeLinecap="round"
               opacity={0.9}
               pointerEvents="none"
+              points={route.points.map((p) => `${p.x},${p.y}`).join(" ")}
+              stroke={color}
+              strokeDasharray={route.fallback ? "0.2 0.12" : undefined}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={violating ? 0.09 : 0.06}
             />
           );
         })}
@@ -368,15 +404,15 @@ export default function FloorPlanCanvas() {
           return (
             <line
               key={wall.id}
-              x1={wall.start.x}
-              y1={wall.start.y}
-              x2={wall.end.x}
-              y2={wall.end.y}
+              className="cursor-pointer"
               stroke={selected ? "#14B8A6" : "currentColor"}
+              strokeLinecap="square"
               strokeOpacity={selected ? 1 : 0.85}
               strokeWidth={wall.thickness ?? WALL_STROKE}
-              strokeLinecap="square"
-              className="cursor-pointer"
+              x1={wall.start.x}
+              x2={wall.end.x}
+              y1={wall.start.y}
+              y2={wall.end.y}
               onClick={(event) => {
                 if (tool !== "select") return;
                 event.stopPropagation();
@@ -411,24 +447,24 @@ export default function FloorPlanCanvas() {
             >
               {/* Cut the wall visually */}
               <line
-                x1={geometry.start.x}
-                y1={geometry.start.y}
-                x2={geometry.end.x}
-                y2={geometry.end.y}
                 stroke="var(--solence-canvas-bg, #ffffff)"
-                strokeWidth={thickness}
                 strokeLinecap="butt"
+                strokeWidth={thickness}
+                x1={geometry.start.x}
+                x2={geometry.end.x}
+                y1={geometry.start.y}
+                y2={geometry.end.y}
               />
               {opening.kind === "door" ? (
                 <>
                   {/* Door leaf + swing arc */}
                   <line
-                    x1={geometry.start.x}
-                    y1={geometry.start.y}
-                    x2={geometry.start.x - geometry.uy * opening.width}
-                    y2={geometry.start.y + geometry.ux * opening.width}
                     stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.04}
+                    x1={geometry.start.x}
+                    x2={geometry.start.x - geometry.uy * opening.width}
+                    y1={geometry.start.y}
+                    y2={geometry.start.y + geometry.ux * opening.width}
                   />
                   <path
                     d={`M ${geometry.end.x} ${geometry.end.y} A ${opening.width} ${opening.width} 0 0 1 ${geometry.start.x - geometry.uy * opening.width} ${geometry.start.y + geometry.ux * opening.width}`}
@@ -442,20 +478,20 @@ export default function FloorPlanCanvas() {
                 <>
                   {/* Window: double line across the gap */}
                   <line
-                    x1={geometry.start.x}
-                    y1={geometry.start.y}
-                    x2={geometry.end.x}
-                    y2={geometry.end.y}
                     stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.03}
+                    x1={geometry.start.x}
+                    x2={geometry.end.x}
+                    y1={geometry.start.y}
+                    y2={geometry.end.y}
                   />
                   <line
-                    x1={geometry.start.x - geometry.uy * 0.06}
-                    y1={geometry.start.y + geometry.ux * 0.06}
-                    x2={geometry.end.x - geometry.uy * 0.06}
-                    y2={geometry.end.y + geometry.ux * 0.06}
                     stroke={selected ? "#14B8A6" : "currentColor"}
                     strokeWidth={0.03}
+                    x1={geometry.start.x - geometry.uy * 0.06}
+                    x2={geometry.end.x - geometry.uy * 0.06}
+                    y1={geometry.start.y + geometry.ux * 0.06}
+                    y2={geometry.end.y + geometry.ux * 0.06}
                   />
                 </>
               )}
@@ -480,22 +516,22 @@ export default function FloorPlanCanvas() {
           }}
         >
           <rect
-            x={panel.position.x - 0.25}
-            y={panel.position.y - 0.35}
-            width={0.5}
-            height={0.7}
             fill="#404040"
+            height={0.7}
+            rx={0.05}
             stroke={selection?.kind === "panel" ? "#14B8A6" : "#a3a3a3"}
             strokeWidth={0.05}
-            rx={0.05}
+            width={0.5}
+            x={panel.position.x - 0.25}
+            y={panel.position.y - 0.35}
           />
           <text
+            fill="#fafafa"
+            fontSize={0.24}
+            pointerEvents="none"
+            textAnchor="middle"
             x={panel.position.x}
             y={panel.position.y + 0.08}
-            fontSize={0.24}
-            textAnchor="middle"
-            fill="#fafafa"
-            pointerEvents="none"
           >
             {panel.name}
           </text>
@@ -504,8 +540,7 @@ export default function FloorPlanCanvas() {
 
       {/* Loads (lighting fixtures live on their own layer) */}
       {visibleLoads.map((load) => {
-        const selected =
-          selection?.kind === "load" && selection.id === load.id;
+        const selected = selection?.kind === "load" && selection.id === load.id;
         const circuitId = circuitByLoad.get(load.id);
         const violating = violatingCircuits.has(circuitId);
         const fill = violating
@@ -533,29 +568,29 @@ export default function FloorPlanCanvas() {
             <circle
               cx={load.position.x}
               cy={load.position.y}
-              r={0.22}
               fill={fill}
+              r={0.22}
               stroke={selected ? "#14B8A6" : "#fafafa"}
               strokeWidth={selected ? 0.08 : 0.04}
             />
             <text
+              fill="#fafafa"
+              fontSize={0.18}
+              pointerEvents="none"
+              textAnchor="middle"
               x={load.position.x}
               y={load.position.y + 0.07}
-              fontSize={0.18}
-              textAnchor="middle"
-              fill="#fafafa"
-              pointerEvents="none"
             >
               {LOAD_GLYPH[load.type] ?? "?"}
             </text>
             <text
-              x={load.position.x}
-              y={load.position.y + 0.5}
-              fontSize={0.17}
-              textAnchor="middle"
               fill="currentColor"
+              fontSize={0.17}
               opacity={0.6}
               pointerEvents="none"
+              textAnchor="middle"
+              x={load.position.x}
+              y={load.position.y + 0.5}
             >
               {load.va} VA
             </text>
@@ -563,42 +598,91 @@ export default function FloorPlanCanvas() {
         );
       })}
 
+      {/* Furniture (brief §11.1) — spatial context only, its own layer */}
+      {layers.furniture &&
+        (floorPlan.furniture ?? []).map((piece) => {
+          const selected =
+            selection?.kind === "furniture" && selection.id === piece.id;
+
+          return (
+            <g
+              key={piece.id}
+              className="cursor-move"
+              transform={`rotate(${(piece.rotation * 180) / Math.PI} ${piece.position.x} ${piece.position.y})`}
+              onClick={(event) => {
+                if (tool !== "select") return;
+                event.stopPropagation();
+                store.setSelection({ kind: "furniture", id: piece.id });
+              }}
+              onPointerDown={(event) => {
+                if (tool !== "select") return;
+                event.stopPropagation();
+                store.setSelection({ kind: "furniture", id: piece.id });
+                setDraggingSelection(true);
+              }}
+            >
+              <rect
+                fill="#d97706"
+                fillOpacity={selected ? 0.35 : 0.18}
+                height={piece.depth}
+                rx={0.04}
+                stroke={selected ? "#d97706" : "#a16207"}
+                strokeWidth={selected ? 0.05 : 0.025}
+                width={piece.width}
+                x={piece.position.x - piece.width / 2}
+                y={piece.position.y - piece.depth / 2}
+              />
+              <text
+                fill="currentColor"
+                fontSize={0.16}
+                opacity={0.7}
+                pointerEvents="none"
+                textAnchor="middle"
+                x={piece.position.x}
+                y={piece.position.y + 0.06}
+              >
+                {piece.label}
+              </text>
+            </g>
+          );
+        })}
+
       {/* Draft previews */}
       {draftStart && cursor && tool === "wall" && (
         <line
-          x1={draftStart.x}
-          y1={draftStart.y}
-          x2={cursor.x}
-          y2={cursor.y}
-          stroke="#14B8A6"
-          strokeWidth={WALL_STROKE}
-          strokeOpacity={0.5}
-          strokeLinecap="square"
           pointerEvents="none"
+          stroke="#14B8A6"
+          strokeLinecap="square"
+          strokeOpacity={0.5}
+          strokeWidth={WALL_STROKE}
+          x1={draftStart.x}
+          x2={cursor.x}
+          y1={draftStart.y}
+          y2={cursor.y}
         />
       )}
       {draftStart && cursor && tool === "room" && (
         <rect
-          x={Math.min(draftStart.x, cursor.x)}
-          y={Math.min(draftStart.y, cursor.y)}
-          width={Math.abs(cursor.x - draftStart.x)}
-          height={Math.abs(cursor.y - draftStart.y)}
           fill="#14B8A6"
           fillOpacity={0.15}
+          height={Math.abs(cursor.y - draftStart.y)}
+          pointerEvents="none"
           stroke="#14B8A6"
           strokeOpacity={0.6}
           strokeWidth={0.03}
-          pointerEvents="none"
+          width={Math.abs(cursor.x - draftStart.x)}
+          x={Math.min(draftStart.x, cursor.x)}
+          y={Math.min(draftStart.y, cursor.y)}
         />
       )}
       {cursor && tool !== "select" && (
         <circle
           cx={cursor.x}
           cy={cursor.y}
-          r={0.08}
           fill="#14B8A6"
           opacity={0.7}
           pointerEvents="none"
+          r={0.08}
         />
       )}
     </svg>

@@ -74,7 +74,7 @@ const SchematicHero: FC = () => (
           fill="#24406B"
           r={0.8}
         />
-      ))
+      )),
     )}
     <g stroke="#93A5C1" strokeLinecap="square" strokeWidth={5}>
       <line x1={40} x2={360} y1={40} y2={40} />
@@ -127,10 +127,38 @@ const SchematicHero: FC = () => (
         strokeDasharray="6 4"
       />
     </g>
-    <circle cx={120} cy={200} fill="#4E79A7" r={6} stroke="#E6EDF7" strokeWidth={1.5} />
-    <circle cx={180} cy={100} fill="#F28E2B" r={6} stroke="#E6EDF7" strokeWidth={1.5} />
-    <circle cx={320} cy={220} fill="#59A14F" r={6} stroke="#E6EDF7" strokeWidth={1.5} />
-    <circle cx={340} cy={120} fill="#E15759" r={6} stroke="#E6EDF7" strokeWidth={1.5} />
+    <circle
+      cx={120}
+      cy={200}
+      fill="#4E79A7"
+      r={6}
+      stroke="#E6EDF7"
+      strokeWidth={1.5}
+    />
+    <circle
+      cx={180}
+      cy={100}
+      fill="#F28E2B"
+      r={6}
+      stroke="#E6EDF7"
+      strokeWidth={1.5}
+    />
+    <circle
+      cx={320}
+      cy={220}
+      fill="#59A14F"
+      r={6}
+      stroke="#E6EDF7"
+      strokeWidth={1.5}
+    />
+    <circle
+      cx={340}
+      cy={120}
+      fill="#E15759"
+      r={6}
+      stroke="#E6EDF7"
+      strokeWidth={1.5}
+    />
     <text fill="#E15759" fontFamily="monospace" fontSize={9} x={252} y={112}>
       voltage-drop 3.4% ▲
     </text>
@@ -146,7 +174,10 @@ const SchematicHero: FC = () => (
 /* ---------- section 3: process diagram ---------- */
 
 const STEPS = [
-  { label: "Draw or import", detail: "Walls, rooms, doors — or a PDF/image trace" },
+  {
+    label: "Draw or import",
+    detail: "Walls, rooms, doors — or a PDF/image trace",
+  },
   { label: "Place loads", detail: "Outlets, lighting, HVAC from the library" },
   { label: "Auto-route", detail: "Wall-following A* to the panel" },
   { label: "Auto-calculate", detail: "Loads + demand per PEC Section 2" },
@@ -165,8 +196,8 @@ function ViolationVisual() {
         </span>
         <div>
           <p className="text-sm">
-            Circuit ckt-4: branch voltage drop 3.42% exceeds the 3% branch
-            limit (18.5 m run at 15.6 A)
+            Circuit ckt-4: branch voltage drop 3.42% exceeds the 3% branch limit
+            (18.5 m run at 15.6 A)
           </p>
           <p className="font-mono text-[11px] text-default-400 mt-1">
             voltage-drop-branch · PEC voltage drop recommendation
@@ -227,8 +258,8 @@ function ScheduleVisual() {
 function HeatmapVisual() {
   // Same hue ramp the editor's lux heatmap uses (220 -> 0 by lux).
   const cells = [
-    40, 80, 120, 90, 50, 70, 160, 240, 180, 80, 90, 220, 320, 260, 100, 70,
-    170, 250, 190, 85, 45, 85, 130, 95, 55,
+    40, 80, 120, 90, 50, 70, 160, 240, 180, 80, 90, 220, 320, 260, 100, 70, 170,
+    250, 190, 85, 45, 85, 130, 95, 55,
   ];
 
   return (
@@ -264,7 +295,14 @@ function MiniSchematic({ violation = false }: { violation?: boolean }) {
         <line x1={150} x2={150} y1={20} y2={80} />
         <line x1={150} x2={150} y1={110} y2={150} />
       </g>
-      <rect fill="#1B3358" height={18} stroke="#E6EDF7" width={12} x={28} y={28} />
+      <rect
+        fill="#1B3358"
+        height={18}
+        stroke="#E6EDF7"
+        width={12}
+        x={28}
+        y={28}
+      />
       <g fill="none" strokeWidth={2}>
         <polyline points="34,46 34,130 110,130" stroke="#4E79A7" />
         <polyline points="34,46 34,32 200,32 200,95" stroke="#59A14F" />
@@ -278,7 +316,9 @@ function MiniSchematic({ violation = false }: { violation?: boolean }) {
       </g>
       <circle cx={110} cy={130} fill="#4E79A7" r={5} stroke="#E6EDF7" />
       <circle cx={200} cy={95} fill="#59A14F" r={5} stroke="#E6EDF7" />
-      {violation && <circle cx={250} cy={120} fill="#E15759" r={5} stroke="#E6EDF7" />}
+      {violation && (
+        <circle cx={250} cy={120} fill="#E15759" r={5} stroke="#E6EDF7" />
+      )}
     </svg>
   );
 }
@@ -324,8 +364,16 @@ const FEATURES: {
 /* ---------- section 5: scope table ---------- */
 
 const SCOPE_ROWS: [string, string, "shipping" | "planned"][] = [
-  ["Single-phase 2-wire (120 V) / 3-wire (120/240 V)", "Residential", "shipping"],
-  ["Branch auto-sizing: lighting / appliance / laundry", "Residential", "shipping"],
+  [
+    "Single-phase 2-wire (120 V) / 3-wire (120/240 V)",
+    "Residential",
+    "shipping",
+  ],
+  [
+    "Branch auto-sizing: lighting / appliance / laundry",
+    "Residential",
+    "shipping",
+  ],
   ["Service entrance & main breaker auto-sizing", "Residential", "shipping"],
   ["GFCI requirements by room type", "Residential", "shipping"],
   ["3-phase 4-wire (230/400 V) load balancing", "Commercial", "shipping"],
@@ -365,10 +413,9 @@ const Home: FC = () => {
               </span>
             </h1>
             <p className="mt-5 text-default-600 max-w-lg">
-              Auto-routed branch wiring, sized breakers and conductors, live
-              PEC compliance checks, and lumen-method lighting design — from
-              a floor plan to a permit-ready PDF, without hand drafting in
-              CAD.
+              Auto-routed branch wiring, sized breakers and conductors, live PEC
+              compliance checks, and lumen-method lighting design — from a floor
+              plan to a permit-ready PDF, without hand drafting in CAD.
             </p>
             <div className="flex gap-3 mt-8">
               <Link
@@ -403,15 +450,15 @@ const Home: FC = () => {
             <div className="lg:col-span-2 lg:row-span-2 relative bg-content1/70 border border-default-200 border-l-4 border-l-danger rounded-panel p-8">
               <span className="font-mono text-xs text-danger">PROBLEM</span>
               <h3 className="font-display font-semibold text-2xl mt-2">
-                Load calcs by hand, drafting with no automation, code checks
-                at the very end
+                Load calcs by hand, drafting with no automation, code checks at
+                the very end
               </h3>
               <p className="text-default-600 mt-3 max-w-xl">
-                Philippine electrical engineers and licensed master
-                electricians compute loads manually, draft wiring in AutoCAD
-                with no engine behind it, and only discover PEC violations at
-                MERALCO/LGU inspection — after the design is on paper and the
-                wire is in the wall.
+                Philippine electrical engineers and licensed master electricians
+                compute loads manually, draft wiring in AutoCAD with no engine
+                behind it, and only discover PEC violations at MERALCO/LGU
+                inspection — after the design is on paper and the wire is in the
+                wall.
               </p>
               <div className="mt-6 font-mono">
                 <p className="text-3xl font-medium text-danger">
@@ -423,12 +470,12 @@ const Home: FC = () => {
               </div>
             </div>
             <RegCard index="01" title="Compute while you draw">
-              Loads, demand factors, and feeder ampacity recompute on every
-              edit — the panel schedule is never stale.
+              Loads, demand factors, and feeder ampacity recompute on every edit
+              — the panel schedule is never stale.
             </RegCard>
             <RegCard index="02" title="Code checks are continuous">
-              Nine PEC rule modules run against the live design and push
-              results the moment recompute finishes.
+              Nine PEC rule modules run against the live design and push results
+              the moment recompute finishes.
             </RegCard>
             <RegCard index="03" title="Manual override, always">
               Every AI result — routes, sizes, fixtures — is an ordinary
@@ -479,8 +526,8 @@ const Home: FC = () => {
             </h2>
             <p className="text-default-500 text-sm mt-2 max-w-2xl">
               The visuals below are the same shapes the engine produces: its
-              violation messages, its schedule rows, its lux analysis. What
-              you see on this page is what the tool computes.
+              violation messages, its schedule rows, its lux analysis. What you
+              see on this page is what the tool computes.
             </p>
           </div>
           {FEATURES.map((feature, index) => (
@@ -549,8 +596,8 @@ const Home: FC = () => {
         <div className="py-14 md:py-24">
           <Eyebrow>Built for the Philippine market</Eyebrow>
           <h2 className="font-display font-semibold text-3xl tracking-tight mt-2 mb-8">
-            The code is the PEC. The inspector is MERALCO/LGU. The tool
-            should know both.
+            The code is the PEC. The inspector is MERALCO/LGU. The tool should
+            know both.
           </h2>
           {/* TODO(Hubs): exact deck figures — PRC-licensed EE count and
               Metro Cebu monthly building permits — go in the two
@@ -561,8 +608,8 @@ const Home: FC = () => {
                 ₱50k–500k
               </p>
               <p className="text-sm text-default-600 mt-2">
-                rework cost when a PEC violation is found at inspection
-                instead of at design time.
+                rework cost when a PEC violation is found at inspection instead
+                of at design time.
               </p>
             </div>
             <div className="bg-content1/70 border border-default-200 rounded-panel p-6">
@@ -647,9 +694,7 @@ const Home: FC = () => {
               <p className="font-mono text-[11px] uppercase tracking-widest text-default-500">
                 LGU / DPWH
               </p>
-              <p className="font-display text-3xl font-semibold mt-2">
-                Custom
-              </p>
+              <p className="font-display text-3xl font-semibold mt-2">Custom</p>
               <ul className="text-sm text-default-600 mt-4 space-y-1.5">
                 <li>Bulk licensing</li>
                 <li>Audit trail</li>

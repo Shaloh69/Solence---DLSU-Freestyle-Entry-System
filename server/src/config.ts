@@ -8,4 +8,6 @@ export const config = {
     .filter(Boolean),
   supabaseUrl: process.env.SUPABASE_URL ?? "",
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  /** solence-vision base URL (brief §7.4) — Express is its only caller. */
+  visionUrl: process.env.VISION_URL ?? "http://localhost:8000",
 };

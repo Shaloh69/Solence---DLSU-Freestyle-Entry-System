@@ -55,6 +55,24 @@ export interface Opening {
   kind: "door" | "window";
 }
 
+/**
+ * Interior spatial-planning object (brief §11.1) — a SEPARATE category
+ * from ElectricalLoad: no current draw, no load-calc/sizing/compliance
+ * involvement, no PEC rules. The engine never reads this array; it's
+ * carried through storage purely for the frontend's 2D/3D scenes.
+ */
+export interface Furniture {
+  id: string;
+  key: string;
+  label: string;
+  meshKey: string;
+  position: Point;
+  rotation: number;
+  width: number;
+  depth: number;
+  height: number;
+}
+
 export interface FloorPlan {
   /** Overall extents in meters. */
   width: number;
@@ -62,6 +80,8 @@ export interface FloorPlan {
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
+  /** Spatial-only furniture (brief §11.1) — never consumed by the engine. */
+  furniture?: Furniture[];
   /**
    * Optional uploaded floor plan image (data URL) shown as a trace layer
    * under the draw tools. Replaced by Supabase Storage post-MVP.
@@ -109,6 +129,11 @@ export interface ElectricalLoad {
   lumens?: number;
   /** Whether an outlet is GFCI-protected (wet-area rule input). */
   gfci?: boolean;
+  /**
+   * Exit/egress lighting fixture (commercial scope). Must sit on a
+   * circuit dedicated to egress use — see compliance/egress-lighting.ts.
+   */
+  egress?: boolean;
 }
 
 export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";

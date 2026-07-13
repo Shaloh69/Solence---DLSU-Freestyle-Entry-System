@@ -4,6 +4,7 @@ import {
   checkAmpacity,
   checkContinuousLoad,
   checkVoltageDrop,
+  checkEgressLighting,
   voltageDropPercent,
   generatePanelDirectory,
 } from "../src/engine/compliance/index.js";
@@ -103,6 +104,51 @@ describe("voltage drop", () => {
   });
 });
 
+function makeLoad(overrides: Partial<ElectricalLoad> = {}): ElectricalLoad {
+  return {
+    id: "l1",
+    name: "Exit sign",
+    type: "lighting",
+    va: 12,
+    voltage: 230,
+    continuous: true,
+    position: { x: 0, y: 0 },
+    ...overrides,
+  };
+}
+
+describe("checkEgressLighting", () => {
+  it("flags an egress fixture sharing a circuit with general loads", () => {
+    const circuit = makeCircuit({ loadIds: ["egress-1", "general-1"] });
+    const loads = [
+      makeLoad({ id: "egress-1", egress: true }),
+      makeLoad({ id: "general-1", name: "Outlet", type: "outlet", egress: false }),
+    ];
+
+    const violations = checkEgressLighting(circuit, loads);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].ruleId).toBe("egress-dedicated-circuit");
+  });
+
+  it("does not flag a circuit dedicated entirely to egress fixtures", () => {
+    const circuit = makeCircuit({ loadIds: ["egress-1", "egress-2"] });
+    const loads = [
+      makeLoad({ id: "egress-1", egress: true }),
+      makeLoad({ id: "egress-2", egress: true }),
+    ];
+
+    expect(checkEgressLighting(circuit, loads)).toHaveLength(0);
+  });
+
+  it("does not flag a circuit with no egress fixtures at all", () => {
+    const circuit = makeCircuit({ loadIds: ["general-1"] });
+    const loads = [makeLoad({ id: "general-1", egress: false })];
+
+    expect(checkEgressLighting(circuit, loads)).toHaveLength(0);
+  });
+});
+
 describe("runComplianceChecks", () => {
   it("aggregates violations across circuits and rules", () => {
     const bad = makeCircuit({
@@ -114,7 +160,7 @@ describe("runComplianceChecks", () => {
     });
     const good = makeCircuit({ id: "good" });
 
-    const violations = runComplianceChecks([bad, good]);
+    const violations = runComplianceChecks([bad, good], []);
     const byRule = new Set(violations.map((violation) => violation.ruleId));
 
     expect(byRule).toContain("ampacity");

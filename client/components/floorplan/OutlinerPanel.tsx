@@ -35,7 +35,7 @@ function Row({
         active
           ? "bg-brand-teal/15 text-brand-teal-dark dark:text-brand-teal"
           : "hover:bg-content2 text-default-600",
-        !onClick && "cursor-default"
+        !onClick && "cursor-default",
       )}
       style={{ paddingLeft: `${8 + depth * 14}px` }}
       type="button"
@@ -71,7 +71,7 @@ export default function OutlinerPanel() {
   const openings = floorPlan.openings ?? [];
   const circuitIds = result?.circuits.map((circuit) => circuit.id) ?? [];
   const violating = new Set(
-    result?.violations.map((violation) => violation.circuitId) ?? []
+    result?.violations.map((violation) => violation.circuitId) ?? [],
   );
 
   const isActive = (candidate: Selection) =>
@@ -104,7 +104,7 @@ export default function OutlinerPanel() {
             label={`Wall ${index + 1}`}
             meta={`${Math.hypot(
               wall.end.x - wall.start.x,
-              wall.end.y - wall.start.y
+              wall.end.y - wall.start.y,
             ).toFixed(1)} m`}
             onClick={() => setSelection({ kind: "wall", id: wall.id })}
           />

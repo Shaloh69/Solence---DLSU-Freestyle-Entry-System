@@ -11,6 +11,7 @@ import { checkVoltageDrop } from "./voltage-drop.js";
 import { checkGfci } from "./gfci.js";
 import { checkRoomIlluminance } from "./lighting-illuminance.js";
 import { checkGeneralLightingLoad } from "./general-lighting-load.js";
+import { checkEgressLighting } from "./egress-lighting.js";
 
 export { checkAmpacity } from "./ampacity.js";
 export { checkContinuousLoad, CONTINUOUS_LOAD_LIMIT } from "./continuous-load.js";
@@ -23,6 +24,7 @@ export {
 export { checkGfci, GFCI_ROOM_TYPES } from "./gfci.js";
 export { checkRoomIlluminance } from "./lighting-illuminance.js";
 export { checkGeneralLightingLoad } from "./general-lighting-load.js";
+export { checkEgressLighting } from "./egress-lighting.js";
 export { generatePanelDirectory } from "./panel-directory.js";
 export type { PanelDirectoryEntry } from "./panel-directory.js";
 
@@ -31,15 +33,17 @@ export interface ComplianceOptions {
   threePhase?: boolean;
 }
 
-/** Circuit-level rules (ampacity, 80% continuous, voltage drop). */
+/** Circuit-level rules (ampacity, 80% continuous, voltage drop, egress separation). */
 export function runComplianceChecks(
   circuits: Circuit[],
+  loads: ElectricalLoad[],
   options: ComplianceOptions = {}
 ): Violation[] {
   return circuits.flatMap((circuit) => [
     ...checkAmpacity(circuit),
     ...checkContinuousLoad(circuit),
     ...checkVoltageDrop(circuit, options),
+    ...checkEgressLighting(circuit, loads),
   ]);
 }
 

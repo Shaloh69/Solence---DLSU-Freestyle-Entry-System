@@ -75,31 +75,31 @@ const AboutPage: FC = () => {
             Why this exists
           </p>
           <h1 className="font-display font-bold tracking-tight text-4xl mt-3">
-            The violation was always there. It just waited for the inspector
-            to find it.
+            The violation was always there. It just waited for the inspector to
+            find it.
           </h1>
           <div className="text-default-600 mt-6 space-y-4">
             <p>
-              An electrical design in the Philippines typically starts as a
-              hand calculation, becomes an AutoCAD drawing with no engine
-              behind it, and gets its first real code check at MERALCO/LGU
-              inspection — after the drawings are signed and, often, after
-              the wire is in the wall. When a PEC violation surfaces there,
-              the fix costs ₱50,000–500,000 and weeks of rework.
+              An electrical design in the Philippines typically starts as a hand
+              calculation, becomes an AutoCAD drawing with no engine behind it,
+              and gets its first real code check at MERALCO/LGU inspection —
+              after the drawings are signed and, often, after the wire is in the
+              wall. When a PEC violation surfaces there, the fix costs
+              ₱50,000–500,000 and weeks of rework.
             </p>
             <p>
-              Solence moves that check to the first minute of design. Draw
-              the plan, place the loads, and the same engine that will print
-              the permit documents routes the wiring, sizes the breakers and
+              Solence moves that check to the first minute of design. Draw the
+              plan, place the loads, and the same engine that will print the
+              permit documents routes the wiring, sizes the breakers and
               conductors, and runs the code rules continuously — so the
               violation is a red line on a screen, not a failed inspection.
             </p>
             <p>
               It started life as BEPVY, a luminance simulator built by
               electrical engineering students. That photometric engine
-              wasn&apos;t thrown away — it became Solence&apos;s lighting
-              design layer, placing and verifying fixtures with the same
-              lumen-method math it always had.
+              wasn&apos;t thrown away — it became Solence&apos;s lighting design
+              layer, placing and verifying fixtures with the same lumen-method
+              math it always had.
             </p>
           </div>
         </div>
@@ -113,8 +113,8 @@ const AboutPage: FC = () => {
             Team Lanzones
           </h2>
           <p className="text-default-600 max-w-2xl mb-8">
-            A small Philippine software and hardware development team
-            building tools for local engineering and operations problems.
+            A small Philippine software and hardware development team building
+            tools for local engineering and operations problems.
           </p>
           <div className="bg-content1/70 border border-default-200 rounded-panel overflow-hidden">
             {ROLES.map((member, index) => (
