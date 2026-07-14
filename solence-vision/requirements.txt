@@ -45,6 +45,10 @@ opencv-python-headless>=4.10
 pillow>=10.4
 pytest>=8.3
 httpx>=0.27
+# Wall-mask skeletonization (fusion.py) — thins the U-Net wall mask to a
+# 1px centerline before Hough line detection, so a real (several-px-thick)
+# wall band yields one clean line instead of many near-duplicate ones.
+scikit-image>=0.24
 
 # ML training/inference — heavy. torch line below installs the CPU build;
 # for GPU training replace it per the CUDA instructions above.

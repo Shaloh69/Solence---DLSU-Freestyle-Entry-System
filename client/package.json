@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@heroui/avatar": "2.2.12",
     "@heroui/button": "2.2.16",
     "@heroui/card": "2.2.15",
@@ -32,6 +33,7 @@
     "@types/three": "^0.174.0",
     "clsx": "2.1.1",
     "framer-motion": "^12.4.10",
+    "gsap": "^3.15.0",
     "lucide-react": "^0.503.0",
     "next": "^15.1.7",
     "next-themes": "^0.4.4",

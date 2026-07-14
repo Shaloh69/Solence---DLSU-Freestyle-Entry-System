@@ -16,7 +16,11 @@ import {
 } from "./types.js";
 import { rasterizeFloorPlan, routeWire } from "./routing/index.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
-import { runComplianceChecks, runProjectChecks } from "./compliance/index.js";
+import {
+  runComplianceChecks,
+  runProjectChecks,
+  voltageDropPercent,
+} from "./compliance/index.js";
 import {
   analyzeRoomLighting,
   luxHeatmap,
@@ -90,6 +94,13 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
 
   const threePhase = panel.system === "3P4W-230/400";
+
+  // Exposed on every circuit (not just violating ones) for the Recorded
+  // Electricals log — the same value checkVoltageDrop uses internally.
+  for (const circuit of circuits) {
+    circuit.voltageDropPercent = voltageDropPercent(circuit, threePhase);
+  }
+
   const violations = [
     ...runComplianceChecks(circuits, loads, { threePhase }),
     ...runProjectChecks(floorPlan.rooms, loads),

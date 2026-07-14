@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import SkyBackground from "@/components/SkyBackground";
+import ScrollReveal from "@/components/ScrollReveal";
 
 /**
  * Landing page — built from docs/component-specs/landing.md against
@@ -446,7 +447,7 @@ const Home: FC = () => {
           <h2 className="font-display font-semibold text-3xl tracking-tight mt-2 mb-8">
             Violations surface at inspection — when they’re most expensive
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ScrollReveal className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 lg:row-span-2 relative bg-content1/70 border border-default-200 border-l-4 border-l-danger rounded-panel p-8">
               <span className="font-mono text-xs text-danger">PROBLEM</span>
               <h3 className="font-display font-semibold text-2xl mt-2">
@@ -481,7 +482,7 @@ const Home: FC = () => {
               Every AI result — routes, sizes, fixtures — is an ordinary
               editable object. Automation proposes; the engineer decides.
             </RegCard>
-          </div>
+          </ScrollReveal>
         </div>
 
         {/* 3 — How it works: connected process diagram */}
@@ -530,23 +531,25 @@ const Home: FC = () => {
               see on this page is what the tool computes.
             </p>
           </div>
-          {FEATURES.map((feature, index) => (
-            <div
-              key={feature.title}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
-            >
-              <div className={index % 2 === 1 ? "lg:order-2" : ""}>
-                <Eyebrow>{feature.eyebrow}</Eyebrow>
-                <h3 className="font-display font-semibold text-2xl tracking-tight mt-2">
-                  {feature.title}
-                </h3>
-                <p className="text-default-600 mt-3">{feature.body}</p>
+          <ScrollReveal className="space-y-16" stagger={0.12}>
+            {FEATURES.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
+              >
+                <div className={index % 2 === 1 ? "lg:order-2" : ""}>
+                  <Eyebrow>{feature.eyebrow}</Eyebrow>
+                  <h3 className="font-display font-semibold text-2xl tracking-tight mt-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-default-600 mt-3">{feature.body}</p>
+                </div>
+                <div className={index % 2 === 1 ? "lg:order-1" : ""}>
+                  {feature.visual}
+                </div>
               </div>
-              <div className={index % 2 === 1 ? "lg:order-1" : ""}>
-                {feature.visual}
-              </div>
-            </div>
-          ))}
+            ))}
+          </ScrollReveal>
         </div>
 
         {/* 5 — Scope comparison spec sheet */}

@@ -105,6 +105,7 @@ export function buildCircuits(
       breakerAmps,
       conductor,
       lengthM,
+      voltageDropPercent: 0, // filled in by simulate() once threePhase is known
     };
   });
 

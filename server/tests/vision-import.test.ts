@@ -2,17 +2,12 @@ import { describe, it, expect } from "vitest";
 import { visionResultToFloorPlan, VisionResult } from "../src/engine/vision-import.js";
 
 describe("visionResultToFloorPlan", () => {
-  it("reduces a wall blob to a line segment and scales px to meters", () => {
+  it("scales an already-resolved wall segment from px to meters", () => {
     const result: VisionResult = {
       imageSize: { width: 500, height: 500 },
       walls: [
-        // A thin horizontal blob, 200px long, ~10px thick.
-        [
-          [0, 0],
-          [200, 0],
-          [200, 10],
-          [0, 10],
-        ],
+        // A 200px-long, 10px-thick horizontal wall run.
+        { start: [0, 5], end: [200, 5], thickness: 10 },
       ],
       openings: [],
       rooms: [],
@@ -30,19 +25,26 @@ describe("visionResultToFloorPlan", () => {
     );
 
     expect(length).toBeCloseTo(4, 1); // 200px / 50px-per-m
+    expect(wall.thickness).toBeCloseTo(0.2, 1); // 10px / 50px-per-m
+  });
+
+  it("drops a segment too short to be a real wall", () => {
+    const result: VisionResult = {
+      imageSize: { width: 500, height: 500 },
+      walls: [{ start: [0, 0], end: [2, 0], thickness: 4 }],
+      openings: [],
+      rooms: [],
+    };
+
+    const plan = visionResultToFloorPlan(result, null, 50);
+
+    expect(plan.walls).toHaveLength(0);
   });
 
   it("drops openings not near any wall and keeps ones that are", () => {
     const result: VisionResult = {
       imageSize: { width: 500, height: 500 },
-      walls: [
-        [
-          [0, 0],
-          [200, 0],
-          [200, 10],
-          [0, 10],
-        ],
-      ],
+      walls: [{ start: [0, 5], end: [200, 5], thickness: 10 }],
       openings: [
         { kind: "door", confidence: 0.9, box: [90, 0, 110, 10] }, // on the wall
         { kind: "window", confidence: 0.9, box: [400, 400, 420, 420] }, // far away

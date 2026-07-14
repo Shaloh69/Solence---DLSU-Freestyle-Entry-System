@@ -32,6 +32,7 @@ import {
   PanelDirectoryList,
   PanelScheduleTable,
 } from "@/components/panel-schedule/ScheduleTables";
+import RecordedElectricalsPanel from "@/components/panel-schedule/RecordedElectricalsPanel";
 
 export default function EditorPage() {
   const params = useParams<{ id: string }>();
@@ -108,6 +109,9 @@ export default function EditorPage() {
         }
       >
         <CompliancePanel />
+      </Tab>
+      <Tab key="electricals" title="Recorded Electricals">
+        <RecordedElectricalsPanel />
       </Tab>
       <Tab key="schedule" title="Panel Schedule">
         <PanelScheduleTable />

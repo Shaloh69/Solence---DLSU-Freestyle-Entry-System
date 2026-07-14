@@ -1,14 +1,19 @@
 /**
  * Converts a solence-vision `/recognize` result (brief §7.1/§7.4 —
- * wall-mask contours, opening boxes, room boxes in PIXEL coordinates)
+ * wall line segments, opening boxes, room boxes in PIXEL coordinates)
  * into a FloorPlan the rasterizer/router already understands (line-
  * segment walls, offset-based openings, room polygons in METERS).
  *
- * This is intentionally NOT full CAD vectorization (brief §7.1 explicitly
- * rules that out as research-grade scope creep) — each wall contour is
- * reduced to its single longest-axis line segment, which is "a good
- * segmentation mask" per the brief's own bar for routing purposes, not a
- * precise polygon reconstruction.
+ * Wall geometry is already resolved on the Python side (solence-vision's
+ * `fusion.py` skeletonizes the wall mask and runs a Hough line transform
+ * to get real straight wall runs) — this file's job is just the unit
+ * conversion (px -> m), not geometry reconstruction. An earlier version
+ * of this file did the geometry work here instead, reducing each raw
+ * wall-mask contour to a line between its two farthest-apart points;
+ * that only works for an isolated single-run blob, and produced one
+ * huge nonsense diagonal per real floor plan (whose wall mask is one
+ * large connected network, not one contour per wall) — see fusion.py's
+ * module docstring for the full explanation.
  *
  * VISION-VERIFY: there is no real-world scale calibration from the
  * uploaded image (no reference dimension, no DPI metadata), so pixels
@@ -47,64 +52,37 @@ export interface VisionRoom {
   boundary: [number, number][];
 }
 
+export interface VisionWallSegment {
+  start: [number, number];
+  end: [number, number];
+  thickness: number;
+}
+
 export interface VisionResult {
   imageSize: { width: number; height: number };
-  walls: [number, number][][];
+  walls: VisionWallSegment[];
   openings: VisionOpening[];
   rooms: VisionRoom[];
 }
 
-function shoelaceArea(polygon: [number, number][]): number {
-  let sum = 0;
-
-  for (let i = 0; i < polygon.length; i++) {
-    const [x1, y1] = polygon[i];
-    const [x2, y2] = polygon[(i + 1) % polygon.length];
-
-    sum += x1 * y2 - x2 * y1;
-  }
-
-  return Math.abs(sum) / 2;
-}
-
-/** Reduce a wall-blob contour to its longest-axis line segment. */
-function polygonToWall(
-  polygonPx: [number, number][],
+/** Scale an already-resolved wall segment from pixels to meters. */
+function wallSegmentToWall(
+  segment: VisionWallSegment,
   index: number,
   pxPerMeter: number
 ): Wall | null {
-  if (polygonPx.length < 2) return null;
-
-  let maxDistSq = 0;
-  let a = polygonPx[0];
-  let b = polygonPx[0];
-
-  for (let i = 0; i < polygonPx.length; i++) {
-    for (let j = i + 1; j < polygonPx.length; j++) {
-      const dx = polygonPx[i][0] - polygonPx[j][0];
-      const dy = polygonPx[i][1] - polygonPx[j][1];
-      const distSq = dx * dx + dy * dy;
-
-      if (distSq > maxDistSq) {
-        maxDistSq = distSq;
-        a = polygonPx[i];
-        b = polygonPx[j];
-      }
-    }
-  }
-
-  const lengthPx = Math.sqrt(maxDistSq);
+  const lengthPx = Math.hypot(
+    segment.end[0] - segment.start[0],
+    segment.end[1] - segment.start[1]
+  );
 
   if (lengthPx < 4) return null; // too small to be a real wall
 
-  const area = shoelaceArea(polygonPx);
-  const thicknessPx = lengthPx > 0 ? area / lengthPx : 4;
-
   return {
     id: `vw-${index}`,
-    start: { x: a[0] / pxPerMeter, y: a[1] / pxPerMeter },
-    end: { x: b[0] / pxPerMeter, y: b[1] / pxPerMeter },
-    thickness: Math.max(0.08, Math.min(0.3, thicknessPx / pxPerMeter)),
+    start: { x: segment.start[0] / pxPerMeter, y: segment.start[1] / pxPerMeter },
+    end: { x: segment.end[0] / pxPerMeter, y: segment.end[1] / pxPerMeter },
+    thickness: Math.max(0.08, Math.min(0.3, segment.thickness / pxPerMeter)),
   };
 }
 
@@ -151,7 +129,7 @@ export function visionResultToFloorPlan(
   pxPerMeter: number = ASSUMED_PX_PER_METER
 ): FloorPlan {
   const walls = result.walls
-    .map((polygon, index) => polygonToWall(polygon, index, pxPerMeter))
+    .map((segment, index) => wallSegmentToWall(segment, index, pxPerMeter))
     .filter((wall): wall is Wall => Boolean(wall));
 
   const openings: Opening[] = [];

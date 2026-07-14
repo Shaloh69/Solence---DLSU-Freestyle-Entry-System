@@ -31,9 +31,10 @@ def test_fuse_output_matches_contract(synthetic_wall_mask):
     assert len(room["boundary"]) == 4
 
     assert len(result["walls"]) >= 1
-    for polygon in result["walls"]:
-        for point in polygon:
-            assert all(math.isfinite(v) for v in point)
+    for wall in result["walls"]:
+        assert all(math.isfinite(v) for v in wall["start"])
+        assert all(math.isfinite(v) for v in wall["end"])
+        assert math.isfinite(wall["thickness"])
 
 
 def test_fuse_cuts_wall_at_door(synthetic_wall_mask):

@@ -164,6 +164,13 @@ export interface Circuit {
   conductor: ConductorSpec;
   /** One-way routed wire length from panel to farthest load, meters. */
   lengthM: number;
+  /**
+   * Branch voltage drop as a fraction (0.02 = 2%), for every circuit —
+   * not just ones that exceed the limit. Powers the Recorded Electricals
+   * log (brief §2.5); `checkVoltageDrop` computes this same value
+   * internally to decide whether to raise a violation.
+   */
+  voltageDropPercent: number;
 }
 
 export interface Panel {

@@ -125,6 +125,8 @@ export interface Circuit {
   breakerAmps: number;
   conductor: ConductorSpec;
   lengthM: number;
+  /** Branch voltage drop as a fraction (0.02 = 2%) — every circuit, not just violations. */
+  voltageDropPercent: number;
 }
 
 export interface Panel {
