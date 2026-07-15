@@ -41,12 +41,13 @@ import {
 } from "@/lib/api-client";
 import { Selection, useEditorStore } from "@/lib/editor-store";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
-
-const WALL_HEIGHT = 2.7;
-const CONDUIT_HEIGHT = 2.5;
-const DOOR_HEIGHT = 2.1;
-const WINDOW_SILL = 0.9;
-const WINDOW_HEAD = 2.1;
+import {
+  CONDUIT_HEIGHT,
+  WALL_HEIGHT,
+  wallBoxes,
+  wallFrame,
+} from "@/lib/wall-geometry";
+import OpeningMeshes from "./OpeningMeshes";
 
 function loadHeight(type: ElectricalLoad["type"]): number {
   switch (type) {
@@ -111,50 +112,7 @@ function useSharedMaterials() {
   return materials;
 }
 
-/* ---------- walls with opening cuts ---------- */
-
-interface WallBox {
-  from: number;
-  to: number;
-  bottom: number;
-  top: number;
-}
-
-function wallBoxes(wall: Wall, openings: Opening[]): WallBox[] {
-  const length = Math.hypot(
-    wall.end.x - wall.start.x,
-    wall.end.y - wall.start.y,
-  );
-
-  if (length === 0) return [];
-  const sorted = openings
-    .filter((opening) => opening.wallId === wall.id)
-    .sort((a, b) => a.offset - b.offset);
-
-  const boxes: WallBox[] = [];
-  let cursor = 0;
-
-  for (const opening of sorted) {
-    const from = Math.max(0, Math.min(opening.offset, length));
-    const to = Math.max(0, Math.min(opening.offset + opening.width, length));
-
-    if (from > cursor) {
-      boxes.push({ from: cursor, to: from, bottom: 0, top: WALL_HEIGHT });
-    }
-    if (opening.kind === "door") {
-      boxes.push({ from, to, bottom: DOOR_HEIGHT, top: WALL_HEIGHT });
-    } else {
-      boxes.push({ from, to, bottom: 0, top: WINDOW_SILL });
-      boxes.push({ from, to, bottom: WINDOW_HEAD, top: WALL_HEIGHT });
-    }
-    cursor = Math.max(cursor, to);
-  }
-  if (cursor < length) {
-    boxes.push({ from: cursor, to: length, bottom: 0, top: WALL_HEIGHT });
-  }
-
-  return boxes;
-}
+/* ---------- walls with opening cuts (math shared via lib/wall-geometry) ---------- */
 
 function Walls({
   plan,
@@ -168,19 +126,10 @@ function Walls({
   return (
     <>
       {plan.walls.map((wall) => {
-        const length = Math.hypot(
-          wall.end.x - wall.start.x,
-          wall.end.y - wall.start.y,
-        );
+        const frame = wallFrame(wall);
 
-        if (length === 0) return null;
-        const angle = Math.atan2(
-          wall.end.y - wall.start.y,
-          wall.end.x - wall.start.x,
-        );
-        const ux = (wall.end.x - wall.start.x) / length;
-        const uy = (wall.end.y - wall.start.y) / length;
-        const thickness = wall.thickness ?? 0.15;
+        if (!frame) return null;
+        const { angle, ux, uy, thickness } = frame;
 
         return wallBoxes(wall, openings).map((box, index) => {
           const mid = (box.from + box.to) / 2;
@@ -735,6 +684,7 @@ function Scene({ gizmoMode }: { gizmoMode: "translate" | "rotate" }) {
         showRooms={layers.rooms}
       />
       {layers.walls && <Walls material={materials.wall} plan={floorPlan} />}
+      {layers.walls && <OpeningMeshes plan={floorPlan} variant="working" />}
       {layers.heatmap && result && (
         <InstancedHeatmap
           material={materials.heatmapInstance}

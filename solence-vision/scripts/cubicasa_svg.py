@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # YOLO class list — order defines class indices in labels/data.yaml.
+# Append-only: adding classes at the end keeps old label files' indices
+# valid; reordering or inserting invalidates every previous conversion.
 CLASSES = [
     "door",
     "window",
@@ -29,6 +31,15 @@ CLASSES = [
     "room_living",
     "room_garage",
     "room_other",
+    # Phase 2 §6.1 additions — raw-label instance counts across all
+    # 5,000 plans (verified 2026-07-15): outdoor 7852, entry 4211 +
+    # draughtlobby 1667 + hall 172, storage 1809 + closet 2695,
+    # utility 1015 + technicalroom 474, dining 954. All trainable.
+    "room_outdoor",
+    "room_hallway",
+    "room_storage",
+    "room_utility",
+    "room_dining",
 ]
 
 # CubiCasa "Space <Type>" -> Solence room class.
@@ -41,9 +52,25 @@ ROOM_TYPE_MAP = {
     "bedroom": "room_bedroom",
     "livingroom": "room_living",
     "living": "room_living",
-    "diningroom": "room_living",
+    "den": "room_living",
     "garage": "room_garage",
     "carport": "room_garage",
+    "outdoor": "room_outdoor",
+    "balcony": "room_outdoor",
+    "terrace": "room_outdoor",
+    "patio": "room_outdoor",
+    "porch": "room_outdoor",
+    "entry": "room_hallway",
+    "draughtlobby": "room_hallway",
+    "hall": "room_hallway",
+    "hallway": "room_hallway",
+    "storage": "room_storage",
+    "closet": "room_storage",
+    "utility": "room_utility",
+    "technicalroom": "room_utility",
+    "dining": "room_dining",
+    # Was room_living before Phase 2 §6.1 — dining is its own class now.
+    "diningroom": "room_dining",
 }
 
 Polygon = list[tuple[float, float]]

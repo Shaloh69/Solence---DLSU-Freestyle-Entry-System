@@ -119,8 +119,21 @@ function nearestWall(
   return best;
 }
 
+/**
+ * Vision classes with no exact RoomType twin. `utility` maps to
+ * `laundry` deliberately — a PH utility area is where the washing
+ * machine lives, and `laundry` is a GFCI room type, so the wet-area
+ * compliance rule keeps firing on recognized utility rooms.
+ */
+const ROOM_TYPE_ALIASES: Record<string, RoomType> = {
+  utility: "laundry",
+  storage: "other",
+};
+
 function mapRoomType(raw: string): RoomType {
-  return (ROOM_TYPES as string[]).includes(raw) ? (raw as RoomType) : "other";
+  if ((ROOM_TYPES as string[]).includes(raw)) return raw as RoomType;
+
+  return ROOM_TYPE_ALIASES[raw] ?? "other";
 }
 
 export function visionResultToFloorPlan(

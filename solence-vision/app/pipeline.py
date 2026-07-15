@@ -10,6 +10,7 @@ model-agnostic so tests can substitute stub predictors.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Protocol
 
 import numpy as np
@@ -44,12 +45,19 @@ def default_wall_predictor(image: np.ndarray) -> np.ndarray:
     return (logits.squeeze().sigmoid().numpy() > 0.5)
 
 
+# Below Ultralytics' 0.25 default so sparse classes (room_dining,
+# room_utility — Phase 2 §6.1) aren't silently dropped; downstream
+# consumers see each detection's confidence and can filter for
+# themselves. Env-overridable for eval experiments.
+YOLO_CONF = float(os.environ.get("SOLENCE_YOLO_CONF", "0.15"))
+
+
 def default_opening_predictor(image: np.ndarray) -> list[Detection]:
     """YOLO26 doors/windows/rooms over an RGB image (NMS-free e2e)."""
     from .models import load_yolo
 
     model = load_yolo()
-    results = model.predict(image, verbose=False)
+    results = model.predict(image, conf=YOLO_CONF, verbose=False)
     detections: list[Detection] = []
     for result in results:
         names = result.names

@@ -25,7 +25,13 @@ import {
 } from "lucide-react";
 
 import { COMPONENT_LIBRARY, LibraryItem } from "@/lib/component-library";
-import { FURNITURE_LIBRARY, FurnitureItem } from "@/lib/furniture-library";
+import {
+  DEFAULT_STYLE_PACK,
+  FurnitureCategory,
+  FurnitureItem,
+  furnitureByCategory,
+  STYLE_PACKS,
+} from "@/lib/furniture-library";
 import { useEditorStore } from "@/lib/editor-store";
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -112,46 +118,70 @@ export default function ComponentPalette() {
       </div>
 
       {/* Furniture (brief §11.1) — a separate category: no current draw,
-          no load-calc/PEC involvement, purely spatial/visual context. */}
+          no load-calc/PEC involvement, purely spatial/visual context.
+          Filtered at the style-pack level and grouped by category
+          (Phase 2 §4.2) so placed pieces always visually belong together. */}
       <div>
         <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-default-500 mb-2">
           Furniture
         </h3>
-        <p className="text-xs text-default-500 mb-3">
+        <p className="text-xs text-default-500 mb-1">
           Spatial context only — not part of the electrical design.
         </p>
-        <div className="grid grid-cols-2 gap-2">
-          {FURNITURE_LIBRARY.map((item) => {
-            const Icon = FURNITURE_ICONS[item.icon] ?? Square;
-            const armed = furnitureItem?.key === item.key;
+        <p className="font-mono text-[10px] text-default-400 mb-3">
+          Style pack: {STYLE_PACKS[DEFAULT_STYLE_PACK].label}
+        </p>
+        {[...furnitureByCategory(DEFAULT_STYLE_PACK)].map(
+          ([category, items]) => (
+            <div key={category} className="mb-3">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-default-400 mb-1.5">
+                {CATEGORY_LABELS[category]}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {items.map((item) => {
+                  const Icon = FURNITURE_ICONS[item.icon] ?? Square;
+                  const armed = furnitureItem?.key === item.key;
 
-            return (
-              <button
-                key={item.key}
-                draggable
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-xs transition-colors ${
-                  armed
-                    ? "border-brand-amber bg-brand-amber/20"
-                    : "border-default-200 hover:bg-default-100"
-                }`}
-                title={`${item.label} — ${item.width}m × ${item.depth}m`}
-                type="button"
-                onClick={() => toggleFurniture(item)}
-                onDragStart={(event) => {
-                  event.dataTransfer.setData(
-                    "application/x-solence-furniture",
-                    item.key,
+                  return (
+                    <button
+                      key={item.key}
+                      draggable
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-xs transition-colors ${
+                        armed
+                          ? "border-brand-amber bg-brand-amber/20"
+                          : "border-default-200 hover:bg-default-100"
+                      }`}
+                      title={`${item.label} — ${item.width}m × ${item.depth}m`}
+                      type="button"
+                      onClick={() => toggleFurniture(item)}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(
+                          "application/x-solence-furniture",
+                          item.key,
+                        );
+                        event.dataTransfer.effectAllowed = "copy";
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span className="text-center leading-tight">
+                        {item.label}
+                      </span>
+                    </button>
                   );
-                  event.dataTransfer.effectAllowed = "copy";
-                }}
-              >
-                <Icon size={18} />
-                <span className="text-center leading-tight">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+                })}
+              </div>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
 }
+
+const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
+  seating: "Seating",
+  tables: "Tables & Desks",
+  beds: "Beds",
+  storage: "Storage",
+  kitchen: "Kitchen",
+};

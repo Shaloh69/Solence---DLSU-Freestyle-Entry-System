@@ -81,12 +81,56 @@ hours on a mislabeled conversion.
 ## 4. Train
 
 ```bash
-python scripts/train_yolo.py --dataset cubicasa5k --epochs 100   # YOLO26n-seg base
+python scripts/train_yolo.py --dataset cubicasa5k --epochs 100   # yolo26m-seg default
 python scripts/train_unet.py --dataset cubicasa5k --epochs 40
 ```
 
 Weights land in `models/yolo/best.pt` and `models/unet/best.pt`
 (previous weights are kept timestamped, never overwritten).
+
+Pick the YOLO26 scale with `--model` (`yolo26n-seg.pt` … `yolo26x-seg.pt`;
+default `yolo26m-seg.pt`) and the batch size with `--batch` (default `-1`
+= auto-fit to VRAM). Verified limits: a 4 GB RTX 3050 Laptop **cannot**
+train `m`-seg even at `--imgsz 640 --batch 2` (cuDNN
+EXECUTION_FAILED_CUDART in the backward pass = out of VRAM) — use
+`--model yolo26s-seg.pt --imgsz 640 --batch 2` there, and save `m`+ for
+a bigger GPU (formlab3b trained nano at 1024 using ~14 GB).
+
+**Augmentation is preconfigured for floor plans — don't revert it to
+Ultralytics defaults.** Those defaults are tuned for natural photos;
+floor plans are near-monochrome line drawings, so `train_yolo.py` sets:
+
+- `hsv_h=0, hsv_s=0` — hue/saturation jitter optimizes for color
+  variation that barely exists in scanned/CAD plans, and hurts thin-line
+  contrast. `hsv_v=0.1` stays on as a mild stand-in for scan/print
+  exposure differences.
+- `mixup=0` — alpha-blending two floor plans doesn't produce a
+  meaningful training sample the way it does for photo classification.
+- `fliplr=0.5, flipud=0.5, degrees=90` — kept/raised: plans have no
+  fixed "up" and get drafted at arbitrary orientations, so flips and
+  rotations are legitimate, cheap variety.
+- `mosaic`, `translate`, `scale` — left at Ultralytics defaults; more
+  room-boundary contexts per step and framing variety are fine here.
+
+If a retrain gets *worse* after someone "fixes" these back to defaults,
+this section is why.
+
+### Merging multiple datasets
+
+Once a second converted source exists (ResPlan, RPLAN, a Roboflow set):
+
+```bash
+python scripts/merge_datasets.py --sources cubicasa5k resplan --oversample resplan=4
+python scripts/verify_dataset.py --dataset merged --format yolo
+python scripts/train_yolo.py --dataset merged
+```
+
+`merge_datasets.py` remaps every source's classes onto the unified
+13-class taxonomy (`scripts/cubicasa_svg.py` `CLASSES`), stratifies the
+val split across sources, prefixes filenames with their source (so
+per-source validation metrics stay computable), and oversamples small
+sources via repeated `train.txt` entries — add a `SOURCE_CLASS_MAPS`
+table in the script when a new source with its own class names lands.
 
 ## 5. Validate the trained models — before trusting them
 

@@ -95,6 +95,38 @@ describe("visionResultToFloorPlan", () => {
     expect(plan.rooms[0].boundary[2]).toEqual({ x: 2, y: 2 }); // 100px / 50
   });
 
+  it("maps new vision room classes onto engine room types", () => {
+    const boundary: [number, number][] = [
+      [0, 0],
+      [100, 0],
+      [100, 100],
+      [0, 100],
+    ];
+    const result: VisionResult = {
+      imageSize: { width: 500, height: 500 },
+      walls: [],
+      openings: [],
+      rooms: [
+        { type: "utility", confidence: 0.6, boundary },
+        { type: "storage", confidence: 0.6, boundary },
+        { type: "outdoor", confidence: 0.6, boundary },
+        { type: "hallway", confidence: 0.6, boundary },
+        { type: "dining", confidence: 0.6, boundary },
+      ],
+    };
+
+    const plan = visionResultToFloorPlan(result, null, 50);
+
+    // utility -> laundry keeps the GFCI wet-area rule firing (PEC).
+    expect(plan.rooms.map((room) => room.type)).toEqual([
+      "laundry",
+      "other",
+      "outdoor",
+      "hallway",
+      "dining",
+    ]);
+  });
+
   it("preserves the previous background image", () => {
     const result: VisionResult = {
       imageSize: { width: 100, height: 100 },

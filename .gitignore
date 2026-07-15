@@ -12,3 +12,8 @@ node_modules/
 SolencePrompt.md
 SOLENCE_TRANSFORMATION_PROMPT.md
 Solence Phase 2 .md
+
+# training run logs + downloaded base weights (re-downloadable)
+solence-vision/*.log
+solence-vision/yolo26*.pt
+runs/
