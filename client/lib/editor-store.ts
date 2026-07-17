@@ -30,6 +30,8 @@ import {
 } from "./component-library";
 import { FurnitureItem } from "./furniture-library";
 
+export type EditorView = "2d" | "3d" | "showcase";
+
 export type Tool =
   | "select"
   | "wall"
@@ -166,7 +168,11 @@ interface EditorState {
   libraryItem: LibraryItem | null;
   furnitureItem: FurnitureItem | null;
   selection: Selection;
-  view: "2d" | "3d";
+  view: EditorView;
+  /** Showcase Mode weather state (Phase 2 §8.3) — showcase-only. */
+  weather: "clear" | "rain";
+  /** 0..1 wind strength driving grass sway + rain drift (§8.2). */
+  windIntensity: number;
   layers: Record<LayerKey, boolean>;
   cursor: Point | null;
   snappedToWall: boolean;
@@ -191,7 +197,9 @@ interface EditorState {
   setTool(tool: Tool): void;
   setLibraryItem(item: LibraryItem | null): void;
   setFurnitureItem(item: FurnitureItem | null): void;
-  setView(view: "2d" | "3d"): void;
+  setView(view: EditorView): void;
+  setWeather(weather: "clear" | "rain"): void;
+  setWindIntensity(intensity: number): void;
   setLayer(layer: LayerKey, visible: boolean): void;
   setAutoCheck(on: boolean): void;
   setSelection(selection: Selection): void;
@@ -393,7 +401,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     libraryItem: null,
     furnitureItem: null,
     selection: null,
-    view: "2d",
+    view: "2d" as EditorView,
+    weather: "clear" as const,
+    windIntensity: 0.35,
     layers: { ...DEFAULT_LAYERS },
     cursor: null,
     snappedToWall: false,
@@ -528,6 +538,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         tool: item ? "furniture" : "select",
       }),
     setView: (view) => set({ view }),
+    setWeather: (weather) => set({ weather }),
+    setWindIntensity: (windIntensity) =>
+      set({ windIntensity: Math.min(1, Math.max(0, windIntensity)) }),
     setLayer: (layer, visible) =>
       set((state) => ({ layers: { ...state.layers, [layer]: visible } })),
     setAutoCheck: (autoCheck) => set({ autoCheck }),

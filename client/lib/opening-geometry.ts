@@ -135,7 +135,14 @@ export function buildDoorGroup(
   for (let index = 0; index < leafCount; index++) {
     const pivot = new THREE.Group();
     // Hinge at the outer edge of each leaf's slot.
-    const hingeSide = leafCount === 2 ? (index === 0 ? -1 : 1) : params.swing === "left" ? -1 : 1;
+    const hingeSide =
+      leafCount === 2
+        ? index === 0
+          ? -1
+          : 1
+        : params.swing === "left"
+          ? -1
+          : 1;
     const hingeX =
       leafCount === 2
         ? hingeSide * (width / 2 - t)
@@ -200,8 +207,7 @@ export function buildWindowGroup(
       new THREE.BoxGeometry(paneWidth, glassHeight, 0.02),
       materials.glass,
     );
-    const x =
-      -width / 2 + t + paneWidth / 2 + index * (paneWidth + t);
+    const x = -width / 2 + t + paneWidth / 2 + index * (paneWidth + t);
 
     glass.position.set(x, WINDOW_SILL + t + glassHeight / 2, 0);
     group.add(glass);

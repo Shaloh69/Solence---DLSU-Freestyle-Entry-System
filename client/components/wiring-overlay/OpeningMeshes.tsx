@@ -98,7 +98,7 @@ export default function OpeningMeshes({
 
   useEffect(() => {
     return () => {
-      for (const { id: _id, group } of placed) {
+      for (const { group } of placed) {
         disposeOpeningGroup(group);
         if (variant === "working") {
           group.traverse((object) => {

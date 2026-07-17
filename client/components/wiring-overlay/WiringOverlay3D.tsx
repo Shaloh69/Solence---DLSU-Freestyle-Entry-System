@@ -29,15 +29,15 @@ import {
   TransformControls,
 } from "@react-three/drei";
 
+import OpeningMeshes from "./OpeningMeshes";
+
 import {
   ElectricalLoad,
   FloorPlan,
   Furniture,
   LuxSample,
-  Opening,
   Panel,
   SimulationResult,
-  Wall,
 } from "@/lib/api-client";
 import { Selection, useEditorStore } from "@/lib/editor-store";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
@@ -47,7 +47,6 @@ import {
   wallBoxes,
   wallFrame,
 } from "@/lib/wall-geometry";
-import OpeningMeshes from "./OpeningMeshes";
 
 function loadHeight(type: ElectricalLoad["type"]): number {
   switch (type) {
@@ -368,6 +367,12 @@ function SelectionGizmo({
   const moveItem = useEditorStore((state) => state.moveItem);
   const rotateFurniture = useEditorStore((state) => state.rotateFurniture);
   const proxyRef = useRef<THREE.Mesh>(null);
+  // TransformControls fires onChange for EVERY controls update — camera
+  // orbits and programmatic proxy moves included, not just user drags.
+  // Syncing to the store outside a real drag loops: sync -> store write
+  // -> re-render -> controls update -> onChange -> sync… ("Maximum
+  // update depth exceeded"). Only sync between mouseDown and mouseUp.
+  const draggingRef = useRef(false);
 
   const target = useMemo(() => {
     if (selection?.kind === "load") {
@@ -440,7 +445,7 @@ function SelectionGizmo({
   function syncFromProxy() {
     const proxy = proxyRef.current;
 
-    if (!proxy || !target) return;
+    if (!proxy || !target || !draggingRef.current) return;
     const point = { x: proxy.position.x, y: proxy.position.z };
 
     if (target.selection.kind === "furniture") {
@@ -463,8 +468,15 @@ function SelectionGizmo({
       showY={effectiveMode === "rotate"}
       showZ={effectiveMode === "translate"}
       onChange={syncFromProxy}
-      onMouseDown={() => onDragStateChange(true)}
-      onMouseUp={() => onDragStateChange(false)}
+      onMouseDown={() => {
+        draggingRef.current = true;
+        onDragStateChange(true);
+      }}
+      onMouseUp={() => {
+        syncFromProxy();
+        draggingRef.current = false;
+        onDragStateChange(false);
+      }}
     >
       <mesh ref={proxyRef} visible={false}>
         <boxGeometry args={[0.35, 0.35, 0.35]} />

@@ -94,7 +94,8 @@
     {
       "files": [
         "components/ThreeBackground.tsx",
-        "components/wiring-overlay/**/*.tsx"
+        "components/wiring-overlay/**/*.tsx",
+        "components/showcase/**/*.tsx"
       ],
       "rules": {
         "react/no-unknown-property": "off"

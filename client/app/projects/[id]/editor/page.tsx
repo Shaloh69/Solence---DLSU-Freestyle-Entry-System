@@ -26,6 +26,7 @@ import OutlinerPanel from "@/components/floorplan/OutlinerPanel";
 import StatusBar from "@/components/floorplan/StatusBar";
 import ComponentPalette from "@/components/loads/ComponentPalette";
 import WiringOverlay3D from "@/components/wiring-overlay/WiringOverlay3D";
+import ShowcaseView from "@/components/showcase/ShowcaseView";
 import CompliancePanel from "@/components/compliance/CompliancePanel";
 import RoomLightingPanel from "@/components/lighting/RoomLightingPanel";
 import {
@@ -198,7 +199,13 @@ export default function EditorPage() {
           </aside>
 
           <main className="h-[480px] lg:h-[600px]">
-            {view === "2d" ? <FloorPlanCanvas /> : <WiringOverlay3D />}
+            {view === "2d" ? (
+              <FloorPlanCanvas />
+            ) : view === "3d" ? (
+              <WiringOverlay3D />
+            ) : (
+              <ShowcaseView />
+            )}
           </main>
 
           {/* Right: inspector (xl and up) */}

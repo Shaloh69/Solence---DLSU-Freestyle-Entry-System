@@ -21,6 +21,7 @@ import {
   RectangleHorizontal,
   Lightbulb,
   ScanEye,
+  Sparkles,
 } from "lucide-react";
 
 import { Tool, useEditorStore } from "@/lib/editor-store";
@@ -108,6 +109,14 @@ export default function EditorToolbar({
           onPress={() => store.setView("3d")}
         >
           3D Wiring
+        </Button>
+        <Button
+          color={view === "showcase" ? "primary" : "default"}
+          startContent={<Sparkles size={14} />}
+          variant={view === "showcase" ? "solid" : "flat"}
+          onPress={() => store.setView("showcase")}
+        >
+          Showcase
         </Button>
       </ButtonGroup>
 
