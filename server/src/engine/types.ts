@@ -77,6 +77,12 @@ export interface FloorPlan {
   /** Overall extents in meters. */
   width: number;
   height: number;
+  /**
+   * Ceiling height in meters (§9.1a): a required photometric input —
+   * fixture counts change with mounting height — defaulted to 2.7 when
+   * absent, never assumed silently inside the solver.
+   */
+  ceilingHeight?: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
@@ -127,6 +133,11 @@ export interface ElectricalLoad {
    * lighting engine estimates from VA (flagged assumption).
    */
   lumens?: number;
+  /**
+   * Correlated color temperature for lighting fixtures, Kelvin (§9.1a
+   * room mood). Defaults per room type on auto-placement; overridable.
+   */
+  cct?: number;
   /** Whether an outlet is GFCI-protected (wet-area rule input). */
   gfci?: boolean;
   /**

@@ -224,9 +224,15 @@ export function visionResultToFloorPlan(
     });
   });
 
+  // §2.4: low-confidence room types are flagged in the visible name
+  // rather than silently presented as certain — the type still applies
+  // (GFCI etc. should err toward firing), but the engineer sees the "?".
   const rooms: Room[] = result.rooms.map((room, index) => ({
     id: `vr-${index}`,
-    name: `Room ${index + 1}`,
+    name:
+      room.confidence < 0.5
+        ? `Room ${index + 1} (check type?)`
+        : `Room ${index + 1}`,
     type: mapRoomType(room.type),
     boundary: room.boundary.map(([x, y]) => ({
       x: x / pxPerMeter,

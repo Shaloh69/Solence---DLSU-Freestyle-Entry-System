@@ -68,6 +68,8 @@ export interface Furniture {
 export interface FloorPlan {
   width: number;
   height: number;
+  /** Ceiling height (m, §9.1a) — photometric input, default 2.7. */
+  ceilingHeight?: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
@@ -99,6 +101,8 @@ export interface ElectricalLoad {
   roomId?: string;
   /** Photometric output for lighting fixtures, lumens. */
   lumens?: number;
+  /** Correlated color temperature for lighting fixtures, Kelvin (§9.1a). */
+  cct?: number;
   /** Whether an outlet is GFCI-protected. */
   gfci?: boolean;
   /** Exit/egress lighting fixture (commercial scope) — needs a dedicated circuit. */
@@ -192,6 +196,9 @@ export interface RoomLightingAnalysis {
   fixtureCount: number;
   totalLightingVa: number;
   fluxEstimated: boolean;
+  /** Simplified Daylight Factor advisory (§9.1a) — never affects code counts. */
+  daylightFactor?: number;
+  wellDaylit?: boolean;
 }
 
 export interface LuxSample {

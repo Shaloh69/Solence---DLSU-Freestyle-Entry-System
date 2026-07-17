@@ -44,6 +44,7 @@ export default function RoomLightingPanel() {
           <TableColumn>LIGHTING VA</TableColumn>
           <TableColumn>AVG LUX</TableColumn>
           <TableColumn>TARGET</TableColumn>
+          <TableColumn>DAYLIGHT</TableColumn>
           <TableColumn>STATUS</TableColumn>
         </TableHeader>
         <TableBody>
@@ -71,6 +72,16 @@ export default function RoomLightingPanel() {
                   {analysis.fluxEstimated ? " *" : ""}
                 </TableCell>
                 <TableCell>{analysis.targetLux}</TableCell>
+                <TableCell>
+                  {analysis.daylightFactor !== undefined ? (
+                    <span title="Simplified Daylight Factor — a design advisory only; code-required fixture counts stay night/worst-case (§9.1a)">
+                      {(analysis.daylightFactor * 100).toFixed(1)}%
+                      {analysis.wellDaylit ? " ☀" : ""}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
                 <TableCell>
                   <Chip color={status.color} size="sm" variant="flat">
                     {status.label}

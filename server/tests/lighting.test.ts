@@ -12,6 +12,8 @@ import {
   analyzeRoomLighting,
   luxHeatmap,
   ROOM_ILLUMINANCE_TARGETS,
+  ROOM_CCT_DEFAULTS,
+  roomDaylightFactors,
 } from "../src/engine/lighting/index.js";
 import {
   checkRoomIlluminance,
@@ -254,5 +256,69 @@ describe("checkGeneralLightingLoad", () => {
     const bigLoad = makeLoad({ va: 500 });
 
     expect(checkGeneralLightingLoad([kitchen], [bigLoad])).toHaveLength(0);
+  });
+});
+
+describe("§9.1a photometric fidelity", () => {
+  it("ceiling height changes the fixture count (taller = more fixtures)", () => {
+    const low = autoPlaceLighting(kitchen, { ceilingHeight: 2.4 });
+    const tall = autoPlaceLighting(kitchen, { ceilingHeight: 4.5 });
+
+    expect(tall.meta.requiredCount).toBeGreaterThan(low.meta.requiredCount);
+  });
+
+  it("auto-placed fixtures carry the room-type CCT default", () => {
+    const bedroom: Room = { ...kitchen, id: "bed", name: "Bed", type: "bedroom" };
+    const kitchenResult = autoPlaceLighting(kitchen);
+    const bedroomResult = autoPlaceLighting(bedroom);
+
+    expect(kitchenResult.loads[0].cct).toBe(ROOM_CCT_DEFAULTS.kitchen); // cool task
+    expect(bedroomResult.loads[0].cct).toBe(ROOM_CCT_DEFAULTS.bedroom); // warm
+    expect(ROOM_CCT_DEFAULTS.kitchen).toBeGreaterThan(ROOM_CCT_DEFAULTS.bedroom);
+  });
+
+  it("computes a Daylight Factor from windows on the room's walls", () => {
+    const walls = [
+      {
+        id: "w-south",
+        start: { x: 0, y: 0 },
+        end: { x: 4, y: 0 },
+      },
+    ];
+    const openings = [
+      { id: "o1", wallId: "w-south", offset: 1, width: 1.5, kind: "window" as const },
+    ];
+
+    const [df] = roomDaylightFactors([kitchen], walls, openings);
+
+    // glass 1.5m × 1.2m × VT 0.6 = 1.08 m²; floor 12 m² → DF 0.09
+    expect(df.windowCount).toBe(1);
+    expect(df.daylightFactor).toBeCloseTo(0.09, 2);
+    expect(df.wellDaylit).toBe(true);
+  });
+
+  it("NEVER reduces the code-required fixture count for daylight (§9.1a hard constraint)", () => {
+    // Identical room, with vs without a big window: the night/worst-case
+    // fixture count must be identical — DF is advisory only.
+    const windowless = autoPlaceLighting(kitchen);
+    const daylit = autoPlaceLighting(kitchen); // solver has no window input at all
+
+    expect(daylit.meta.requiredCount).toBe(windowless.meta.requiredCount);
+
+    // And the analysis carries DF as a separate advisory field without
+    // touching targetLux.
+    const walls = [{ id: "w", start: { x: 0, y: 0 }, end: { x: 4, y: 0 } }];
+    const openings = [
+      { id: "o1", wallId: "w", offset: 0.5, width: 2, kind: "window" as const },
+    ];
+    const [withDf] = analyzeRoomLighting([kitchen], [makeLoad({})], {
+      walls,
+      openings,
+    });
+    const [withoutDf] = analyzeRoomLighting([kitchen], [makeLoad({})]);
+
+    expect(withDf.targetLux).toBe(withoutDf.targetLux);
+    expect(withDf.daylightFactor).toBeGreaterThan(0);
+    expect(withoutDf.daylightFactor).toBeUndefined();
   });
 });

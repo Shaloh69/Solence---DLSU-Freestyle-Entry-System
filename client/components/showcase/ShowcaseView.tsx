@@ -18,7 +18,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
-import { CloudRain, Sun, Wind } from "lucide-react";
+import { CloudRain, Moon, Sun, Wind } from "lucide-react";
 
 import ConstructionReveal from "./ConstructionReveal";
 import GroundPlane from "./GroundPlane";
@@ -38,6 +38,7 @@ import {
   wallBoxes,
   wallFrame,
 } from "@/lib/wall-geometry";
+import { cctToHex } from "@/lib/cct";
 import { circuitColor, VIOLATION_COLOR } from "@/lib/circuit-colors";
 import { useEditorStore } from "@/lib/editor-store";
 
@@ -50,6 +51,12 @@ const FURNITURE_COLORS: Record<string, string> = {
   desk: "#8a5a2b",
   counter: "#5d6d7e",
   cabinet: "#7a5230",
+  "lamp-floor": "#d9c48a",
+  "lamp-table": "#d9c48a",
+  rug: "#7d5a5a",
+  appliance: "#cfd4d8",
+  plant: "#3f7a44",
+  mirror: "#a9c4cf",
 };
 
 function useShowcaseMaterials() {
@@ -67,11 +74,6 @@ function useShowcaseMaterials() {
       floor: new THREE.MeshStandardMaterial({
         color: "#b9a68a",
         roughness: 0.85,
-      }),
-      fixture: new THREE.MeshStandardMaterial({
-        color: "#f5e6c4",
-        emissive: "#ffd47f",
-        emissiveIntensity: 1,
       }),
       panel: new THREE.MeshStandardMaterial({
         color: "#37474f",
@@ -203,14 +205,38 @@ function ShowcaseFurniture() {
   );
 }
 
-function ShowcaseFixtures({
-  material,
-}: {
-  material: THREE.MeshStandardMaterial;
-}) {
+/**
+ * Fixture meshes + real point lights, tinted by each fixture's CCT
+ * (§9.1a): a 2700K bedroom visibly reads warmer than a 4000K kitchen.
+ * Materials are cached per rounded CCT so a building with two color
+ * temperatures uses two materials, not one per fixture.
+ */
+function ShowcaseFixtures({ dimmed }: { dimmed: boolean }) {
   const loads = useEditorStore((state) => state.loads);
   const register = useRevealRegister("fixture");
   const fixtures = loads.filter((load) => load.type === "lighting");
+
+  const materialFor = useMemo(() => {
+    const cache = new Map<number, THREE.MeshStandardMaterial>();
+
+    return (cct: number) => {
+      const key = Math.round(cct / 100) * 100;
+      let material = cache.get(key);
+
+      if (!material) {
+        material = new THREE.MeshStandardMaterial({
+          color: "#f5e6c4",
+          emissive: cctToHex(key),
+          emissiveIntensity: 1,
+        });
+        cache.set(key, material);
+      }
+
+      return material;
+    };
+  }, []);
+
+  const lightIntensity = dimmed ? 0.15 : 0.6;
 
   return (
     <>
@@ -218,7 +244,7 @@ function ShowcaseFixtures({
         <mesh
           key={load.id}
           ref={register}
-          material={material}
+          material={materialFor(load.cct ?? 3000)}
           position={[load.position.x, WALL_HEIGHT - 0.12, load.position.y]}
         >
           <cylinderGeometry args={[0.09, 0.12, 0.08, 12]} />
@@ -227,9 +253,9 @@ function ShowcaseFixtures({
       {fixtures.map((load) => (
         <pointLight
           key={`pl-${load.id}`}
-          color="#ffd9a0"
+          color={cctToHex(load.cct ?? 3000)}
           distance={4.5}
-          intensity={0.6}
+          intensity={lightIntensity}
           position={[load.position.x, WALL_HEIGHT - 0.35, load.position.y]}
         />
       ))}
@@ -301,6 +327,8 @@ export default function ShowcaseView() {
   const setWeather = useEditorStore((state) => state.setWeather);
   const windIntensity = useEditorStore((state) => state.windIntensity);
   const setWindIntensity = useEditorStore((state) => state.setWindIntensity);
+  const timeOfDay = useEditorStore((state) => state.timeOfDay);
+  const setTimeOfDay = useEditorStore((state) => state.setTimeOfDay);
 
   const materials = useShowcaseMaterials();
   const registry = useMemo(() => createRevealRegistry(), []);
@@ -309,6 +337,18 @@ export default function ShowcaseView() {
   const radius = Math.max(floorPlan.width, floorPlan.height);
   const centerX = floorPlan.width / 2;
   const centerZ = floorPlan.height / 2;
+
+  // §9.1a day/night: a VISUALIZATION state — the sun dims and fixtures
+  // carry the scene at night; compliance counts are night-based always,
+  // so nothing electrical changes with this toggle.
+  const night = timeOfDay === "night";
+  const skyColor = night
+    ? "#0d1524"
+    : weather === "rain"
+      ? "#4a5866"
+      : "#87b5d8";
+  const sunIntensity = night ? 0.05 : weather === "rain" ? 0.5 : 1.1;
+  const ambientIntensity = night ? 0.18 : weather === "rain" ? 0.45 : 0.65;
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden bg-content1/40">
@@ -320,21 +360,11 @@ export default function ShowcaseView() {
         shadows={false}
       >
         <RevealContext.Provider value={registry}>
-          <color
-            args={[weather === "rain" ? "#4a5866" : "#87b5d8"]}
-            attach="background"
-          />
-          <fog
-            args={[
-              weather === "rain" ? "#4a5866" : "#87b5d8",
-              radius * 2,
-              radius * 6,
-            ]}
-            attach="fog"
-          />
-          <ambientLight intensity={weather === "rain" ? 0.45 : 0.65} />
+          <color args={[skyColor]} attach="background" />
+          <fog args={[skyColor, radius * 2, radius * 6]} attach="fog" />
+          <ambientLight intensity={ambientIntensity} />
           <directionalLight
-            intensity={weather === "rain" ? 0.5 : 1.1}
+            intensity={sunIntensity}
             position={[centerX + 10, 16, centerZ - 6]}
           />
 
@@ -351,7 +381,7 @@ export default function ShowcaseView() {
           <ShowcaseShell materials={materials} />
           <OpeningMeshes plan={floorPlan} variant="showcase" />
           <ShowcaseFurniture />
-          <ShowcaseFixtures material={materials.fixture} />
+          <ShowcaseFixtures dimmed={!night} />
           <ShowcaseWiring />
           {panel && (
             <mesh
@@ -381,8 +411,18 @@ export default function ShowcaseView() {
         </RevealContext.Provider>
       </Canvas>
 
-      {/* Showcase chrome: weather + wind — presentation controls only. */}
+      {/* Showcase chrome: day/night + weather + wind — presentation only;
+          §9.1a: the toggle never changes compliance results. */}
       <div className="absolute top-2 right-2 flex items-center gap-2 rounded-lg bg-content1/90 px-2 py-1.5 border border-default-200">
+        <button
+          className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${night ? "bg-brand-teal/25 text-brand-teal" : "text-default-500"}`}
+          title="Night view — fixtures carry the scene at their CCT colors. Compliance is always computed for night regardless."
+          type="button"
+          onClick={() => setTimeOfDay(night ? "day" : "night")}
+        >
+          <Moon size={13} /> {night ? "Night" : "Day"}
+        </button>
+        <span className="border-l border-default-200 h-4" />
         <button
           className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${weather === "clear" ? "bg-brand-teal/25 text-brand-teal" : "text-default-500"}`}
           type="button"

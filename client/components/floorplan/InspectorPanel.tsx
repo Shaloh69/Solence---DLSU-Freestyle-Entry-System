@@ -111,6 +111,24 @@ export default function InspectorPanel() {
             />
           </div>
 
+          <Input
+            description="Photometric input (§9.1a) — fixture counts change with mounting height"
+            label="Ceiling height (m)"
+            max={10}
+            min={2}
+            size="sm"
+            step={0.1}
+            type="number"
+            value={String(floorPlan.ceilingHeight ?? 2.7)}
+            onValueChange={(value) => {
+              const ceilingHeight = parseFloat(value);
+
+              if (ceilingHeight >= 2 && ceilingHeight <= 10) {
+                store.setCeilingHeight(ceilingHeight);
+              }
+            }}
+          />
+
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -452,6 +470,22 @@ export default function InspectorPanel() {
 
                   store.updateLoad(selectedLoad.id, {
                     lumens: lumens > 0 ? lumens : undefined,
+                  });
+                }}
+              />
+              <Input
+                description="Warm 2700–3000 K (bed/living) · cool 4000–5000 K (task) — §9.1a room mood"
+                label="Color temperature (K)"
+                max={10000}
+                min={1000}
+                size="sm"
+                type="number"
+                value={String(selectedLoad.cct ?? "")}
+                onValueChange={(value) => {
+                  const cct = parseFloat(value);
+
+                  store.updateLoad(selectedLoad.id, {
+                    cct: cct >= 1000 && cct <= 10000 ? cct : undefined,
                   });
                 }}
               />

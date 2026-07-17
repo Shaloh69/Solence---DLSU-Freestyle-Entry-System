@@ -17,6 +17,7 @@ import {
   DEFAULT_CEILING_REFLECTANCE,
   DEFAULT_WALL_REFLECTANCE,
   DEFAULT_WORKPLANE_HEIGHT_M,
+  ROOM_CCT_DEFAULTS,
   ROOM_ILLUMINANCE_TARGETS,
 } from "./lighting-data.js";
 import {
@@ -131,6 +132,9 @@ export function autoPlaceLighting(
     position,
     roomId: room.id,
     lumens: fixture.lumens,
+    // §9.1a room mood: warm for comfort spaces, cool for task spaces —
+    // a design default the engineer can override per fixture.
+    cct: ROOM_CCT_DEFAULTS[room.type] ?? 3500,
   }));
 
   const expectedAverageLux = averageIlluminance(

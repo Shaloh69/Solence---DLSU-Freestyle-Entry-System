@@ -23,10 +23,18 @@ export {
   luxHeatmap,
   fixtureFlux,
 } from "./analysis.js";
-export type { RoomLightingAnalysis, LuxSample } from "./analysis.js";
+export type {
+  AnalysisOptions,
+  RoomLightingAnalysis,
+  LuxSample,
+} from "./analysis.js";
+export { roomDaylightFactors } from "./daylight.js";
+export type { RoomDaylight } from "./daylight.js";
 export {
   ROOM_ILLUMINANCE_TARGETS,
   ILLUMINANCE_MIN_RATIO,
   ILLUMINANCE_MAX_RATIO,
   DEFAULT_LUMENS_PER_WATT,
+  ROOM_CCT_DEFAULTS,
+  DAYLIGHT_FACTOR_GOOD,
 } from "./lighting-data.js";

@@ -108,7 +108,7 @@ for the heatmap layer).
 Violation `ruleId`s so far: `ampacity`, `continuous-80`,
 `voltage-drop-branch`, `voltage-drop-total`, `gfci-required`,
 `illuminance-none`, `illuminance-low`, `illuminance-high`,
-`general-lighting-basis`.
+`general-lighting-basis`, `egress-dedicated-circuit`.
 
 ## Realtime (WebSocket)
 

@@ -14,6 +14,7 @@ import {
   CookingPot,
   DoorClosed,
   Flame,
+  Lamp,
   Lightbulb,
   Microwave,
   Plug,
@@ -58,6 +59,7 @@ const FURNITURE_ICONS: Record<
   "door-closed": DoorClosed,
   "rectangle-horizontal": RectangleHorizontal,
   archive: Archive,
+  lamp: Lamp,
 };
 
 export default function ComponentPalette() {
@@ -184,4 +186,9 @@ const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
   beds: "Beds",
   storage: "Storage",
   kitchen: "Kitchen",
+  office: "Office",
+  laundry: "Laundry & Utility",
+  outdoor: "Outdoor",
+  lighting: "Portable Lamps",
+  decor: "Decor",
 };

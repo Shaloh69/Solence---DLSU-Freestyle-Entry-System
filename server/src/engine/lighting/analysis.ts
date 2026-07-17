@@ -21,6 +21,7 @@ import {
   maintenanceFactor,
   roomCavityRatio,
 } from "./photometric.js";
+import { roomDaylightFactors } from "./daylight.js";
 
 export interface RoomLightingAnalysis {
   roomId: string;
@@ -31,6 +32,21 @@ export interface RoomLightingAnalysis {
   totalLightingVa: number;
   /** True when any fixture's flux was estimated from VA. */
   fluxEstimated: boolean;
+  /**
+   * Simplified Daylight Factor advisory (§9.1a) — informs the engineer
+   * about natural light; NEVER reduces the code-required fixture count
+   * (compliance is always night/worst-case).
+   */
+  daylightFactor?: number;
+  wellDaylit?: boolean;
+}
+
+export interface AnalysisOptions {
+  /** Plan ceiling height, meters — photometrics change with it (§9.1a). */
+  ceilingHeight?: number;
+  /** Walls + openings enable the Daylight Factor advisory. */
+  walls?: FloorPlan["walls"];
+  openings?: FloorPlan["openings"];
 }
 
 export interface LuxSample {
@@ -52,8 +68,19 @@ export function fixtureFlux(load: ElectricalLoad): {
 
 export function analyzeRoomLighting(
   rooms: Room[],
-  loads: ElectricalLoad[]
+  loads: ElectricalLoad[],
+  options: AnalysisOptions = {}
 ): RoomLightingAnalysis[] {
+  const ceilingHeight = options.ceilingHeight ?? DEFAULT_CEILING_HEIGHT_M;
+  const daylight =
+    options.walls && options.openings
+      ? new Map(
+          roomDaylightFactors(rooms, options.walls, options.openings).map(
+            (entry) => [entry.roomId, entry]
+          )
+        )
+      : null;
+
   return rooms.map((room) => {
     const fixtures = loads.filter(
       (load) => load.type === "lighting" && load.roomId === room.id
@@ -64,12 +91,7 @@ export function analyzeRoomLighting(
     const width = Math.max(0.1, bounds.maxY - bounds.minY);
 
     const cu = coefficientOfUtilization(
-      roomCavityRatio(
-        length,
-        width,
-        DEFAULT_CEILING_HEIGHT_M,
-        DEFAULT_WORKPLANE_HEIGHT_M
-      ),
+      roomCavityRatio(length, width, ceilingHeight, DEFAULT_WORKPLANE_HEIGHT_M),
       DEFAULT_CEILING_REFLECTANCE,
       DEFAULT_WALL_REFLECTANCE
     );
@@ -85,6 +107,8 @@ export function analyzeRoomLighting(
       fluxEstimated ||= estimated;
     }
 
+    const roomDaylight = daylight?.get(room.id);
+
     return {
       roomId: room.id,
       roomName: room.name,
@@ -94,6 +118,12 @@ export function analyzeRoomLighting(
       fixtureCount: fixtures.length,
       totalLightingVa: fixtures.reduce((sum, fixture) => sum + fixture.va, 0),
       fluxEstimated,
+      ...(roomDaylight
+        ? {
+            daylightFactor: roomDaylight.daylightFactor,
+            wellDaylit: roomDaylight.wellDaylit,
+          }
+        : {}),
     };
   });
 }
@@ -120,7 +150,7 @@ export function luxHeatmap(
   const lamps = fixtures.map((fixture) => ({
     x: fixture.position.x,
     y: fixture.position.y,
-    z: DEFAULT_CEILING_HEIGHT_M - 0.1,
+    z: (plan.ceilingHeight ?? DEFAULT_CEILING_HEIGHT_M) - 0.1,
     fluxLm: fixtureFlux(fixture).lumens,
   }));
 

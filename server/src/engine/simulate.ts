@@ -123,7 +123,11 @@ export function simulate(input: SimulationInput): SimulationResult {
     directory,
     violations,
     routingErrors,
-    roomLighting: analyzeRoomLighting(floorPlan.rooms, loads),
+    roomLighting: analyzeRoomLighting(floorPlan.rooms, loads, {
+      ceilingHeight: floorPlan.ceilingHeight,
+      walls: floorPlan.walls,
+      openings: floorPlan.openings,
+    }),
     luxHeatmap: luxHeatmap(floorPlan, loads),
   };
 }

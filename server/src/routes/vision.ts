@@ -12,6 +12,7 @@ import multer from "multer";
 import { WebSocket } from "ws";
 import { ProjectRepository } from "../db/repository.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import { broadcastToProject } from "../realtime/index.js";
 import { config } from "../config.js";
 import { VisionResult, visionResultToFloorPlan } from "../engine/vision-import.js";
@@ -19,7 +20,15 @@ import { VisionResult, visionResultToFloorPlan } from "../engine/vision-import.j
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
+  // §2.5: server-side type gate — non-images are rejected before a byte
+  // reaches solence-vision (PIL still re-validates on the Python side).
+  fileFilter: (_req, file, cb) => {
+    cb(null, file.mimetype.startsWith("image/"));
+  },
 });
+
+/** GPU inference is the most expensive call in the system (§2.5). */
+const recognizeLimiter = rateLimit({ windowMs: 60_000, max: 6 });
 
 interface VisionJobEvent {
   stage: string;
@@ -107,6 +116,7 @@ export function visionRouter(repo: ProjectRepository): Router {
 
   router.post(
     "/projects/:id/recognize",
+    recognizeLimiter,
     upload.single("image"),
     async (req, res, next) => {
       try {

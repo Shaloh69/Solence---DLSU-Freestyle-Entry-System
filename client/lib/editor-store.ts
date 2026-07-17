@@ -171,6 +171,11 @@ interface EditorState {
   view: EditorView;
   /** Showcase Mode weather state (Phase 2 §8.3) — showcase-only. */
   weather: "clear" | "rain";
+  /**
+   * Showcase day/night (§9.1a): visualization state only — compliance
+   * fixture counts are always computed for night/worst-case regardless.
+   */
+  timeOfDay: "day" | "night";
   /** 0..1 wind strength driving grass sway + rain drift (§8.2). */
   windIntensity: number;
   layers: Record<LayerKey, boolean>;
@@ -200,11 +205,13 @@ interface EditorState {
   setView(view: EditorView): void;
   setWeather(weather: "clear" | "rain"): void;
   setWindIntensity(intensity: number): void;
+  setTimeOfDay(timeOfDay: "day" | "night"): void;
   setLayer(layer: LayerKey, visible: boolean): void;
   setAutoCheck(on: boolean): void;
   setSelection(selection: Selection): void;
   setCursor(point: Point | null, snapped?: boolean): void;
   setPlanSize(width: number, height: number): void;
+  setCeilingHeight(ceilingHeight: number): void;
   setBackgroundImage(dataUrl: string | undefined): void;
   addPerimeter(): void;
   addWall(start: Point, end: Point): void;
@@ -404,6 +411,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     view: "2d" as EditorView,
     weather: "clear" as const,
     windIntensity: 0.35,
+    timeOfDay: "day" as const,
     layers: { ...DEFAULT_LAYERS },
     cursor: null,
     snappedToWall: false,
@@ -539,6 +547,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       }),
     setView: (view) => set({ view }),
     setWeather: (weather) => set({ weather }),
+    setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
     setWindIntensity: (windIntensity) =>
       set({ windIntensity: Math.min(1, Math.max(0, windIntensity)) }),
     setLayer: (layer, visible) =>
@@ -551,6 +560,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     setPlanSize(width, height) {
       set((state) => ({ floorPlan: { ...state.floorPlan, width, height } }));
+      touched();
+    },
+
+    setCeilingHeight(ceilingHeight) {
+      set((state) => ({ floorPlan: { ...state.floorPlan, ceilingHeight } }));
       touched();
     },
 
@@ -732,11 +746,31 @@ export const useEditorStore = create<EditorState>((set, get) => {
         height: item.height,
       };
 
+      // §2.1a: a portable lamp is furniture AND a light source — placing
+      // one also places a linked lighting load (id `fl-<furnitureId>`)
+      // that feeds lux, circuits, and compliance. Moved and deleted
+      // together with the piece.
+      const linkedLight: ElectricalLoad | null = item.emitsLight
+        ? {
+            id: `fl-${id}`,
+            name: item.label,
+            type: "lighting",
+            va: item.emitsLight.va,
+            voltage: get().panel?.system === "3P4W-230/400" ? 230 : 120,
+            continuous: true,
+            position: snapped.point,
+            roomId: roomAt(snapped.point)?.id,
+            lumens: item.emitsLight.lumens,
+            cct: item.emitsLight.cct,
+          }
+        : null;
+
       set((state) => ({
         floorPlan: {
           ...state.floorPlan,
           furniture: [...(state.floorPlan.furniture ?? []), piece],
         },
+        loads: linkedLight ? [...state.loads, linkedLight] : state.loads,
         selection: { kind: "furniture", id },
       }));
       touched();
@@ -785,9 +819,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
         }));
       } else if (selection.kind === "furniture") {
         const snapped = snapLoadPosition(position);
+        const room = roomAt(snapped.point);
+        const linkedId = `fl-${selection.id}`;
 
         set((state) => ({
           snappedToWall: snapped.snapped,
+          // A lamp's linked light load (§2.1a) moves with the piece.
+          loads: state.loads.map((load) =>
+            load.id === linkedId
+              ? { ...load, position: snapped.point, roomId: room?.id }
+              : load,
+          ),
           floorPlan: {
             ...state.floorPlan,
             furniture: (state.floorPlan.furniture ?? []).map((piece) =>
@@ -820,6 +862,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
               (piece) => piece.id !== selection.id,
             ),
           },
+          // A lamp's linked light load (§2.1a) is deleted with the piece.
+          loads: state.loads.filter((load) => load.id !== `fl-${selection.id}`),
           selection: null,
         }));
       } else if (selection.kind === "wall") {

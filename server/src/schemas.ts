@@ -58,6 +58,7 @@ export const furnitureSchema = z.object({
 export const floorPlanSchema = z.object({
   width: z.number().positive().max(1000),
   height: z.number().positive().max(1000),
+  ceilingHeight: z.number().min(2).max(10).optional(),
   walls: z.array(wallSchema),
   rooms: z.array(roomSchema),
   openings: z.array(openingSchema).optional(),
@@ -95,6 +96,7 @@ export const loadSchema = z.object({
   position: pointSchema,
   roomId: z.string().optional(),
   lumens: z.number().positive().optional(),
+  cct: z.number().min(1000).max(10000).optional(),
   gfci: z.boolean().optional(),
   egress: z.boolean().optional(),
 });

@@ -231,6 +231,9 @@ export function projectsRouter(repo: ProjectRepository): Router {
         autoPlaceLighting(room, {
           targetLux: options.targetLux,
           fixture: options.fixture,
+          // §9.1a: photometrics change with mounting height — feed the
+          // plan's real ceiling height into the solve, not a constant.
+          ceilingHeight: project.floorPlan?.ceilingHeight,
         })
       );
 
