@@ -114,8 +114,22 @@ Violation `ruleId`s so far: `ampacity`, `continuous-80`,
 
 Connect to `ws://<api-host>/ws`, send `{ "type": "subscribe", "projectId" }`.
 Server pushes `{ "type": "subscribed" }` then `{ "type": "simulation", projectId, result }`
-after every recompute. AI job progress events (`ai-progress`) will use the
-same channel once solence-vision is live.
+after every recompute, and staged `{ "type": "ai-progress", projectId, jobId, stage, message? }`
+events relayed from solence-vision during floor-plan recognition
+(`queued → running_wall_segmentation → running_detection → fusing → done|error`).
+
+## AI floor-plan recognition
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/api/projects/:id/recognize` | multipart image upload; starts a solence-vision job, relays progress over `/ws`, and on completion replaces the project's floor plan with the recognized walls/openings/rooms and appends confidently-detected furniture. |
+
+Recognition-derived furniture (Phase 3 §1.3): each detected symbol
+carries `category, confidence, center, size, rotationDeg` from the
+vision service; detections below confidence 0.5 are skipped rather than
+silently placed, unknown categories are ignored, and footprints are
+clamped to per-category sane bounds. `VISION-VERIFY`: pixel→meter scale
+uses an assumed default until plan-scale calibration is implemented.
 
 > **PEC-VERIFY:** every numeric code value behind these results
 > (ampacities, demand tiers, resistances, breaker ratings) is a

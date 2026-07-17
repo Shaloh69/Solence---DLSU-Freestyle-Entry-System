@@ -56,6 +56,54 @@ SOURCE_CLASS_MAPS: dict[str, dict[str, str | None]] = {
         "door": "door",
         "window": "window",
     },
+    # FloorPlanCAD (Phase 3 §1.2 primary furniture source) — movable
+    # furniture maps onto the unified furniture taxonomy; fixed plumbing
+    # fixtures are dropped (they're not Phase 1 §11.1 furniture and the
+    # compliance engine has no use for them yet).
+    "floorplancad": {
+        "sofa": "furniture_sofa",
+        "bed": "furniture_bed",
+        "chair": "furniture_chair",
+        "table": "furniture_table",
+        "bedside_cupboard": "furniture_cabinet",
+        "tv_cabinet": "furniture_cabinet",
+        "half_height_cabinet": "furniture_cabinet",
+        "high_cabinet": "furniture_cabinet",
+        "wardrobe": "furniture_cabinet",
+        "sink": None,
+        "bath": None,
+        "bath_tub": None,
+        "squat_toilet": None,
+        "urinal": None,
+        "toilet": None,
+        "elevator": None,
+        "escalator": None,
+        "door": "door",
+        "window": "window",
+    },
+    # SESYD/SFPI synthetic plans (§1.2 bulk volume; sim-to-real gap —
+    # pretraining supplement, not a substitute for real sources).
+    "sfpi": {
+        "sofa": "furniture_sofa",
+        "armchair": "furniture_chair",
+        "bed": "furniture_bed",
+        "table": "furniture_table",
+        "table1": "furniture_table",
+        "table2": "furniture_table",
+        "table3": "furniture_table",
+        "sink": None,
+        "sink1": None,
+        "sink2": None,
+        "sink3": None,
+        "sink4": None,
+        "tub": None,
+        "door": "door",
+        "door1": "door",
+        "door2": "door",
+        "window": "window",
+        "window1": "window",
+        "window2": "window",
+    },
 }
 
 

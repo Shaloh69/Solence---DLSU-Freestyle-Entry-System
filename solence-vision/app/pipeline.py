@@ -61,12 +61,17 @@ def default_opening_predictor(image: np.ndarray) -> list[Detection]:
     detections: list[Detection] = []
     for result in results:
         names = result.names
-        for box in result.boxes:
+        masks = result.masks.xy if result.masks is not None else None
+        for index, box in enumerate(result.boxes):
+            polygon = None
+            if masks is not None and index < len(masks):
+                polygon = [[float(x), float(y)] for x, y in masks[index]]
             detections.append(
                 Detection(
                     cls=names[int(box.cls)],
                     confidence=float(box.conf),
                     box=tuple(float(v) for v in box.xyxy[0].tolist()),
+                    polygon=polygon,
                 )
             )
     return detections

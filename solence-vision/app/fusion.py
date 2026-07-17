@@ -32,10 +32,12 @@ import cv2
 import numpy as np
 
 # YOLO class names the fusion step understands. Room classes carry a
-# room-type suffix, e.g. "room_kitchen".
+# room-type suffix ("room_kitchen"); furniture classes a category
+# suffix ("furniture_sofa", Phase 3 §1).
 DOOR_CLASS = "door"
 WINDOW_CLASS = "window"
 ROOM_CLASS_PREFIX = "room_"
+FURNITURE_CLASS_PREFIX = "furniture_"
 
 
 @dataclass
@@ -45,6 +47,14 @@ class Detection:
     cls: str
     confidence: float
     box: tuple[float, float, float, float]  # x1, y1, x2, y2
+    # Segmentation polygon ([[x, y], ...]) when the model produced a
+    # mask. Furniture placement derives its ORIENTATION from this via
+    # cv2.minAreaRect (Phase 3 §1.1): the spec wants oriented boxes,
+    # and the same seg head already carries the shape — a dedicated
+    # YOLO-OBB head is the upgrade path if mask-derived rotation ever
+    # proves too noisy, since Ultralytics can't mix obb+segment tasks
+    # in one model.
+    polygon: list[list[float]] | None = None
 
 
 def _line_orientation(x1: float, y1: float, x2: float, y2: float) -> float:
@@ -271,9 +281,51 @@ def fuse(wall_mask: np.ndarray, detections: list[Detection]) -> dict[str, Any]:
             }
         )
 
+    furniture = []
+    for det in detections:
+        if not det.cls.startswith(FURNITURE_CLASS_PREFIX):
+            continue
+        furniture.append(_oriented_furniture(det))
+
     return {
         "imageSize": {"width": int(width), "height": int(height)},
         "walls": _wall_segments_from_mask(mask),
         "openings": openings,
         "rooms": rooms,
+        "furniture": furniture,
+    }
+
+
+def _oriented_furniture(det: Detection) -> dict[str, Any]:
+    """Oriented placement box for a furniture detection (Phase 3 §1.3).
+
+    Orientation comes from the segmentation polygon via minAreaRect when
+    a mask exists; an axis-aligned fallback (rotation 0) covers
+    detections without one. rotationDeg is normalized to [0, 180) — a
+    furniture symbol's footprint is 180°-symmetric as a rectangle.
+    """
+    x1, y1, x2, y2 = det.box
+    center = [(x1 + x2) / 2, (y1 + y2) / 2]
+    size = [abs(x2 - x1), abs(y2 - y1)]
+    rotation = 0.0
+
+    if det.polygon and len(det.polygon) >= 3:
+        points = np.array(det.polygon, dtype=np.float32)
+        (cx, cy), (w, h), angle = cv2.minAreaRect(points)
+
+        if w > 0 and h > 0:
+            # Normalize: long side first, angle follows the long side.
+            if w < h:
+                w, h = h, w
+                angle += 90.0
+            center = [float(cx), float(cy)]
+            size = [float(w), float(h)]
+            rotation = float(angle % 180.0)
+
+    return {
+        "category": det.cls[len(FURNITURE_CLASS_PREFIX):],
+        "confidence": round(float(det.confidence), 4),
+        "center": [round(center[0], 2), round(center[1], 2)],
+        "size": [round(size[0], 2), round(size[1], 2)],
+        "rotationDeg": round(rotation, 2),
     }

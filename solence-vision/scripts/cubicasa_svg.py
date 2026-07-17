@@ -40,6 +40,16 @@ CLASSES = [
     "room_storage",
     "room_utility",
     "room_dining",
+    # Phase 3 §1 furniture classes — mirror the client furniture-library
+    # categories. CubiCasa5K has no movable-furniture labels (its icon
+    # classes are fixed plumbing/utility fixtures), so these train from
+    # merged sources (FloorPlanCAD, SFPI — see merge_datasets.py).
+    "furniture_chair",
+    "furniture_table",
+    "furniture_sofa",
+    "furniture_bed",
+    "furniture_cabinet",
+    "furniture_desk",
 ]
 
 # CubiCasa "Space <Type>" -> Solence room class.

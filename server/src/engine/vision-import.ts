@@ -21,7 +21,15 @@
  * recognized dimension as approximate until a calibration step exists;
  * this mirrors how PEC-VERIFY flags unverified code figures.
  */
-import { FloorPlan, Opening, Point, Room, RoomType, Wall } from "./types.js";
+import {
+  FloorPlan,
+  Furniture,
+  Opening,
+  Point,
+  Room,
+  RoomType,
+  Wall,
+} from "./types.js";
 
 /** VISION-VERIFY: assumed scale until real calibration exists. */
 export const ASSUMED_PX_PER_METER = 50;
@@ -58,12 +66,53 @@ export interface VisionWallSegment {
   thickness: number;
 }
 
+export interface VisionFurniture {
+  /** Unified furniture category (chair, table, sofa, bed, cabinet, desk). */
+  category: string;
+  confidence: number;
+  /** Oriented placement box, pixel coordinates (Phase 3 §1.3). */
+  center: [number, number];
+  size: [number, number];
+  rotationDeg: number;
+}
+
 export interface VisionResult {
   imageSize: { width: number; height: number };
   walls: VisionWallSegment[];
   openings: VisionOpening[];
   rooms: VisionRoom[];
+  furniture?: VisionFurniture[];
 }
+
+/**
+ * Below this confidence a detected furniture symbol is skipped rather
+ * than silently placed (Phase 3 §1.3's "don't silently guess" rule) —
+ * the engineer places it manually if it matters. Detected furniture
+ * always takes priority over any generated default: recognition output
+ * replaces nothing that a human placed, and no auto-furnish pass exists
+ * to compete with it.
+ */
+export const FURNITURE_CONFIDENCE_FLOOR = 0.5;
+
+/** Sane per-category footprint bounds (meters) — a mis-scaled or
+ * mis-detected symbol gets clamped instead of producing a 30 m bed. */
+const FURNITURE_BOUNDS: Record<
+  string,
+  { meshKey: string; label: string; min: number; max: number; height: number }
+> = {
+  chair: { meshKey: "chair", label: "Chair", min: 0.3, max: 1.2, height: 0.9 },
+  table: { meshKey: "table", label: "Table", min: 0.4, max: 3.0, height: 0.75 },
+  sofa: { meshKey: "sofa", label: "Sofa", min: 0.7, max: 3.5, height: 0.8 },
+  bed: { meshKey: "bed", label: "Bed", min: 0.8, max: 2.4, height: 0.55 },
+  cabinet: {
+    meshKey: "cabinet",
+    label: "Cabinet",
+    min: 0.3,
+    max: 2.5,
+    height: 1.8,
+  },
+  desk: { meshKey: "desk", label: "Desk", min: 0.5, max: 2.2, height: 0.75 },
+};
 
 /** Scale an already-resolved wall segment from pixels to meters. */
 function wallSegmentToWall(
@@ -188,13 +237,45 @@ export function visionResultToFloorPlan(
   const width = Math.max(1, result.imageSize.width / pxPerMeter);
   const height = Math.max(1, result.imageSize.height / pxPerMeter);
 
+  // Phase 3 §1.3: detected furniture symbols -> placed furniture, sized
+  // from the oriented box (scale-calibrated), rotated to match the
+  // drawing. Low-confidence detections are skipped, never guessed.
+  // Manually placed furniture from a previous plan is preserved and
+  // detected items append after it.
+  const detectedFurniture: Furniture[] = (result.furniture ?? [])
+    .filter((item) => item.confidence >= FURNITURE_CONFIDENCE_FLOOR)
+    .flatMap((item, index) => {
+      const bounds = FURNITURE_BOUNDS[item.category];
+
+      if (!bounds) return [];
+      const clamp = (v: number) =>
+        Math.max(bounds.min, Math.min(bounds.max, v));
+
+      return [
+        {
+          id: `vf-${index}`,
+          key: `detected-${item.category}`,
+          label: `${bounds.label} (detected)`,
+          meshKey: bounds.meshKey,
+          position: {
+            x: item.center[0] / pxPerMeter,
+            y: item.center[1] / pxPerMeter,
+          },
+          rotation: (item.rotationDeg * Math.PI) / 180,
+          width: clamp(item.size[0] / pxPerMeter),
+          depth: clamp(item.size[1] / pxPerMeter),
+          height: bounds.height,
+        },
+      ];
+    });
+
   return {
     width,
     height,
     walls,
     rooms,
     openings,
-    furniture: previous?.furniture,
+    furniture: [...(previous?.furniture ?? []), ...detectedFurniture],
     backgroundImage: previous?.backgroundImage,
   };
 }

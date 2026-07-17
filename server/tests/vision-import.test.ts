@@ -127,6 +127,93 @@ describe("visionResultToFloorPlan", () => {
     ]);
   });
 
+  it("places confident detected furniture and skips low-confidence ones", () => {
+    const result: VisionResult = {
+      imageSize: { width: 500, height: 500 },
+      walls: [],
+      openings: [],
+      rooms: [],
+      furniture: [
+        {
+          category: "bed",
+          confidence: 0.85,
+          center: [250, 250],
+          size: [100, 75],
+          rotationDeg: 45,
+        },
+        {
+          category: "sofa",
+          confidence: 0.3, // below the floor — must be skipped, not guessed
+          center: [100, 100],
+          size: [80, 40],
+          rotationDeg: 0,
+        },
+        {
+          category: "mystery",
+          confidence: 0.9, // unknown category — skipped
+          center: [50, 50],
+          size: [40, 40],
+          rotationDeg: 0,
+        },
+      ],
+    };
+
+    const plan = visionResultToFloorPlan(result, null, 50);
+
+    expect(plan.furniture).toHaveLength(1);
+    const bed = plan.furniture![0];
+
+    expect(bed.meshKey).toBe("bed");
+    expect(bed.position).toEqual({ x: 5, y: 5 });
+    expect(bed.width).toBeCloseTo(2, 5);
+    expect(bed.depth).toBeCloseTo(1.5, 5);
+    expect(bed.rotation).toBeCloseTo(Math.PI / 4, 5);
+  });
+
+  it("appends detected furniture after previously placed pieces", () => {
+    const previous = {
+      width: 10,
+      height: 10,
+      walls: [],
+      rooms: [],
+      openings: [],
+      furniture: [
+        {
+          id: "manual-1",
+          key: "sofa-2seat",
+          label: "2-Seat Sofa",
+          meshKey: "sofa",
+          position: { x: 2, y: 2 },
+          rotation: 0,
+          width: 1.5,
+          depth: 0.85,
+          height: 0.8,
+        },
+      ],
+    };
+    const result: VisionResult = {
+      imageSize: { width: 500, height: 500 },
+      walls: [],
+      openings: [],
+      rooms: [],
+      furniture: [
+        {
+          category: "table",
+          confidence: 0.7,
+          center: [100, 100],
+          size: [60, 40],
+          rotationDeg: 0,
+        },
+      ],
+    };
+
+    const plan = visionResultToFloorPlan(result, previous, 50);
+
+    expect(plan.furniture).toHaveLength(2);
+    expect(plan.furniture![0].id).toBe("manual-1");
+    expect(plan.furniture![1].label).toContain("detected");
+  });
+
   it("preserves the previous background image", () => {
     const result: VisionResult = {
       imageSize: { width: 100, height: 100 },

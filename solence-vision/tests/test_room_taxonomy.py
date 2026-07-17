@@ -28,12 +28,21 @@ def test_classes_order_is_append_only():
         "room_other",
     ]
     # Phase 2 additions appended, never inserted.
-    assert CLASSES[8:] == [
+    assert CLASSES[8:13] == [
         "room_outdoor",
         "room_hallway",
         "room_storage",
         "room_utility",
         "room_dining",
+    ]
+    # Phase 3 furniture classes appended after the room classes.
+    assert CLASSES[13:] == [
+        "furniture_chair",
+        "furniture_table",
+        "furniture_sofa",
+        "furniture_bed",
+        "furniture_cabinet",
+        "furniture_desk",
     ]
 
 

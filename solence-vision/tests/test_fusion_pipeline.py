@@ -17,7 +17,7 @@ def test_fuse_output_matches_contract(synthetic_wall_mask):
     ]
     result = fuse(synthetic_wall_mask, detections)
 
-    assert set(result) == {"imageSize", "walls", "openings", "rooms"}
+    assert set(result) == {"imageSize", "walls", "openings", "rooms", "furniture"}
     assert result["imageSize"] == {"width": 200, "height": 200}
 
     assert len(result["openings"]) == 1
@@ -56,6 +56,64 @@ def test_fuse_drops_openings_not_on_walls(synthetic_wall_mask):
         [Detection(cls="window", confidence=0.9, box=(90.0, 90.0, 110.0, 110.0))],
     )
     assert result["openings"] == []
+
+
+def test_fuse_furniture_orientation_from_polygon(synthetic_wall_mask):
+    # A 40x20 rectangle rotated 45 degrees around (100, 100).
+    import math as m
+
+    cx, cy, half_w, half_h, angle = 100.0, 100.0, 20.0, 10.0, m.radians(45)
+    corners = []
+    for sx, sy in [(-1, -1), (1, -1), (1, 1), (-1, 1)]:
+        x = sx * half_w
+        y = sy * half_h
+        corners.append(
+            [
+                cx + x * m.cos(angle) - y * m.sin(angle),
+                cy + x * m.sin(angle) + y * m.cos(angle),
+            ]
+        )
+
+    result = fuse(
+        synthetic_wall_mask,
+        [
+            Detection(
+                cls="furniture_bed",
+                confidence=0.9,
+                box=(70.0, 70.0, 130.0, 130.0),
+                polygon=corners,
+            )
+        ],
+    )
+
+    assert len(result["furniture"]) == 1
+    item = result["furniture"][0]
+    assert item["category"] == "bed"
+    assert abs(item["center"][0] - cx) < 2 and abs(item["center"][1] - cy) < 2
+    # Long side first, rotation recovered (45 degrees, mod 180).
+    assert abs(item["size"][0] - 40.0) < 2.5
+    assert abs(item["size"][1] - 20.0) < 2.5
+    assert abs(item["rotationDeg"] - 45.0) < 3.0
+
+
+def test_fuse_furniture_without_polygon_falls_back_axis_aligned(
+    synthetic_wall_mask,
+):
+    result = fuse(
+        synthetic_wall_mask,
+        [
+            Detection(
+                cls="furniture_table",
+                confidence=0.6,
+                box=(50.0, 60.0, 90.0, 80.0),
+            )
+        ],
+    )
+
+    item = result["furniture"][0]
+    assert item["category"] == "table"
+    assert item["rotationDeg"] == 0.0
+    assert item["size"] == [40.0, 20.0]
 
 
 def test_pipeline_stages_in_order(synthetic_image, synthetic_wall_mask):

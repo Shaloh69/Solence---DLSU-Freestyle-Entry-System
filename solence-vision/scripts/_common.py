@@ -36,6 +36,23 @@ DATASETS: dict[str, dict[str, str]] = {
         "kaggle": "",
         "notes": "80k plans; access by request from the original authors.",
     },
+    "floorplancad": {
+        "kaggle": "",
+        "notes": (
+            "Phase 3 furniture-symbol source: real CAD plans with movable-"
+            "furniture classes. https://huggingface.co/datasets/Voxel51/"
+            "FloorPlanCAD — CHECK LICENSE TERMS before training (research "
+            "dataset; commercial-use status must be confirmed)."
+        ),
+    },
+    "sfpi": {
+        "kaggle": "",
+        "notes": (
+            "SESYD/SFPI synthetic plans (~10k images, ~300k furniture "
+            "instances, 16 classes). Bulk pretraining volume only — "
+            "sim-to-real gap applies."
+        ),
+    },
 }
 
 
