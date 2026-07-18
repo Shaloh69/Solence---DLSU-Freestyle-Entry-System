@@ -1,23 +1,20 @@
 "use client";
 
 /**
- * Showcase Mode site/lot ground (Phase 2 §8.1): a grass-toned plane
- * extending MARGIN meters beyond the plan on every side, with a
- * slightly darker "pad" under the building footprint so the house
- * doesn't float on uniform green.
+ * Showcase Mode site/lot ground (Phase 2 §8.1): a grass-toned lawn
+ * extending MARGIN meters beyond the BUILDING on every side, with a
+ * slightly darker pad hugging the building footprint (not the whole
+ * plan — a plan is often much larger than what's drawn, and a
+ * plan-sized pad swallowed the lawn as a giant gray apron).
  */
+import type { BuildingBounds } from "@/lib/wall-geometry";
+
 import { useMemo } from "react";
 import * as THREE from "three";
 
 export const GROUND_MARGIN = 8;
 
-export default function GroundPlane({
-  planWidth,
-  planHeight,
-}: {
-  planWidth: number;
-  planHeight: number;
-}) {
+export default function GroundPlane({ bounds }: { bounds: BuildingBounds }) {
   const materials = useMemo(
     () => ({
       lawn: new THREE.MeshStandardMaterial({ color: "#3d7a3f", roughness: 1 }),
@@ -29,24 +26,29 @@ export default function GroundPlane({
     [],
   );
 
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const centerZ = (bounds.minY + bounds.maxY) / 2;
+  const width = bounds.maxX - bounds.minX;
+  const depth = bounds.maxY - bounds.minY;
+
   return (
     <>
       <mesh
         material={materials.lawn}
-        position={[planWidth / 2, -0.03, planHeight / 2]}
+        position={[centerX, -0.03, centerZ]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
         <planeGeometry
-          args={[planWidth + GROUND_MARGIN * 2, planHeight + GROUND_MARGIN * 2]}
+          args={[width + GROUND_MARGIN * 2, depth + GROUND_MARGIN * 2]}
         />
       </mesh>
-      {/* building pad — slab under the footprint */}
+      {/* building pad — slab hugging the footprint */}
       <mesh
         material={materials.pad}
-        position={[planWidth / 2, -0.015, planHeight / 2]}
+        position={[centerX, -0.015, centerZ]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <planeGeometry args={[planWidth + 0.6, planHeight + 0.6]} />
+        <planeGeometry args={[width + 1.2, depth + 1.2]} />
       </mesh>
     </>
   );

@@ -18,7 +18,7 @@ import { PointerLockControls } from "@react-three/drei";
 import gsap from "gsap";
 
 import { FloorPlan } from "@/lib/api-client";
-import { wallBoxes, wallFrame } from "@/lib/wall-geometry";
+import { buildingBounds, wallBoxes, wallFrame } from "@/lib/wall-geometry";
 
 export const EYE_HEIGHT = 1.65;
 const BODY_RADIUS = 0.28;
@@ -133,12 +133,19 @@ export default function FirstPersonRig({
   // §1.2: transition in, don't cut — tween from the orbit position to a
   // standing position at the plan's south edge, then hand over control.
   useEffect(() => {
+    const bounds = buildingBounds(plan.walls, plan.width, plan.height);
     const from = camera.position.clone();
-    const to = new THREE.Vector3(plan.width / 2, EYE_HEIGHT, plan.height + 2);
-    const lookAt = new THREE.Vector3(
-      plan.width / 2,
+    // Stand 2 m south of the BUILDING (not the plan — plans are often
+    // much larger than what's drawn on them).
+    const to = new THREE.Vector3(
+      (bounds.minX + bounds.maxX) / 2,
       EYE_HEIGHT,
-      plan.height / 2,
+      bounds.maxY + 2,
+    );
+    const lookAt = new THREE.Vector3(
+      (bounds.minX + bounds.maxX) / 2,
+      EYE_HEIGHT,
+      (bounds.minY + bounds.maxY) / 2,
     );
     const proxy = { t: 0 };
     const tween = gsap.to(proxy, {

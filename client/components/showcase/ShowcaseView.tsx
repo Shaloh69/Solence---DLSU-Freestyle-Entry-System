@@ -34,6 +34,7 @@ import { uTime, uWindStrength } from "./environment-uniforms";
 
 import OpeningMeshes from "@/components/wiring-overlay/OpeningMeshes";
 import {
+  buildingBounds,
   CONDUIT_HEIGHT,
   WALL_HEIGHT,
   wallBoxes,
@@ -154,19 +155,37 @@ function ShowcaseShell({
         />
       ))}
 
-      {/* roof slab */}
-      <mesh
-        ref={registerRoof}
-        material={materials.roof}
-        position={[
-          floorPlan.width / 2,
-          WALL_HEIGHT + 0.05,
-          floorPlan.height / 2,
-        ]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <planeGeometry args={[floorPlan.width + 0.3, floorPlan.height + 0.3]} />
-      </mesh>
+      {/* roof slab — sized to the BUILDING, not the plan (a plan is
+          often far larger than what's drawn; a plan-sized roof reads
+          as a floating pancake over an empty lot). */}
+      {(() => {
+        const bounds = buildingBounds(
+          floorPlan.walls,
+          floorPlan.width,
+          floorPlan.height,
+        );
+        const overhang = 0.5;
+
+        return (
+          <mesh
+            ref={registerRoof}
+            material={materials.roof}
+            position={[
+              (bounds.minX + bounds.maxX) / 2,
+              WALL_HEIGHT + 0.05,
+              (bounds.minY + bounds.maxY) / 2,
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry
+              args={[
+                bounds.maxX - bounds.minX + overhang * 2,
+                bounds.maxY - bounds.minY + overhang * 2,
+              ]}
+            />
+          </mesh>
+        );
+      })()}
     </>
   );
 }
@@ -343,6 +362,10 @@ export default function ShowcaseView() {
   const radius = Math.max(floorPlan.width, floorPlan.height);
   const centerX = floorPlan.width / 2;
   const centerZ = floorPlan.height / 2;
+  const siteBounds = useMemo(
+    () => buildingBounds(floorPlan.walls, floorPlan.width, floorPlan.height),
+    [floorPlan.walls, floorPlan.width, floorPlan.height],
+  );
 
   // §9.1a day/night: a VISUALIZATION state — the sun dims and fixtures
   // carry the scene at night; compliance counts are night-based always,
@@ -374,14 +397,8 @@ export default function ShowcaseView() {
             position={[centerX + 10, 16, centerZ - 6]}
           />
 
-          <GroundPlane
-            planHeight={floorPlan.height}
-            planWidth={floorPlan.width}
-          />
-          <GrassField
-            planHeight={floorPlan.height}
-            planWidth={floorPlan.width}
-          />
+          <GroundPlane bounds={siteBounds} />
+          <GrassField bounds={siteBounds} />
           {weather === "rain" && <RainVolume />}
 
           <ShowcaseShell materials={materials} />

@@ -40,6 +40,45 @@ export function wallFrame(wall: Wall): WallFrame | null {
   };
 }
 
+export interface BuildingBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+/**
+ * Bounding box of the drawn building (wall endpoints), not the plan
+ * extents — a plan is often much larger than what's drawn on it, and
+ * roof/pad/site geometry sized to the plan reads as a floating slab
+ * over a mostly-empty lot. Falls back to the plan extents when no
+ * walls exist yet.
+ */
+export function buildingBounds(
+  walls: Wall[],
+  planWidth: number,
+  planHeight: number,
+): BuildingBounds {
+  if (walls.length === 0) {
+    return { minX: 0, minY: 0, maxX: planWidth, maxY: planHeight };
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const wall of walls) {
+    for (const point of [wall.start, wall.end]) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+
+  return { minX, minY, maxX, maxY };
+}
+
 export interface WallBox {
   from: number;
   to: number;

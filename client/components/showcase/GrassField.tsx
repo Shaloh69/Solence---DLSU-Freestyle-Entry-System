@@ -11,6 +11,8 @@
  * shared uTime/uWindStrength uniforms are mutated once per frame by
  * ShowcaseView.
  */
+import type { BuildingBounds } from "@/lib/wall-geometry";
+
 import { useMemo } from "react";
 import * as THREE from "three";
 
@@ -115,8 +117,7 @@ function bladeGeometry(): THREE.PlaneGeometry {
 
 function scatter(
   count: number,
-  planWidth: number,
-  planHeight: number,
+  bounds: BuildingBounds,
   ring: "near" | "far",
   seed: number,
 ): { posRot: Float32Array; scaleVar: Float32Array } {
@@ -131,26 +132,28 @@ function scatter(
   const posRot = new Float32Array(count * 4);
   const scaleVar = new Float32Array(count * 2);
   const nearBand = GROUND_MARGIN * 0.5;
+  // Exclusion = the building pad; lawn = pad + GROUND_MARGIN all around.
+  const exMinX = bounds.minX - 0.6;
+  const exMaxX = bounds.maxX + 0.6;
+  const exMinZ = bounds.minY - 0.6;
+  const exMaxZ = bounds.maxY + 0.6;
   let placed = 0;
   let guard = 0;
 
   while (placed < count && guard < count * 30) {
     guard++;
-    const x = -GROUND_MARGIN + random() * (planWidth + GROUND_MARGIN * 2);
-    const z = -GROUND_MARGIN + random() * (planHeight + GROUND_MARGIN * 2);
+    const x =
+      exMinX - GROUND_MARGIN + random() * (exMaxX - exMinX + GROUND_MARGIN * 2);
+    const z =
+      exMinZ - GROUND_MARGIN + random() * (exMaxZ - exMinZ + GROUND_MARGIN * 2);
 
     // Skip the building footprint (+pad).
-    if (x > -0.4 && x < planWidth + 0.4 && z > -0.4 && z < planHeight + 0.4) {
+    if (x > exMinX && x < exMaxX && z > exMinZ && z < exMaxZ) {
       continue;
     }
 
-    // Ring split: near = within nearBand of the footprint, far = beyond.
-    const distance = Math.max(
-      -0.4 - x,
-      x - (planWidth + 0.4),
-      -0.4 - z,
-      z - (planHeight + 0.4),
-    );
+    // Ring split: near = within nearBand of the pad, far = beyond.
+    const distance = Math.max(exMinX - x, x - exMaxX, exMinZ - z, z - exMaxZ);
     const isNear = distance <= nearBand;
 
     if ((ring === "near") !== isNear) continue;
@@ -171,13 +174,11 @@ function scatter(
 }
 
 function GrassRing({
-  planWidth,
-  planHeight,
+  bounds,
   ring,
   count,
 }: {
-  planWidth: number;
-  planHeight: number;
+  bounds: BuildingBounds;
   ring: "near" | "far";
   count: number;
 }) {
@@ -185,8 +186,7 @@ function GrassRing({
     const blade = bladeGeometry();
     const { posRot, scaleVar } = scatter(
       count,
-      planWidth,
-      planHeight,
+      bounds,
       ring,
       ring === "near" ? 1337 : 7331,
     );
@@ -223,34 +223,18 @@ function GrassRing({
       instanceCount: posRot.length / 4,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planWidth, planHeight, ring, count]);
+  }, [bounds, ring, count]);
 
   if (instanceCount === 0) return null;
 
   return <mesh frustumCulled={false} geometry={geometry} material={material} />;
 }
 
-export default function GrassField({
-  planWidth,
-  planHeight,
-}: {
-  planWidth: number;
-  planHeight: number;
-}) {
+export default function GrassField({ bounds }: { bounds: BuildingBounds }) {
   return (
     <>
-      <GrassRing
-        count={NEAR_COUNT}
-        planHeight={planHeight}
-        planWidth={planWidth}
-        ring="near"
-      />
-      <GrassRing
-        count={FAR_COUNT}
-        planHeight={planHeight}
-        planWidth={planWidth}
-        ring="far"
-      />
+      <GrassRing bounds={bounds} count={NEAR_COUNT} ring="near" />
+      <GrassRing bounds={bounds} count={FAR_COUNT} ring="far" />
     </>
   );
 }
