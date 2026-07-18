@@ -761,6 +761,8 @@ function Scene({ gizmoMode }: { gizmoMode: "translate" | "rotate" }) {
       <OrbitControls
         enableDamping
         enabled={orbitEnabled}
+        maxDistance={Math.max(floorPlan.width, floorPlan.height) * 3}
+        minDistance={2}
         target={[centerX, 1, centerZ]}
       />
     </>

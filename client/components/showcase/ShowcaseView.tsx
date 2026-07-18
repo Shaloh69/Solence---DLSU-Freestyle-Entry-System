@@ -14,13 +14,14 @@
  * them out of the ground — the working view's center-pivot meshes are
  * untouched by this convention.
  */
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
-import { CloudRain, Moon, Sun, Wind } from "lucide-react";
+import { CloudRain, Footprints, Moon, Orbit, Sun, Wind } from "lucide-react";
 
 import ConstructionReveal from "./ConstructionReveal";
+import FirstPersonRig from "./FirstPersonRig";
 import GroundPlane from "./GroundPlane";
 import GrassField from "./GrassField";
 import RainVolume from "./RainVolume";
@@ -333,6 +334,11 @@ export default function ShowcaseView() {
   const materials = useShowcaseMaterials();
   const registry = useMemo(() => createRevealRegistry(), []);
   const controlsRef = useRef<{ enabled: boolean; update(): void } | null>(null);
+  // P4 §1.2: Showcase's second camera mode. Session-only state.
+  const [cameraMode, setCameraMode] = useState<"orbit" | "walk">("orbit");
+  const [pointerLocked, setPointerLocked] = useState(false);
+  const [interactPrompt, setInteractPrompt] = useState<string | null>(null);
+  const openingsRootRef = useRef<THREE.Group | null>(null);
 
   const radius = Math.max(floorPlan.width, floorPlan.height);
   const centerX = floorPlan.width / 2;
@@ -379,7 +385,9 @@ export default function ShowcaseView() {
           {weather === "rain" && <RainVolume />}
 
           <ShowcaseShell materials={materials} />
-          <OpeningMeshes plan={floorPlan} variant="showcase" />
+          <group ref={openingsRootRef}>
+            <OpeningMeshes plan={floorPlan} variant="showcase" />
+          </group>
           <ShowcaseFurniture />
           <ShowcaseFixtures dimmed={!night} />
           <ShowcaseWiring />
@@ -393,7 +401,7 @@ export default function ShowcaseView() {
           )}
 
           <EnvironmentTick />
-          {projectId && (
+          {projectId && cameraMode === "orbit" && (
             <ConstructionReveal
               controlsRef={controlsRef}
               planHeight={floorPlan.height}
@@ -402,18 +410,71 @@ export default function ShowcaseView() {
             />
           )}
 
-          <OrbitControls
-            ref={controlsRef as never}
-            enableDamping
-            maxPolarAngle={Math.PI / 2 - 0.05}
-            target={[centerX, 1, centerZ]}
-          />
+          {cameraMode === "orbit" ? (
+            <OrbitControls
+              ref={controlsRef as never}
+              enableDamping
+              maxDistance={radius * 3}
+              maxPolarAngle={Math.PI / 2 - 0.05}
+              minDistance={2}
+              target={[centerX, 1, centerZ]}
+            />
+          ) : (
+            <FirstPersonRig
+              interactiveRoot={openingsRootRef}
+              plan={floorPlan}
+              onLockChange={setPointerLocked}
+              onPrompt={setInteractPrompt}
+            />
+          )}
         </RevealContext.Provider>
       </Canvas>
+
+      {/* P4 §1.2 walkthrough overlays: crosshair + interaction prompt +
+          click-to-look hint. Session-only presentation state. */}
+      {cameraMode === "walk" && (
+        <>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-white/80 ring-1 ring-black/40" />
+          </div>
+          {interactPrompt && pointerLocked && (
+            <div className="pointer-events-none absolute bottom-16 left-1/2 -translate-x-1/2 rounded-lg bg-content1/90 border border-default-200 px-3 py-1.5 font-mono text-xs">
+              {interactPrompt}
+            </div>
+          )}
+          {!pointerLocked && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-6 text-center">
+              <span className="rounded-lg bg-content1/90 border border-default-200 px-3 py-1.5 font-mono text-xs">
+                Click the scene to look around · WASD to walk · E to open
+                doors/windows · scroll to look closer · Esc to release
+              </span>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Showcase chrome: day/night + weather + wind — presentation only;
           §9.1a: the toggle never changes compliance results. */}
       <div className="absolute top-2 right-2 flex items-center gap-2 rounded-lg bg-content1/90 px-2 py-1.5 border border-default-200">
+        <button
+          className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${cameraMode === "walk" ? "bg-brand-teal/25 text-brand-teal" : "text-default-500"}`}
+          title="First-person walkthrough (P4 §1.2) — WASD + mouse-look, E opens doors/windows"
+          type="button"
+          onClick={() =>
+            setCameraMode(cameraMode === "walk" ? "orbit" : "walk")
+          }
+        >
+          {cameraMode === "walk" ? (
+            <>
+              <Orbit size={13} /> Orbit
+            </>
+          ) : (
+            <>
+              <Footprints size={13} /> Walk
+            </>
+          )}
+        </button>
+        <span className="border-l border-default-200 h-4" />
         <button
           className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${night ? "bg-brand-teal/25 text-brand-teal" : "text-default-500"}`}
           title="Night view — fixtures carry the scene at their CCT colors. Compliance is always computed for night regardless."

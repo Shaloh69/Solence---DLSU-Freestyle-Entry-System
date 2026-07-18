@@ -78,10 +78,23 @@ export default function FloorPlanCanvas() {
   const [draftStart, setDraftStart] = useState<Point | null>(null);
   const [cursor, setCursorLocal] = useState<Point | null>(null);
   const [draggingSelection, setDraggingSelection] = useState(false);
+  // P4 §1.1 CAD zoom/pan: scale 1 = whole plan fits; viewBox derives
+  // from this. Zoom is cursor-anchored (the point under the mouse stays
+  // put), pan via middle-drag or Alt+drag.
+  const [view2d, setView2d] = useState({ scale: 1, x: 0, y: 0 });
+  const panRef = useRef<{
+    startX: number;
+    startY: number;
+    ox: number;
+    oy: number;
+  } | null>(null);
 
   useEffect(() => {
     setDraftStart(null);
   }, [tool]);
+
+  const viewW = floorPlan.width / view2d.scale;
+  const viewH = floorPlan.height / view2d.scale;
 
   const toPlanPoint = useCallback(
     (event: { clientX: number; clientY: number }): Point => {
@@ -89,16 +102,51 @@ export default function FloorPlanCanvas() {
 
       if (!svg) return { x: 0, y: 0 };
       const rect = svg.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * floorPlan.width;
-      const y = ((event.clientY - rect.top) / rect.height) * floorPlan.height;
+      const x =
+        view2d.x +
+        ((event.clientX - rect.left) / rect.width) *
+          (floorPlan.width / view2d.scale);
+      const y =
+        view2d.y +
+        ((event.clientY - rect.top) / rect.height) *
+          (floorPlan.height / view2d.scale);
 
       return {
         x: Math.min(floorPlan.width, Math.max(0, x)),
         y: Math.min(floorPlan.height, Math.max(0, y)),
       };
     },
-    [floorPlan.width, floorPlan.height],
+    [floorPlan.width, floorPlan.height, view2d],
   );
+
+  /** Cursor-anchored wheel zoom, clamped to [1, 8]x. */
+  function handleWheel(event: React.WheelEvent) {
+    const svg = svgRef.current;
+
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const fx = (event.clientX - rect.left) / rect.width;
+    const fy = (event.clientY - rect.top) / rect.height;
+    const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+
+    setView2d((current) => {
+      const scale = Math.min(8, Math.max(1, current.scale * factor));
+
+      if (scale === current.scale) return current;
+      const w = floorPlan.width / current.scale;
+      const h = floorPlan.height / current.scale;
+      const anchorX = current.x + fx * w;
+      const anchorY = current.y + fy * h;
+      const newW = floorPlan.width / scale;
+      const newH = floorPlan.height / scale;
+
+      return {
+        scale,
+        x: Math.min(floorPlan.width - newW, Math.max(0, anchorX - fx * newW)),
+        y: Math.min(floorPlan.height - newH, Math.max(0, anchorY - fy * newH)),
+      };
+    });
+  }
 
   function handleCanvasClick(event: React.MouseEvent) {
     const raw = toPlanPoint(event);
@@ -129,7 +177,45 @@ export default function FloorPlanCanvas() {
     }
   }
 
+  function handlePointerDown(event: React.PointerEvent) {
+    // Middle mouse (or Alt+left) starts a pan (P4 §1.1).
+    if (event.button === 1 || (event.button === 0 && event.altKey)) {
+      event.preventDefault();
+      panRef.current = {
+        startX: event.clientX,
+        startY: event.clientY,
+        ox: view2d.x,
+        oy: view2d.y,
+      };
+    }
+  }
+
   function handlePointerMove(event: React.PointerEvent) {
+    if (panRef.current) {
+      const svg = svgRef.current;
+
+      if (svg) {
+        const rect = svg.getBoundingClientRect();
+        const dx =
+          ((event.clientX - panRef.current.startX) / rect.width) * viewW;
+        const dy =
+          ((event.clientY - panRef.current.startY) / rect.height) * viewH;
+
+        setView2d((current) => ({
+          ...current,
+          x: Math.min(
+            floorPlan.width - viewW,
+            Math.max(0, panRef.current!.ox - dx),
+          ),
+          y: Math.min(
+            floorPlan.height - viewH,
+            Math.max(0, panRef.current!.oy - dy),
+          ),
+        }));
+      }
+
+      return;
+    }
     const raw = toPlanPoint(event);
     const point = { x: snap(raw.x), y: snap(raw.y) };
 
@@ -229,15 +315,20 @@ export default function FloorPlanCanvas() {
   }
   const wallById = new Map(floorPlan.walls.map((wall) => [wall.id, wall]));
 
+  // P4 §1.1: grid density adapts to zoom like real CAD — fine 0.25 m
+  // lines appear zoomed-in, collapsing to 1 m, then 5 m zoomed out.
+  const gridStep = view2d.scale >= 4 ? 0.25 : view2d.scale >= 1.5 ? 0.5 : 1;
   const gridLines: React.ReactNode[] = [];
 
-  for (let x = 0; x <= floorPlan.width; x += 1) {
+  for (let x = 0; x <= floorPlan.width + 1e-6; x += gridStep) {
+    const major = Math.abs(x % 1) < 1e-6;
+
     gridLines.push(
       <line
         key={`gx${x}`}
         stroke="currentColor"
-        strokeOpacity={0.08}
-        strokeWidth={0.02}
+        strokeOpacity={major ? 0.08 : 0.04}
+        strokeWidth={major ? 0.02 : 0.01}
         x1={x}
         x2={x}
         y1={0}
@@ -245,13 +336,15 @@ export default function FloorPlanCanvas() {
       />,
     );
   }
-  for (let y = 0; y <= floorPlan.height; y += 1) {
+  for (let y = 0; y <= floorPlan.height + 1e-6; y += gridStep) {
+    const major = Math.abs(y % 1) < 1e-6;
+
     gridLines.push(
       <line
         key={`gy${y}`}
         stroke="currentColor"
-        strokeOpacity={0.08}
-        strokeWidth={0.02}
+        strokeOpacity={major ? 0.08 : 0.04}
+        strokeWidth={major ? 0.02 : 0.01}
         x1={0}
         x2={floorPlan.width}
         y1={y}
@@ -270,17 +363,23 @@ export default function FloorPlanCanvas() {
       aria-label="Floor plan editor canvas"
       className="w-full h-full bg-content1/40 rounded-lg touch-none select-none"
       role="application"
-      viewBox={`0 0 ${floorPlan.width} ${floorPlan.height}`}
+      viewBox={`${view2d.x} ${view2d.y} ${viewW} ${viewH}`}
       onClick={handleCanvasClick}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
+      onPointerDown={handlePointerDown}
       onPointerLeave={() => {
         setCursorLocal(null);
         store.setCursor(null);
         setDraggingSelection(false);
+        panRef.current = null;
       }}
       onPointerMove={handlePointerMove}
-      onPointerUp={() => setDraggingSelection(false)}
+      onPointerUp={() => {
+        setDraggingSelection(false);
+        panRef.current = null;
+      }}
+      onWheel={handleWheel}
     >
       {floorPlan.backgroundImage && (
         <image

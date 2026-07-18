@@ -71,6 +71,9 @@ export default function OpeningMeshes({
         wall.start.y + frame.uy * mid,
       );
       group.rotation.y = -frame.angle;
+      // P4 §1.3: walkthrough interaction targets openings by these tags.
+      group.userData.openingKind = opening.kind;
+      group.userData.openingId = opening.id;
 
       return [{ id: opening.id, group }];
     });

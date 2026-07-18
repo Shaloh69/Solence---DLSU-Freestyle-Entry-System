@@ -150,6 +150,9 @@ export function buildDoorGroup(
 
     pivot.position.set(hingeX, 0, 0);
     pivot.rotation.y = hingeSide * ajar;
+    // P4 §1.3: the swing parameter doubles as the hinge axis for the
+    // walkthrough's open animation — same data, no second system.
+    pivot.userData.doorPivot = { hingeSide, restY: hingeSide * ajar };
 
     const leaf = new THREE.Mesh(
       new THREE.BoxGeometry(leafWidth, height - t, leafThickness),
@@ -202,6 +205,15 @@ export function buildWindowGroup(
   const glassHeight = WINDOW_HEAD - WINDOW_SILL - 2 * t;
   const paneWidth = (width - 2 * t - (params.panes - 1) * t) / params.panes;
 
+  // P4 §1.3: pane configuration determines the open animation — 1 pane
+  // tilts, 2 panes slide, 3+ swing. Stored on the group so the
+  // walkthrough interaction reads it from the same parametric data.
+  group.userData.windowConfig = {
+    panes: params.panes,
+    paneWidth,
+    glassHeight,
+  };
+
   for (let index = 0; index < params.panes; index++) {
     const glass = new THREE.Mesh(
       new THREE.BoxGeometry(paneWidth, glassHeight, 0.02),
@@ -210,6 +222,7 @@ export function buildWindowGroup(
     const x = -width / 2 + t + paneWidth / 2 + index * (paneWidth + t);
 
     glass.position.set(x, WINDOW_SILL + t + glassHeight / 2, 0);
+    glass.userData.windowPane = { index, restX: x, restRotX: 0 };
     group.add(glass);
 
     if (index < params.panes - 1) {
