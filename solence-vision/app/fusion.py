@@ -68,7 +68,7 @@ def _merge_collinear_segments(
     segments: list[tuple[float, float, float, float]],
     angle_tolerance_deg: float = 6.0,
     offset_tolerance_px: float = 8.0,
-    gap_tolerance_px: float = 14.0,
+    gap_tolerance_px: float = 22.0,
 ) -> list[tuple[float, float, float, float]]:
     """Merge Hough segments into one run per real wall.
 
@@ -173,7 +173,7 @@ def _merge_collinear_segments(
 
 
 def _wall_segments_from_mask(
-    mask: np.ndarray, min_length: float = 15.0
+    mask: np.ndarray, min_length: float = 22.0
 ) -> list[dict[str, Any]]:
     """Straight wall-run line segments from a wall mask (see module docstring).
 
@@ -267,17 +267,27 @@ def fuse(wall_mask: np.ndarray, detections: list[Detection]) -> dict[str, Any]:
     for det in detections:
         if not det.cls.startswith(ROOM_CLASS_PREFIX):
             continue
-        x1, y1, x2, y2 = det.box
+        # Prefer the segmentation polygon — the box is an axis-aligned
+        # rectangle that misaligns with real (L-shaped, angled) rooms.
+        boundary = None
+        if det.polygon and len(det.polygon) >= 3:
+            points = np.array(det.polygon, dtype=np.float32).reshape(-1, 1, 2)
+            approx = cv2.approxPolyDP(points, epsilon=4.0, closed=True)
+            if len(approx) >= 3:
+                boundary = [[float(x), float(y)] for [[x, y]] in approx]
+        if boundary is None:
+            x1, y1, x2, y2 = det.box
+            boundary = [
+                [float(x1), float(y1)],
+                [float(x2), float(y1)],
+                [float(x2), float(y2)],
+                [float(x1), float(y2)],
+            ]
         rooms.append(
             {
                 "type": det.cls[len(ROOM_CLASS_PREFIX):],
                 "confidence": round(float(det.confidence), 4),
-                "boundary": [
-                    [float(x1), float(y1)],
-                    [float(x2), float(y1)],
-                    [float(x2), float(y2)],
-                    [float(x1), float(y2)],
-                ],
+                "boundary": boundary,
             }
         )
 

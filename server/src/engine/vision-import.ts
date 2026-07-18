@@ -227,18 +227,23 @@ export function visionResultToFloorPlan(
   // §2.4: low-confidence room types are flagged in the visible name
   // rather than silently presented as certain — the type still applies
   // (GFCI etc. should err toward firing), but the engineer sees the "?".
-  const rooms: Room[] = result.rooms.map((room, index) => ({
-    id: `vr-${index}`,
-    name:
-      room.confidence < 0.5
-        ? `Room ${index + 1} (check type?)`
-        : `Room ${index + 1}`,
-    type: mapRoomType(room.type),
-    boundary: room.boundary.map(([x, y]) => ({
-      x: x / pxPerMeter,
-      y: y / pxPerMeter,
-    })),
-  }));
+  // Only when a SPECIFIC type was claimed: a low-confidence "other" is
+  // already visibly untyped, and suffixing every such room buries the
+  // flags that matter under noise.
+  const rooms: Room[] = result.rooms.map((room, index) => {
+    const type = mapRoomType(room.type);
+    const flagType = room.confidence < 0.5 && type !== "other";
+
+    return {
+      id: `vr-${index}`,
+      name: flagType ? `Room ${index + 1} (check type?)` : `Room ${index + 1}`,
+      type,
+      boundary: room.boundary.map(([x, y]) => ({
+        x: x / pxPerMeter,
+        y: y / pxPerMeter,
+      })),
+    };
+  });
 
   const width = Math.max(1, result.imageSize.width / pxPerMeter);
   const height = Math.max(1, result.imageSize.height / pxPerMeter);
