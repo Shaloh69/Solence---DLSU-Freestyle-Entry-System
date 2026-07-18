@@ -41,6 +41,45 @@ export default function ConstructionReveal({
       if (!registry || builtFor.current === projectId) return;
       builtFor.current = projectId;
 
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // Already played (or reduced motion)? Don't build a timeline at
+      // all — directly ensure the finished state. This also HEALS the
+      // scene after any unmount-revert (HMR, view switches): a revert
+      // leaves walls squashed/roof lifted/furniture hidden, and any
+      // remount lands here and puts everything back deterministically.
+      if (reduceMotion || playedReveals.has(projectId)) {
+        for (const wall of registry.objects.get("wall") ?? []) {
+          wall.scale.y = 1;
+        }
+        for (const piece of registry.objects.get("furniture") ?? []) {
+          piece.visible = true;
+          if (piece.userData.revealY !== undefined) {
+            piece.position.y = piece.userData.revealY as number;
+          }
+        }
+        for (const mesh of registry.objects.get("fixture") ?? []) {
+          const material = (mesh as THREE.Mesh)
+            .material as THREE.MeshStandardMaterial;
+
+          if (material?.emissive) material.emissiveIntensity = 1;
+        }
+        for (const group of registry.objects.get("wiring") ?? []) {
+          group.traverse((object) => {
+            const material = (object as THREE.Mesh).material as
+              | (THREE.Material & { opacity: number })
+              | undefined;
+
+            if (material) material.opacity = 0.95;
+          });
+        }
+
+        return;
+      }
+      playedReveals.add(projectId);
+
       const walls = [...(registry.objects.get("wall") ?? [])];
       const roofs = [...(registry.objects.get("roof") ?? [])];
       const furniture = [...(registry.objects.get("furniture") ?? [])];
@@ -159,16 +198,6 @@ export default function ConstructionReveal({
           ">-0.2",
         )
         .to(wiringMaterials, { opacity: 0.95, duration: 0.6 }, ">");
-
-      const reduceMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (reduceMotion || playedReveals.has(projectId)) {
-        timeline.progress(1); // instant cut to the finished state
-      } else {
-        playedReveals.add(projectId);
-      }
     },
     { dependencies: [projectId] },
   );
