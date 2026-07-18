@@ -418,7 +418,13 @@ export default function ShowcaseView() {
           )}
 
           <EnvironmentTick />
-          {projectId && cameraMode === "orbit" && (
+          {/* Mounted in BOTH camera modes: unmounting reverts every
+              GSAP-animated property (useGSAP context cleanup), which
+              snapped walls back to their pre-reveal squashed state the
+              moment Walk mode swapped the controls. The component is
+              internally idempotent per project, so keeping it mounted
+              never replays the timeline. */}
+          {projectId && (
             <ConstructionReveal
               controlsRef={controlsRef}
               planHeight={floorPlan.height}
