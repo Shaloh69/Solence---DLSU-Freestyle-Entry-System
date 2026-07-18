@@ -58,3 +58,4 @@ ultralytics>=8.4  # YOLO26 (NMS-free end-to-end) support
 segmentation-models-pytorch>=0.3.4
 albumentations>=1.4
 kagglehub>=0.3
+huggingface_hub>=0.20  # FloorPlanCAD converter (convert_floorplancad.py)

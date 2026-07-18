@@ -39,10 +39,13 @@ DATASETS: dict[str, dict[str, str]] = {
     "floorplancad": {
         "kaggle": "",
         "notes": (
-            "Phase 3 furniture-symbol source: real CAD plans with movable-"
-            "furniture classes. https://huggingface.co/datasets/Voxel51/"
-            "FloorPlanCAD — CHECK LICENSE TERMS before training (research "
-            "dataset; commercial-use status must be confirmed)."
+            "Phase 3 furniture-symbol source: 5,308 real CAD plans, "
+            "FiftyOne format. https://huggingface.co/datasets/Voxel51/"
+            "FloorPlanCAD — LICENSE VERIFIED 2026-07-18: CC BY-SA 4.0 "
+            "(commercial OK; attribution required: 'FloorPlanCAD dataset, "
+            "Fan et al., via Voxel51/FloorPlanCAD'; derivatives of the "
+            "DATASET stay BY-SA — trained model weights are our position's "
+            "outputs, documented here). Converter: convert_floorplancad.py."
         ),
     },
     "sfpi": {
@@ -51,6 +54,14 @@ DATASETS: dict[str, dict[str, str]] = {
             "SESYD/SFPI synthetic plans (~10k images, ~300k furniture "
             "instances, 16 classes). Bulk pretraining volume only — "
             "sim-to-real gap applies."
+        ),
+    },
+    "merged": {
+        "kaggle": "",
+        "notes": (
+            "Output of merge_datasets.py — the unified multi-source "
+            "training corpus (never downloaded; regenerate by re-running "
+            "the merge)."
         ),
     },
 }
