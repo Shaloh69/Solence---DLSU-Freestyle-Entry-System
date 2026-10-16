@@ -1,0 +1,36 @@
+{
+  "$comment": "Real test corpus. Fetched to test-assets/cache/ by `npm run assets:fetch` (gitignored), verified by sha256. An entry with license 'VERIFY' or sha256 null cannot be used by any test. NC-licensed items are test-only and must never be copied into client/public/.",
+  "floorplans": [
+    { "id": "cubicasa-test-set", "kind": "raster+svg-ground-truth",
+      "source": "https://zenodo.org/records/2613548", "license": "CC BY-NC-SA 4.0",
+      "author": "CubiCasa / Kalervo et al. 2019", "use": "test-only",
+      "select": "20 plans from the official test split: 8 small houses, 8 apartments, 4 multi-storey; ids pinned in expectations/",
+      "sha256": null },
+    { "id": "floorplancad-sample", "kind": "vector-cad",
+      "source": "https://floorplancad.github.io", "license": "VERIFY",
+      "author": "FloorPlanCAD", "use": "test-only", "sha256": null },
+    { "id": "ph-bungalow-real", "kind": "pdf-plan",
+      "source": "team-supplied", "license": "written permission from owner/architect",
+      "author": "REPLACE", "use": "demo+test",
+      "note": "A real Philippine residential plan (with permission) — the pitch demo house. Required before Phase E.",
+      "sha256": null }
+  ],
+  "models": [
+    { "id": "kenney-furniture-kit", "source": "https://kenney.nl/assets/furniture-kit", "license": "CC0", "author": "Kenney", "use": "ship+test", "sha256": null },
+    { "id": "polyhaven-models", "source": "https://polyhaven.com/models", "license": "CC0", "author": "Poly Haven contributors", "use": "ship+test",
+      "select": "pin exact asset slugs (chairs, tables, sofa, bed, cabinets, lamps)", "sha256": null },
+    { "id": "khronos-sample-assets", "source": "https://github.com/KhronosGroup/glTF-Sample-Assets", "license": "per-asset (record each)", "author": "Khronos + contributors", "use": "test-only",
+      "select": "renderer correctness fixtures (PBR, alpha, KTX2) — not homes", "sha256": null },
+    { "id": "sketchfab-house-ccby", "source": "https://sketchfab.com", "license": "CC BY 4.0 (record exact model URL + author)", "author": "REPLACE per model", "use": "test-only",
+      "select": "2–3 full residential house GLBs to stress-test the 3D pipeline at real scale", "sha256": null }
+  ],
+  "textures": [
+    { "id": "polyhaven-textures", "source": "https://polyhaven.com/textures", "license": "CC0", "author": "Poly Haven", "use": "ship+test",
+      "select": "concrete floor, ceramic tile, plaster wall, wood floor, roof tile — 2k, pin slugs", "sha256": null },
+    { "id": "ambientcg-materials", "source": "https://ambientcg.com", "license": "CC0", "author": "ambientCG (Lennart Demes)", "use": "ship+test", "sha256": null }
+  ],
+  "hdris": [
+    { "id": "polyhaven-hdri-day", "source": "https://polyhaven.com/hdris", "license": "CC0", "author": "Poly Haven", "use": "ship+test",
+      "select": "one overcast, one clear-noon, one dusk — pin slugs + exposure", "sha256": null }
+  ]
+}

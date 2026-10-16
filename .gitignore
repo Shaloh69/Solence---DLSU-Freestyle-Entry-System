@@ -17,3 +17,8 @@ Solence Phase 2 .md
 solence-vision/*.log
 solence-vision/yolo26*.pt
 runs/
+
+# revamp harness
+.artifacts/
+test-assets/cache/
+CLAUDE.local.md

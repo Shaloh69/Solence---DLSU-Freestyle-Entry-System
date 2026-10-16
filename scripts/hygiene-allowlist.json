@@ -1,0 +1,8 @@
+{
+  "$comment": "Temporary exceptions to check-test-hygiene. Each needs a reason and the STATE.md item that removes it. Hook-protected: only the user adds entries. Listed as debt in every gate summary.",
+  "entries": [
+    { "file": "solence-vision/tests/test_api_endpoints.py", "rule": "pytest skip", "reason": "503-path test skips when weights exist", "removeBy": "0.3 — split into two real tests (with/without weights) using corpus fixtures" },
+    { "file": "solence-vision/tests/test_unet_model.py", "rule": "pytest skip", "reason": "skips when tests/fixtures has no images — currently tests nothing", "removeBy": "0.3 — fixtures come from test-assets manifest; skip becomes a hard fail" },
+    { "file": "solence-vision/tests/test_yolo_model.py", "rule": "pytest skip", "reason": "same as unet", "removeBy": "0.3" }
+  ]
+}

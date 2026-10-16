@@ -1,315 +1,231 @@
 ---
-version: 1.1
-name: Solence-design-system
-description: Technical instrument-panel precision for a PEC wiring/CAD tool — navy instrument surfaces, teal as the single action color, amber as a scarce caution/eyebrow accent, hairline-border elevation, and a three-face type system where every engineering figure is monospace. Remixed from VoltAgent/awesome-design-md's Together AI entry (technical blueprint voice, mono-caps eyebrows, hairline-over-shadow elevation), calibrated against its NVIDIA (accent as a precious resource, weight-based hierarchy) and ClickHouse (show the real computation, not an illustration of it) entries.
-
-colors:
-  # dark mode (primary identity)
-  background-dark: "#0B1B33"
-  surface-dark: "#13294B"
-  surface-dark-raised: "#1B3358"
-  border-dark: "#24406B"
-  text-dark: "#E6EDF7"
-  text-muted-dark: "#93A5C1"
-  primary-dark: "#14B8A6"
-  accent-dark: "#F59E0B"
-  # light mode (drafting paper)
-  background-light: "#F4F6FA"
-  surface-light: "#FFFFFF"
-  surface-light-raised: "#EDF1F7"
-  border-light: "#D8DFEA"
-  text-light: "#14213A"
-  text-muted-light: "#5A6B85"
-  primary-light: "#0D9488"
-  accent-light: "#B45309"
-  # semantic (both modes; also the toast palette)
-  success: "#22C55E"
-  warning: "#F59E0B"
-  danger: "#E15759"
-  info: "#4E79A7"
-
-typography:
-  display-xl:
-    fontFamily: Space Grotesk
-    fontSize: 40px
-    fontWeight: 700
-    letterSpacing: -0.8px
-  display-lg:
-    fontFamily: Space Grotesk
-    fontSize: 32px
-    fontWeight: 600
-    letterSpacing: -0.5px
-  panel-title:
-    fontFamily: Space Grotesk
-    fontSize: 20px
-    fontWeight: 600
-    letterSpacing: -0.2px
-  body:
-    fontFamily: IBM Plex Sans
-    fontSize: 16px
-    fontWeight: 400
-  ui:
-    fontFamily: IBM Plex Sans
-    fontSize: 14px
-    fontWeight: 400
-  label:
-    fontFamily: IBM Plex Sans
-    fontSize: 14px
-    fontWeight: 500
-  dense-table:
-    fontFamily: JetBrains Mono
-    fontSize: 13px
-    fontWeight: 400
-  mono-figure:
-    fontFamily: JetBrains Mono
-    fontSize: 13px
-    fontWeight: 400
-  mono-caps-eyebrow:
-    fontFamily: JetBrains Mono
-    fontSize: 11px
-    fontWeight: 500
-    letterSpacing: 0.08em
-    textTransform: uppercase
-
-rounded:
-  chip: 2px
-  control: 6px
-  panel: 10px
-  full: 9999px   # status dots and circuit swatch dots ONLY
-
-spacing:
-  base: 8px
-  steps: [4, 8, 12, 16, 24, 32]
-  panel-padding: 12px
-
-components:
-  panel:
-    backgroundColor: "{colors.surface}"
-    borderColor: "{colors.border}"
-    rounded: "{rounded.panel}"
-    padding: "{spacing.panel-padding}"
-    shadow: none   # docked panels separate by border + surface step
-  status-bar:
-    typography: "{typography.mono-figure}"
-    backgroundColor: "{colors.surface}"
-  schedule-table:
-    headerTypography: "{typography.mono-caps-eyebrow}"
-    bodyTypography: "{typography.dense-table}"
-    swatch: 10px square, {rounded.chip}
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    rounded: "{rounded.control}"
-    note: one per visible viewport
-  toast:
-    rounded: "{rounded.panel}"
-    shadow: "0 4px 18px -6px rgb(0 0 0 / 0.25)"   # floats, so it may shadow
-    semantic: success/warning/danger/info tokens
-  panel-eyebrow:
-    typography: "{typography.mono-caps-eyebrow}"
-    textColor: "{colors.text-muted}"
+version: 2.0
+name: Solence design system — "Conductor"
+replaces: v1.1 "instrument panel" (navy/teal, Space Grotesk/Plex/JetBrains Mono). v1 is retired in full; see git history.
+status: tokens final, references pending capture (Phase C-0)
 ---
 
-# Solence DESIGN.md
+# Solence DESIGN.md v2 — "Conductor"
 
-Read this before generating or editing ANY UI. Exact tokens only — no
-improvised colors, fonts, gradients, or component patterns. Section 9
-(rejection clause) is binding.
+This file binds every pixel. Tokens only. A value not in this file is
+wrong by definition; if one is missing, stop and ask. Nothing ships
+without a real reference (§10) and a passed gate (`CLAUDE.md` §1–2).
 
-Provenance: remixed (not cloned) from
-[VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
-— base: the **Together AI** entry (technical blueprint voice, uppercase
-mono eyebrows, hairline-over-shadow elevation, one-primary-CTA rule);
-calibration: **NVIDIA** (accent as a precious resource, hierarchy from
-weight/size not color tinting) and **ClickHouse** (show the real
-computation — actual schedules, actual figures — never a marketing
-illustration of one).
+## 1. Direction
 
-## 1. Visual theme
+Solence's world is a Philippine electrical plan set: white drafting
+sheets, black linework, conductors colored by their insulation, copper
+showing where a wire is terminated, and a panel schedule that has to
+add up. The design borrows that world's materials instead of a
+software-dashboard look.
 
-**Technical instrument-panel precision.** Blueprint/schematic influences:
-dense, confident, engineered — closer to a flight deck, oscilloscope, or
-CAD toolchrome than a marketing SaaS dashboard. Calibrate against
-Linear's information density and restraint and against real CAD
-toolbars; never against AI-app landing pages. The canvas is the
-instrument; the chrome serves it.
+- **The one memorable thing:** real wiring. Conductor colors (line red,
+  neutral white, ground green, black) and copper ends are the visual
+  signature — in the hero, in selection, in the 3D. Everything around
+  them stays quiet, gray, and exact.
+- **Product as proof:** the landing hero is the real engine running on a
+  real floor plan from the corpus. No illustrations of the product.
+- **Exact, not decorated:** numbers align (tabular figures), units are
+  always shown, structure encodes information. No ornament.
 
-## 2. Color tokens
+What v1 did that v2 drops on purpose: navy + teal, mono-caps eyebrows
+above every heading, mono face for figures, `A · B · C` meta strings,
+numbered `01/02/03` markers on non-sequences, corner registration marks
+as decoration.
 
-### Dark mode (primary identity — navy instrument panel)
+## 2. Color
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `background` | `#0B1B33` | App background (brand navy) |
-| `surface` | `#13294B` | Panels, cards, tables |
-| `surface-raised` | `#1B3358` | Hovered rows, active tabs, popovers |
-| `border` | `#24406B` | Panel separation (borders, not shadows) |
-| `text-primary` | `#E6EDF7` | Body text |
-| `text-muted` | `#93A5C1` | Secondary text, labels, captions |
-| `primary` | `#14B8A6` | Actions, selection, focus (brand teal) |
-| `accent` | `#F59E0B` | Eyebrows/section markers, caution highlights (warm amber) |
+### Light — "sheet" (default for marketing, PDF, print)
+| Token | Hex | Use | Contrast on bg |
+|---|---|---|---|
+| `bg` | `#F4F5F2` | App/page background (cool drafting sheet) | — |
+| `surface` | `#FFFFFF` | Panels, cards, dialogs | — |
+| `raised` | `#EBEDE9` | Hover rows, active tab, inputs | — |
+| `rule` | `#D5D9D4` | Borders, dividers | — |
+| `text` | `#1B1F1D` | Body, headings | 15.2 |
+| `muted` | `#5C6562` | Secondary text | 5.5 |
+| `action` | `#17704A` | Primary action, focus, selection (ground green = correct, safe) | 5.6 |
+| `copper` | `#A9561F` | Highlight only: wire terminations, active load, the hero moment | 4.8 |
 
-### Light mode (drafting paper)
+### Dark — "conduit" (default for the editor and 3D)
+| Token | Hex | Contrast on bg |
+|---|---|---|
+| `bg` `#151918` · `surface` `#1D2220` · `raised` `#262C2A` · `rule` `#343B39` | | — |
+| `text` `#E7EAE7` | | 14.6 |
+| `muted` `#9CA5A1` | | 7.0 |
+| `action` `#45B97F` (text on it: `bg`) | | 7.2 |
+| `copper` `#E08A4F` | | 6.7 |
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `background` | `#F4F6FA` | App background (cool paper) |
-| `surface` | `#FFFFFF` | Panels, cards |
-| `surface-raised` | `#EDF1F7` | Hovered rows, active tabs |
-| `border` | `#D8DFEA` | Panel separation |
-| `text-primary` | `#14213A` | Body text |
-| `text-muted` | `#5A6B85` | Secondary text |
-| `primary` | `#0D9488` | Actions, selection, focus (teal, darkened for contrast) |
-| `accent` | `#B45309` | Eyebrows/section markers (amber, darkened for contrast) |
+### Signal (status, toasts, compliance)
+| Token | Light | Dark | Meaning |
+|---|---|---|---|
+| `danger` | `#B42A23` | `#F0645C` | PEC violation, failure, destructive |
+| `warning` | `#8A6100` | `#E8B341` | Advisory, near-limit |
+| `info` | `#2A5BA8` | `#77A3F0` | Background work, neutral notice |
+| `success` | = `action` | = `action` | Passed, saved |
 
-### Semantic (both modes — also the toast palette)
+All pairs verified ≥ 4.5:1 (WCAG AA) against `bg` and `surface`.
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `success` | `#22C55E` | Completed actions, passing checks |
-| `warning` | `#F59E0B` | Advisory findings, near-limit circuits |
-| `danger` | `#E15759` | PEC violations, failures (matches the canvas violation color) |
-| `info` | `#4E79A7` | Background-work notices (matches circuit blue #1) |
+### Conductor palette (the signature)
+| Token | Hex | Used for |
+|---|---|---|
+| `wire-line` | `#C8312A` | Line/hot conductor |
+| `wire-line-2` | `#1B1F1D` | Second line (black) |
+| `wire-neutral` | `#E9ECE8` + `rule` outline | Neutral |
+| `wire-ground` | `#2E8B57` | Equipment ground |
+| `copper-end` | `#B87333` | Exposed conductor at terminations |
 
-**Accent scarcity rule (NVIDIA calibration):** amber is a precious
-resource — eyebrow labels, spec-sheet indices, and caution highlights
-only. If amber appears more than a few times per screen, it stops
-meaning anything. Teal is the only action color; one solid-teal primary
-CTA per visible viewport.
+Circuit colors in the canvas, 3D, schedules and PDF stay in
+`client/lib/circuit-colors.ts` (categorical, colorblind-checked). The
+conductor palette above is UI/brand; circuit colors identify circuits.
+Never mix the two roles.
 
-Circuit color coding lives in `client/lib/circuit-colors.ts` (10-color
-categorical palette) — canvas, 3D, schedules, and PDF must all use it;
-never invent per-view circuit colors.
+**Scarcity:** one solid `action` button per view. `copper` appears at
+most 3 times per viewport. Signal colors only mean their signal.
 
-## 3. Typography
+## 3. Type
 
-Three faces, three jobs — the contrast IS the voice (Together AI
-calibration):
+One family, two widths: **Archivo** (variable, `wdth` 62–125, OFL;
+`@fontsource-variable/archivo/wdth.css`, self-hosted — never Google CDN).
+The wide cut echoes the lettering of a drawing's title block; the normal
+cut does everything else.
 
-| Role | Font | Rules |
-| --- | --- | --- |
-| Display / headlines | **Space Grotesk** | 600–700, `tracking-tight`, ALWAYS sentence case |
-| Body / UI | **IBM Plex Sans** | 400 body, 500 labels, 600 emphasis |
-| Technical voice | **JetBrains Mono** | Two registers: (a) figures — coordinates, VA/amp/lux values, schedules, status bar, circuit ids; (b) **mono-caps eyebrows** — 11px, weight 500, uppercase, `tracking-widest`, muted or amber — for section/panel labels |
+| Role | Width | Weight | Size / line-height | Tracking |
+|---|---|---|---|---|
+| display | 125 | 650 | 56/60 (mobile 36/40) | -0.02em |
+| h1 | 118 | 620 | 36/42 | -0.015em |
+| h2 | 112 | 600 | 26/32 | -0.01em |
+| h3 | 100 | 600 | 19/26 | 0 |
+| body | 100 | 400 | 16/26 | 0 |
+| ui | 100 | 450 | 14/20 | 0 |
+| small | 100 | 450 | 12.5/18 | 0.005em |
+| figure | 100 | 500, `tabular-nums` | inherits | 0 |
 
-Type scale (rem): `0.6875` eyebrow · `0.75` caption · `0.8125`
-dense-table/figures · `0.875` UI base · `1` body · `1.25` panel title ·
-`1.5` page title · `2`/`2.5` display. Negative tracking belongs to the
-display face only; the mono always tracks positive/wide.
+- Every engineering number uses `figure` (tabular figures) and shows its
+  unit with a thin space: `3.5 mm²`, `20 A`, `305 lx`. No monospace face.
+- Sentence case everywhere. No all-caps labels. No labels above headings
+  unless they carry information (e.g. the sheet a section corresponds to).
+- Line length ≤ 72ch for body.
 
-Hard rules: engineering figures are ALWAYS mono (a schedule with
-proportional digits reads as a toy). Never set a paragraph in mono.
-Never set a headline in all-caps — every uppercase moment belongs to
-the mono eyebrow face. Hierarchy comes from weight and size, not from
-color tinting.
+## 4. Space, shape, elevation
 
-## 4. Component styling rules
+- 4px base. Steps: 4, 8, 12, 16, 24, 32, 48, 72, 112.
+- Radius by hierarchy — never one radius for everything:
+  `0` canvas, schedules, sheet previews · `4` inputs, buttons, chips ·
+  `8` panels, cards, menus · `12` dialogs, toasts · `999` status dots and
+  wire swatches only.
+- Elevation: docked panels separate by `rule` + one surface step, no
+  shadow. Only floating layers shadow:
+  `--shadow-float: 0 1px 0 rgb(0 0 0/.04), 0 12px 32px -12px rgb(16 20 18/.28)`
+  (dark: `0 12px 32px -12px rgb(0 0 0/.6)`).
+- z-bands: canvas 0 · docked chrome 10 · sticky nav 40 · drawers/dialogs
+  50 · command palette 60 · toasts 100.
+- Focus: 2px `action` outline, 2px offset, on every interactive element.
 
-- **Radius scale:** `2px` chips/swatches · `6px` buttons/inputs ·
-  `10px` panels/cards/modals. Nothing else. `rounded-full` only for
-  status dots and circuit color swatches.
-- **Elevation:** panels sit flush — separated by `border` + one
-  background step (`surface` → `surface-raised`), NOT by shadows.
-  Shadows (`shadow-panel`: `0 4px 18px -6px rgb(0 0 0 / 0.25)`) are
-  reserved for things that float: modals, popovers, toasts, drag ghosts.
-- **Buttons:** solid `primary` for the one main action per view; flat/
-  bordered for everything else. No gradient buttons, no full-pill CTAs.
-- **Cards/panels:** flat surface + border + dense padding (12px), led
-  by a mono-caps eyebrow or data — never an icon-in-a-rounded-square.
-- **Marketing cards (brief §10.4):** asymmetric/bento grids sized by
-  content weight — never a uniform 3-up grid. Drafting-convention
-  chrome: corner registration marks (short L-shaped strokes at 2–4
-  corners), thin schematic borders, a mono technical index label
-  (`01`, `SPEC-A`, …) per card. Cards differentiate by content type —
-  a spec card carries a data readout, a problem card carries different
-  visual weight — never identical layouts with swapped icon+text.
-- **Tables (schedules):** dense rows, mono numerals, mono-caps header
-  labels, circuit color swatch as a small square (2px radius), not a pill.
-- **Content rule (ClickHouse calibration):** show the real computation.
-  Marketing and empty-state surfaces display actual engine output —
-  real schedules, real conductor sizes, real violation messages — never
-  abstract decoration standing in for them.
-- **Animated sky (brief §10.3):** the day/night environmental background
-  is layered **SVG + CSS keyframes only — never WebGL/canvas** (it is
-  chrome and must not compete with the CAD canvas for GPU). Day: sun
-  with soft pulsing glow, 2–3 parallax cloud layers at different speeds,
-  warm-horizon → cool-top gradient. Night: box-shadow star field with
-  randomized (non-synchronized) twinkle, crescent moon as a clean SVG
-  with a backlit-dial halo, infrequent randomized shooting stars with
-  brief trails. Scope: landing, about, auth, dashboard/project-list
-  shells only — **never behind the active editor**. Respect
-  `prefers-reduced-motion`; pause when the tab is hidden.
-- **Navbar motion (brief §10.8):** restrained and purposeful only —
-  scroll-reactive surface (transparent over hero → blurred solid after),
-  hide-on-scroll-down / reveal-on-scroll-up, a sliding active/hover link
-  indicator, a subtle instrument-glow logo hover (no bounce/spin),
-  hamburger-to-X morph with staggered drawer links, and a persistently
-  highlighted nav CTA. All gated behind `prefers-reduced-motion`.
+## 5. Components (each needs an approved reference, §10)
 
-## 5. Layout principles
+| Component | Required states / behavior |
+|---|---|
+| Button: primary, secondary (outlined), ghost, danger, icon | default, hover, active (translateY 1px), focus, loading (spinner replaces icon, width fixed), disabled |
+| Input, number input with unit, select, combobox | label above, hint, error text below in `danger`, unit suffix in `muted` |
+| Segmented control, tabs | sliding indicator (motion `base`) |
+| Table (schedules) | 36px rows, `figure` numerals right-aligned, sticky header, row hover `raised`, circuit swatch 8×8 radius 2 |
+| Toast (via `client/lib/notify.ts`) | success, warning, danger, info, promise (simulate/export/AI recognize with live progress from `/ws`), undo action, 5 s default, pause on hover, stack max 3 |
+| Dialog, confirm dialog | focus trap, Esc, scrim `rgb(10 12 11/.55)`, destructive confirm names the object ("Delete Demo House?") |
+| Drawer / sheet (mobile) | drag to dismiss |
+| Command palette (⌘K / Ctrl+K) | tools, rooms, loads, actions; fuzzy search; recent |
+| Tooltip, popover, context menu | 400 ms tooltip delay, keyboard reachable |
+| Empty state | one sentence saying what to do + the one action |
+| Skeleton | for schedules/compliance while simulating; shimmer off under reduced motion |
+| Progress / stepper | AI recognize stages, export |
+| Status bar | snap, tool, cursor coords, save state, live-check state |
+| Compliance item | severity dot, rule title, PEC reference, "Show on plan" |
 
-- 8px base grid; spacing steps 4/8/12/16/24/32.
-- The CAD canvas dominates: ≥65% of viewport width at xl. Chrome is
-  dense (`text-xs`/`text-sm`), panels 12px padding, no hero whitespace
-  inside the editor.
-- Left = input (tools, library, layers); right = properties (inspector);
-  bottom = results (status bar, compliance, schedules). Don't reshuffle.
-- Alignment stays consistent within a copy stack — never a centered
-  paragraph under a left-aligned headline.
+Never: icon in a rounded square as card decoration; identical card grids
+with swapped icons; gradient buttons; glass blur on docked chrome.
 
-## 6. Depth & elevation
+## 6. Motion
 
-z-index bands: canvas `0` · docked panels/status bar `10` · sticky
-navbar `40` · modals/drawers `50` · toasts `100`. One band per concern;
-never stack shadows to fake depth between docked siblings. Surface
-polarity (navy band ↔ paper band) may carry section separation on
-marketing pages; inside the editor, borders do all the work.
+Tokens: `--dur-instant 80ms` · `--dur-fast 140ms` · `--dur-base 220ms` ·
+`--dur-slow 360ms` · `--dur-reveal 900ms` (hero/showcase only).
+Easing: `--ease-out cubic-bezier(.16,1,.3,1)` (enter) ·
+`--ease-in cubic-bezier(.7,0,.84,0)` (exit) ·
+`--ease-inout cubic-bezier(.65,0,.35,1)` (move).
 
-## 7. Do's and don'ts
+Patterns (the only ones allowed):
+1. **Respond to the user** — press, open, expand, toggle: `fast`/`base`.
+2. **Show what changed** — after Re-check, routed wires draw in along
+   their path (`stroke-dashoffset`, `slow`, staggered 40 ms per circuit,
+   capped at 600 ms total); a new violation's row flashes `danger` tint
+   once. Schedule figures that change tick to the new value.
+3. **One orchestrated moment per page** — landing hero: the real plan
+   loads, wires route in, the schedule fills. Showcase: construction
+   reveal. Nothing else on the page animates on its own.
+- No fade-up-on-scroll for every section. No hover lift on cards.
+- Only `transform`, `opacity`, `stroke-dashoffset`, `clip-path`.
+- `prefers-reduced-motion: reduce` → final state immediately, same
+  layout. Pause when `document.hidden`.
+- Budgets (checked on real GPU): p95 frame ≤ 20 ms, no frame > 50 ms.
 
-**Banned on sight (the generic-AI catalogue — check every diff against this):**
+## 7. Layout
 
-- The purple-to-blue (or purple-to-indigo) gradient, anywhere.
-- Inter as the only font used everywhere.
-- The centered-hero-plus-three-icon-cards template.
-- Untouched shadcn/HeroUI default zinc/slate with no custom theming.
-- Reflexive glassmorphism applied to everything "for polish."
-- Icon-in-a-rounded-square as the default card decoration.
-- Generic rounded-2xl / shadow-lg on every surface with no variation.
-- Copy like "Elevate your workflow" / "Supercharge your…" — UI copy
-  included. Solence copy states capability plainly: what it computes,
-  to which code section, in how many steps.
+- Editor (dark default): left = tools + library, center = canvas
+  (≥ 65% width at ≥1280px), right = inspector, bottom = results
+  (compliance, schedules, lighting). Top bar 48px; status bar 28px.
+  Chrome text is `ui`/`small`; panels pad 12px.
+- Dashboard (projects): page title + one primary action, then projects as
+  rows with a live mini-plan thumbnail (rendered from the plan, not an
+  icon), last result (circuits, violations), updated time.
+- Marketing (light default): 12-col, 1200px max, 24px gutters; left
+  aligned copy; sections separated by space (112px) and full-bleed
+  surface changes, not by dividers everywhere.
+- Mobile < 768px: no canvas editing; project summary, compliance,
+  schedules, PDF export. Tabs scroll with an edge fade.
 
-**Do:** blueprint/schematic motifs (grid dots, thin rules, mono
-annotations, wire-color coding); left-aligned technical layouts; dense
-spec-sheet lists with mono indices instead of icon card grids;
-mono-caps eyebrows on panels and sections; amber sparingly, the way an
-instrument panel uses a caution lamp.
+## 8. 3D and rendering
 
-## 8. Responsive behavior
+- Real assets only (manifest-backed, licensed). PBR: Poly Haven /
+  ambientCG CC0 materials; HDRI lighting from Poly Haven.
+- Budgets: scene ≤ 500k triangles, ≤ 150 draw calls, textures ≤ 2048px
+  (KTX2/WebP), total GPU texture memory ≤ 256 MB, first meaningful 3D
+  frame ≤ 3 s on the server PC.
+- Color management: sRGB output, ACES or AgX tone mapping, exposure set
+  per HDRI and recorded in the scene config.
+- Wires in 3D use the conductor palette with a copper end cap at every
+  device; violations glow `danger` (emissive, not bloom on everything).
+- Camera: eased transitions (`slow`), no auto-spin except the showcase
+  reveal.
 
-Follows the four tiers in the brief (section 4.4): xl+ full multi-pane
-editor · lg palette+canvas with tabbed inspector · sm–lg tablet
-review-leaning stacked panels · <sm no canvas, status/summary/export
-only. The banned list applies at every tier — mobile is its own
-simplified layout, not a squeezed desktop.
+## 9. Voice
 
-## 9. Process (brief §10.9–10.11)
+Plain capability, the user's words: "Check against PEC", "Export permit
+PDF", "Sized 3 circuits · 1 warning" → rewrite as "3 circuits sized,
+1 warning". An action keeps its name through the flow (button "Export
+PDF" → toast "PDF exported"). Errors say what happened and what to do;
+they never apologize. Never: "Elevate", "Supercharge", "Seamless",
+"Unlock", "AI-powered" as an adjective on everything.
 
-Before generating or revamping any screen: read this file, write a
-short component spec per page section (exact tokens, spacing,
-interaction states) before building it, then build. After any
-meaningful UI change, run the installed `/design-review` workflow
-(`.claude/` — OneRedOak design-review + the avoid-ai-design audit)
-rather than an ad-hoc self-check; it verifies the rendered page against
-this file and the §7 banned list. New screens and empty/loading/error
-states go through the same pass — they are where generic defaults
-sneak back in.
+## 10. References — the template rule
 
-## 10. Rejection clause
+Every page, component and animation is built from a real reference
+recorded in `design-refs/registry.json` and captured by Playwright.
+The list below is the starting set; each must be captured and confirmed
+in Phase C-0 (URLs verified live at capture time — drop any that don't
+resolve, never substitute an invented one).
 
-Do not introduce colors, fonts, gradients, shadows, radii, or component
-patterns not listed in this file. If a needed token or pattern is
-missing, STOP and ask — do not invent it, do not fall back to library
-defaults. Any diff that adds a hex value not in section 2, a font not in
-section 3, or anything from the section 7 banned list is wrong by
-definition.
+| Area | Reference (real, shipping) | What to take from it |
+|---|---|---|
+| Editor chrome | Onshape web CAD; Figma UI3; Autodesk Forma | panel density, toolbar grouping, inspector rhythm |
+| AEC landing | Arcol (browser BIM); Autodesk Forma marketing | product-as-hero for building software |
+| Dashboard | Linear; Vercel dashboard | project rows, empty states, density |
+| Dialog / popover / menu | Radix Primitives docs demos | focus, scrim, motion |
+| Toast | Sonner demo site | stacking, promise, swipe |
+| Command palette | cmdk demo; Raycast | grouping, keyboard flow |
+| Drawer (mobile) | Vaul demo | drag dismiss |
+| Tables | Stripe Dashboard tables | numeric alignment, sticky header |
+| 3D presentation | Poly Haven asset viewer; three.js official examples | lighting, tone mapping, camera easing |
+| Permit sheet (PDF) | A real PH electrical plan set (title block, load schedule, riser) obtained by the team with permission | sheet layout and conventions |
+
+A reference informs structure and behavior; Solence's tokens replace its
+colors and type. Copying a reference's logo, imagery, or copy is never
+allowed.

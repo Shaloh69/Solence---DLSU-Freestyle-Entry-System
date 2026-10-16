@@ -1,0 +1,21 @@
+{
+  "$comment": "Steps run in order by scripts/gate.mjs. A step's 'required' may be flipped false->true by Claude Code as the step gets built; true->false needs the user (this file is hook-protected). 'fast' steps also run on every Stop.",
+  "steps": [
+    { "id": "hygiene",   "run": "node scripts/check-test-hygiene.mjs", "required": true,  "fast": true },
+    { "id": "server-typecheck", "run": "npm run typecheck --prefix server", "required": true, "fast": true },
+    { "id": "server-tests", "run": "npm test --prefix server", "required": true, "fast": true },
+    { "id": "client-typecheck", "run": "npx --prefix client tsc -p client --noEmit", "required": true, "fast": true },
+    { "id": "design-refs", "run": "node scripts/check-design-refs.mjs", "required": true, "fast": true },
+    { "id": "client-lint", "run": "npm run lint --prefix client -- --max-warnings=0", "required": false, "fast": false },
+    { "id": "client-build", "run": "npm run build --prefix client", "required": true, "fast": false },
+    { "id": "vision-tests", "run": "npm run test:vision", "required": false, "fast": false },
+    { "id": "assets", "run": "npm run check:assets", "required": false, "fast": false },
+    { "id": "tokens", "run": "npm run check:tokens", "required": false, "fast": false },
+    { "id": "e2e-real-plans", "run": "npm run test:e2e", "required": false, "fast": false },
+    { "id": "visual", "run": "npm run test:visual", "required": false, "fast": false },
+    { "id": "a11y", "run": "npm run test:a11y", "required": false, "fast": false },
+    { "id": "render", "run": "npm run check:render", "required": false, "fast": false },
+    { "id": "motion", "run": "npm run check:motion", "required": false, "fast": false },
+    { "id": "pdf", "run": "npm run check:pdf", "required": false, "fast": false }
+  ]
+}

@@ -1,3 +1,5 @@
+> RETIRED — written for DESIGN.md v1. Kept for history only; v2 specs replace it.
+
 # Landing page — component specs (brief §10.6, methodology §10.10)
 
 Authored from /DESIGN.md before building. Each section lists tokens,

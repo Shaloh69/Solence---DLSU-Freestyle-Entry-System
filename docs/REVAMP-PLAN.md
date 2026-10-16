@@ -1,0 +1,277 @@
+# Solence — Production revamp plan (pitching contest)
+
+Audit date: 2026-10-16 · Commit audited: `f197ddf` · Audited by running it,
+not just reading it: server tests, client typecheck + production build,
+live API + Next.js, Chromium screenshots at 1440px and 390px, and an
+end-to-end floor plan → simulate → PDF export.
+
+Hand this file to Claude Code at the start of every revamp session.
+`CLAUDE.md` and `DESIGN.md` still bind; where this plan changes them, it
+says so and the change is made to `DESIGN.md` **first** (its §10
+rejection clause otherwise blocks the work).
+
+---
+
+## 1. What exists today (verified)
+
+| Layer | State | Evidence |
+| --- | --- | --- |
+| Engine (`server/src/engine`) | **Strong.** Routing (A* on raster grid), PEC load calc + demand factors, breaker/conductor sizing, 9 compliance rules, lumen-method lighting + photometrics, vision import, PDF export | 95/95 vitest tests pass, `tsc` clean |
+| API (`server/src/routes`) | Full project CRUD, floorplan/panel/loads, auto-lighting, simulate, results, export, AI recognize; WebSocket push on `/ws` | Live run: 3 circuits sized, 1 warning, PDF 200 |
+| Client (`client/`) | Next 15 + HeroUI + R3F. Landing, About, Projects, Editor (2D plan / 3D wiring / Showcase w/ first-person walk), compliance + schedules + lighting tabs | Builds; 0 console errors on any page, both widths |
+| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — live only on the server PC |
+| Design system | `DESIGN.md` is unusually good (tokens, banned list, rejection clause), plus `.claude/` design-review agent + avoid-ai-design skill | Landing largely follows it |
+| Hosting | Doc covers Tailscale SSH + Cloudflare **Quick** Tunnel (random URL, one service, demo-only) | `docs/HOSTING.md` |
+
+**Pitch strength nobody is telling:** the landing roadmap lists *AI
+floor-plan recognition* as "V2 / planned" — it is already built and
+trained. Move it to Shipping and demo it.
+
+## 2. Findings — what blocks "production"
+
+Severity: 🔴 blocks a public launch · 🟠 visible to judges · 🟡 polish
+
+### Functionality / backend
+1. 🔴 **No auth, no ownership.** `projects` table has no `user_id`;
+   `GET /projects` returns everyone's projects; the WebSocket lets any
+   client subscribe to any project id. On a public URL every visitor sees
+   and can delete every project.
+2. 🔴 **Tier is client-controlled.** `x-solence-tier` request header sets
+   the tier, default fallback is `pro`. Anyone gets Pro by adding a header.
+3. 🔴 **In-memory storage** whenever Supabase isn't configured — a server
+   restart mid-pitch wipes all demo data.
+4. 🟠 **Permit PDF glyph bug.** PDFKit's built-in Helvetica can't draw
+   `²` or `⚠`: conductors print as "2 mm", violations print with "&".
+   Fix: embed IBM Plex Sans + JetBrains Mono TTFs (`doc.registerFont`).
+5. 🟠 **PDF isn't permit-shaped.** Letter page, no title block (project,
+   owner, EE name + PRC no., sheet no. E-1/E-2…, scale, revision, signature
+   box), diagram uses ~half the sheet. Real PH electrical plans are A3/A2
+   sheets with a title block — compare against an actual submitted plan set.
+6. 🟠 **No undo/redo** in `editor-store.ts` (916 lines, no history). A CAD
+   tool without Ctrl+Z is the first thing a judge will try.
+7. 🟠 **Destructive actions have no confirm.** Project delete is one click,
+   no modal, no undo toast.
+8. 🟠 **Empty editor is a blank grid.** No sample project, no first-run
+   guide. A pitch demo needs "Open sample house" → wired + checked in 1 click.
+9. 🟡 Fonts load from Google at build time (`next/font/google`); the build
+   fails offline. Self-host via `@fontsource` so the server PC builds
+   without internet. *(Verified: swapping to @fontsource builds clean.)*
+10. 🟡 `torch.load(..., weights_only=False)` — unpickles arbitrary code;
+    fine for own weights, but pin hashes of `best.pt`.
+11. 🟡 Rate limiter is per-process in-memory and keyed on `req.ip` —
+    behind Cloudflare Tunnel every request has the same IP unless
+    `app.set("trust proxy", ...)` + `CF-Connecting-IP` is used.
+
+### Design (from screenshots)
+12. 🟠 **Projects page is the weakest screen.** No page title, input +
+    card float over clouds, card uses an icon-in-a-rounded-square (a
+    DESIGN.md §7 banned item), HeroUI default grey input and pink danger
+    button. Rebuild as a proper dashboard shell.
+13. 🟠 **Editor chrome still reads as stock HeroUI:** grey filled inputs,
+    amber flat buttons for *Auto-light* / *AI Recognize* (amber is reserved
+    for caution/eyebrows — §2 scarcity rule), pink delete chips. Two solid
+    teal actions visible at once (active tool + Re-check).
+14. 🟡 Landing: scroll-reveal sections are invisible until scrolled (fine
+    for users, bad for link previews/SEO — render visible on the server,
+    animate from a JS-added class). Reduced-motion path verified correct.
+15. 🟡 Mobile editor is honest ("open on a larger screen") but the tabs
+    overflow off-screen with no affordance.
+16. 🟡 No toast/modal/dialog system defined in DESIGN.md beyond the toast
+    shadow token — this is the gap the revamp fills (§4).
+
+17. 🟠 **Vision tests pass without testing anything.** `test_unet_model`,
+    `test_yolo_model` and one API test `pytest.skip` when weights or
+    fixture images are missing — so a green run proves nothing. Caught by
+    the new hygiene check; allowlisted until item 0.3 replaces them with
+    real-corpus tests.
+
+> **Design is replaced, not improved.** DESIGN.md v1 ("instrument
+> panel": navy/teal, three typefaces, mono-caps eyebrows everywhere) is
+> retired. DESIGN.md v2 "Conductor" is the new system. Findings 12–16 are
+> resolved by rebuilding on v2, not by patching v1 screens.
+
+## 3. How work flows (applies to every phase)
+
+```
+pick ONE item from STATE.md
+  └─ UI?  → registry entry + real reference captured → spec → /dev/gallery build
+  └─ code → tests first on real corpus data
+        ↓
+node scripts/gate.mjs  ──fail──► fix the cause (never the check) ──┐
+        │ pass                                                     │
+        ▼                                                          │
+design-review subagent (UI items) ──fail───────────────────────────┘
+        │ pass + user sign-off
+        ▼
+STATE.md updated → commit (hook re-runs full gate) → /clear → next item
+```
+
+Enforcement that already exists and was tested (see §7):
+- **Stop hook** runs the fast gate whenever the tree is dirty; Claude Code
+  cannot finish a turn with red checks.
+- **Commit hook** runs the full gate; `git commit` is refused on failure;
+  `--no-verify` and force-push are blocked.
+- **Protected files**: visual baselines, render thresholds, corpus
+  expectations, the hygiene allowlist, and "required" flags in the gate
+  config can't be loosened without the user.
+- **Post-edit hook**: raw hex colors in client code, `fetch` outside the
+  API client, direct `sonner` imports, `.only/.skip`, `waitForTimeout`,
+  and suppression comments are bounced back immediately.
+- **check-design-refs**: no UI primitive without a registry entry, no
+  `in-review` without a captured reference + spec, no `approved` without
+  side-by-side report + design-review pass + user sign-off, and only one
+  item in review at a time.
+
+## 4. Phases
+
+### Phase 0 — Harness (before any feature; nothing else starts until done)
+Each item = one session, one gate pass. Flip its gate step to
+`required: true` the moment it exists.
+- 0.1 Verify gate + hooks on the server PC (Windows, Node in PATH).
+- 0.2 Self-host Archivo; remove `next/font/google`; husky pre-commit →
+  `node scripts/gate.mjs` so the gate also applies to human commits.
+- 0.3 **Real corpus.** `npm run assets:fetch` downloads every
+  `test-assets/manifest.json` entry to `test-assets/cache/`, pins exact
+  files + sha256. `check:assets`: Khronos `gltf-validator` (0 errors),
+  `gltf-transform inspect` budgets, real-world scale vs meta.json,
+  texture color space / size / seam checks, license present. Replace the
+  skipping vision tests with corpus-backed ones that fail when inputs are
+  missing.
+- 0.4 **Real-plan E2E** (Playwright): for each pinned CubiCasa plan →
+  upload → AI recognize → compare to ground-truth SVG (room count ±1,
+  wall IoU ≥ threshold in `test-assets/expectations/<id>.json`) → place
+  panel + loads → simulate → compliance → PDF (text extracted, asserts
+  `mm²`, title block fields) → 3D view renders. Console errors fail.
+- 0.5 **Reference capture**: `refs:capture` visits every registry URL with
+  Playwright, saves 1440 + 390 captures (and isolated component demo
+  states) under `design-refs/`, records capture date. Dead URL → removed,
+  never replaced by an invented one. `refs:report` builds the
+  side-by-side HTML (ours | reference) per item.
+- 0.6 `/dev/gallery` route + `check:tokens` (scan computed styles for any
+  color/font/radius/shadow/duration not in DESIGN.md), `test:a11y`
+  (axe-core, 0 serious/critical), `test:visual` (toHaveScreenshot vs
+  approved baselines).
+- 0.7 `check:render` (fixed camera paths over real-asset scenes:
+  luminance range, missing-texture detection, `renderer.info` budgets,
+  pixelmatch vs baseline) and `check:motion` (rAF frame-time p95 ≤ 20 ms,
+  max ≤ 50 ms, CLS 0, reduced-motion screenshot, hidden-tab pause).
+  Perf assertions run headed on the server PC GPU over Tailscale; CI
+  headless runs correctness only.
+- Exit criterion: every gate step in `gate.config.json` is `required`.
+
+### Phase A — Production foundation (unchanged scope, now gated)
+Auth (Supabase) + `owner_id` + owner-scoped REST and WS; tier from
+`profiles.tier`, header only in tests; refuse in-memory storage in
+production; Next rewrites `/api` + `/ws` (one hostname); PDF font
+embedding; `trust proxy` + `CF-Connecting-IP`.
+Gate adds: two-user isolation tests over REST **and** WS.
+
+### Phase B — Functionality
+Undo/redo (command history, ⌘Z/⇧⌘Z), sample projects built from real
+corpus plans + the real PH bungalow, first-run guide, permit-sheet PDF
+(A3, title block, load schedule, riser, notes, PEC-VERIFY), command
+palette, conflict-safe autosave, short-circuit analysis (roadmap V3,
+pulled forward). Each item's E2E runs on a real plan.
+
+### Phase C — Design rebuild on DESIGN.md v2 (replacement, not polish)
+Order, each item gated individually:
+1. Tokens → `client/styles/tokens.css` + Tailwind theme; remove HeroUI
+   theme overrides; dark "conduit" default in editor, light "sheet" on
+   marketing.
+2. Primitives in `client/components/ui/` in this order: button, input
+   (+unit), segmented/tabs, tooltip, dialog, confirm-dialog, toast via
+   `lib/notify.ts`, drawer, command palette, schedule table, empty state,
+   skeleton, progress/stepper, status bar, compliance item.
+3. Animations as their own items: wire draw-in, violation flash, figure
+   tick, hero sequence, showcase reveal (real PBR textures + HDRI).
+4. Screens, rebuilt from approved primitives only: projects dashboard →
+   editor shell → landing → about → auth → 404/error → mobile summary.
+5. Permit sheet as a `pdf-sheet` item against a real PH plan set.
+HeroUI is removed from a screen when that screen is rebuilt; the last
+screen removes the dependency.
+
+### Phase D — Self-hosting (§5)
+### Phase E — Pitch hardening
+Seeded demo accounts + reset script, offline fallback via Tailscale URL,
+Lighthouse ≥ 90 (perf/a11y/SEO), OG image, backup video recorded from
+Showcase, real cited market figures only.
+
+## 5. Self-hosting — server PC + Tailscale + Cloudflare
+
+**Domain reality:** Cloudflare doesn't give away domains — the Tunnel and
+the DNS zone are free, the domain is not. Two $0 routes that work with a
+Cloudflare named tunnel (domain must use Cloudflare nameservers):
+- **GitHub Student Developer Pack** (you're a student — likely qualifies):
+  free first-year domain via its registrar partners.
+- **DigitalPlat FreeDomain** (`*.dpdns.org`, `*.us.kg` etc.): free
+  subdomains that can be delegated to Cloudflare nameservers.
+Pick one before Phase D; the Student Pack domain looks more credible on a
+pitch slide.
+
+**Target topology**
+```
+Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (Windows service on server PC)
+                                                   └─► solence.<domain> → localhost:3000 (Next, proxies /api + /ws → :4000)
+Tailscale (private) ──► server PC: SSH, :8000 vision, Supabase/Postgres admin  (never public)
+```
+Steps for Claude Code to script (`ops/` folder, PowerShell):
+1. `cloudflared tunnel login` → `tunnel create solence` →
+   `config.yml` ingress for one hostname → `tunnel route dns` →
+   `cloudflared service install` (survives reboot).
+2. Run Next (`next start`) + API (`node dist/index.js`) + vision
+   (`uvicorn`) as services — PM2 (`pm2-windows-startup`) or NSSM.
+3. Cloudflare dashboard: SSL Full, Always HTTPS, a WAF rate rule on
+   `/api/projects/*/recognize`, Bot Fight Mode on.
+4. Optional: Cloudflare Access (free ≤50 users) in front of a
+   `admin.<domain>` path; Tailscale stays the admin path.
+5. `ops/deploy.ps1`: `git pull` → install → build → test → restart services
+   (run over Tailscale SSH). `ops/health.ps1`: curl health endpoints, alert.
+6. Power plan: disable sleep, auto-login-free service startup, UPS if
+   available; this one PC *is* production.
+Rewrite `docs/HOSTING.md` around this; keep Quick Tunnel as the
+emergency fallback.
+
+
+## 6. Context management for Claude Code
+
+- `CLAUDE.md` (< 200 lines) holds only rules that apply everywhere.
+  Area detail lives in `.claude/rules/*.md` with `paths:` frontmatter, so
+  it loads only when matching files are touched: `frontend.md`
+  (client), `three-d.md` (showcase/overlay/assets), `tests.md`,
+  `engine.md` (server).
+- `docs/STATE.md` is the handoff: current item, last gate line, next
+  items, decisions, open questions. The SessionStart hook injects it, so
+  every fresh session starts oriented without re-reading the repo.
+- One item per session → gate → commit → `/clear`. Long session →
+  `/compact` with an explicit "keep" list.
+- Logs and screenshots go to `.artifacts/`; Claude reads
+  `.artifacts/gate-summary.md` (the gate writes only failing tails into
+  it), not raw output.
+- Subagents: `Explore` for broad searches; `design-review` for grading
+  (fresh context, never the builder); a fresh subagent to triage a large
+  failure report and return the root cause in a paragraph.
+- Personal machine-specific notes (paths on the server PC, GPU name) go
+  in `CLAUDE.local.md` (gitignored).
+
+## 7. Verified in the audit sandbox (2026-10-16)
+
+| Check | Result |
+|---|---|
+| Fast gate | PASS — hygiene, server typecheck, 95 server tests, client typecheck, design-refs |
+| Full gate | FAIL on client-build only (Google Fonts unreachable) → item 0.2 |
+| Stop hook, clean tree / passing | allows stop |
+| Stop hook, injected type error | blocks with failing summary; second attempt doesn't loop |
+| Commit hook | refuses commit while full gate fails |
+| Blocked as intended | threshold edit, `--no-verify`, `--update-snapshots`, un-requiring a gate step, raw hex in `components/ui`, `.only` in a test, UI primitive without registry entry |
+| Allowed as intended | normal edits, making a gate step required |
+| Palette contrast | every text/action/signal pair ≥ 4.5:1 in both themes |
+
+## 8. Kickoff prompt for Claude Code
+
+> Read CLAUDE.md and docs/STATE.md. Work only on the item STATE.md names.
+> Before writing code, list the files you'll touch and the checks that
+> will prove it works. Finish only when `node scripts/gate.mjs` passes and
+> STATE.md is updated. Then stop and tell me to /clear.
+
+Run it on the server PC first (item 0.1), because the hooks and GPU
+checks must be proven on the machine that will host production.
