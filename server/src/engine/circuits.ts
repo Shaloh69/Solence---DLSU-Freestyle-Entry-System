@@ -15,14 +15,25 @@ import {
   InsulationType,
   Panel,
   Phase,
+  RoomType,
   RoutedPath,
 } from "./types.js";
-import { balancePhases, sizeBranchCircuit } from "./sizing/index.js";
+import {
+  balancePhases,
+  sizeBranchCircuit,
+  sizeEquipmentGroundingConductor,
+} from "./sizing/index.js";
+import {
+  REQUIRED_20A_ROOM_TYPES,
+  REQUIRED_CIRCUIT_MIN_A,
+} from "./sizing/pec-overcurrent.js";
 
 export interface CircuitBuilderOptions {
   /** Max connected VA per shared circuit. Default: 0.8 × 20 A × voltage. */
   maxVaPerCircuit?: number;
   insulation?: InsulationType;
+  /** Room types by id — receptacles in kitchens/baths/laundry get 20 A circuits. */
+  roomTypes?: Map<string, RoomType>;
 }
 
 const DEDICATED_TYPES: ElectricalLoad["type"][] = [
@@ -39,6 +50,7 @@ export function buildCircuits(
   options: CircuitBuilderOptions = {}
 ): Circuit[] {
   const insulation = options.insulation ?? "THHN";
+  const roomTypeById = options.roomTypes ?? new Map<string, RoomType>();
   const routeByLoad = new Map(routes.map((route) => [route.loadId, route]));
 
   // 1. Group loads.
@@ -83,11 +95,18 @@ export function buildCircuits(
       .filter((load) => load.continuous)
       .reduce((sum, load) => sum + load.va, 0);
     const voltage = groupLoads[0].voltage;
+    const individual = groupLoads.length === 1 && DEDICATED_TYPES.includes(groupLoads[0].type);
+    const needs20A = groupLoads.some(
+      (load) =>
+        load.type === "outlet" &&
+        (REQUIRED_20A_ROOM_TYPES as readonly string[]).includes(roomTypeById.get(load.roomId ?? "") ?? "")
+    );
     const { breakerAmps, conductor } = sizeBranchCircuit(
       connectedVa,
       continuousVa,
       voltage,
-      insulation
+      insulation,
+      { individual, minBreakerAmps: needs20A ? REQUIRED_CIRCUIT_MIN_A : undefined }
     );
     const lengthM = Math.max(
       0,
@@ -104,6 +123,7 @@ export function buildCircuits(
       phase: "A" as Phase, // balanced below
       breakerAmps,
       conductor,
+      groundingConductor: sizeEquipmentGroundingConductor(breakerAmps),
       lengthM,
       voltageDropPercent: 0, // filled in by simulate() once threePhase is known
     };

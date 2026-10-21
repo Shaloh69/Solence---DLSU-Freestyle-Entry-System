@@ -5,20 +5,20 @@ Keep under 60 lines. Update at every gate result.
 
 ## Now
 - Phase: **0 / W — Harness + wiring realism** (docs/REVAMP-PLAN.md §4, docs/WIRING-AUDIT.md)
-- Item: `W2 PEC sizing: small-conductor limits, termination temperature, EGC, PH 230 V`
+- Item: `W3 wiring topology: device-to-device circuit runs, L/N/G conductor set, wire BOM`
 - Status: in-progress
-- Last gate: full PASSED 2026-10-21 (after W1b)
+- Last gate: full PASSED 2026-10-21 (after W2)
 
 ## Next (in order, one at a time)
-1. W2 PEC sizing: small-conductor limits (2.40.1.4(D)), 60 °C termination column ≤100 A, EGC per Table 2.50.6.13, PH 230 V system as default
-2. W3 Wiring topology: device-to-device circuit runs (home run + chain), L/N/G conductor set, wire bill of materials
-3. W4 Layer views: presets (electrical/power/lighting/furniture/architectural/all) + lock; E2E on a real plan, 2D DOM + 3D pixel diff
-4. 0.3 `assets:fetch` + `check:assets` (Khronos sample assets reachable via GitHub; Poly Haven/ambientCG on the server PC)
-5. 0.4 Playwright project wired into the gate (W4 seeds it)
-6. 0.5 `refs:capture` + side-by-side report
-7. 0.6 `check:tokens`, `test:a11y`, `check:motion`, `check:render`, `check:pdf`
+1. W3 Wiring topology: device-to-device circuit runs (home run + chain), L/N/G conductor set, wire bill of materials
+2. W4 Layer views: presets (electrical/power/lighting/furniture/architectural/all) + lock; E2E on a real plan, 2D DOM + 3D pixel diff
+3. 0.3 `assets:fetch` + `check:assets` (Khronos sample assets reachable via GitHub; Poly Haven/ambientCG on the server PC)
+4. 0.4 Playwright project wired into the gate (W4 seeds it)
+5. 0.5 `refs:capture` + side-by-side report
+6. 0.6 `check:tokens`, `test:a11y`, `check:motion`, `check:render`, `check:pdf`
 
 ## Passed
+- W2 (2026-10-21) PEC sizing: 60 °C termination column for circuits ≤100 A (1.10.1.14(C)), small-conductor caps 2.0/3.5/5.5 mm² → 15/20/30 A (2.40.1.4(D)), multi-outlet ratings 15/20/30/40/50 A only (2.10.2.1), EGC per Table 2.50.6.13 on every circuit, 20 A circuits for kitchen/dining/laundry/bath receptacles + rule (2.10.1.11(C)), receptacle-spacing rule (2.10.3.3(A)(1), conservative), ampacity rule recomputes usable rating from the table. New system 1P2W-230 (PH residential) = default for new panels; auto-lighting uses panel branch voltage. Converter now closes/opens room polygons (removed slits). Before: 20 A breaker got 2.0 mm², 30 A got 3.5 mm². tests/pec-alignment.test.ts 62 checks; 306 total.
 - W1b (2026-10-21) Router rewritten: weighted Dijkstra over (cell, heading), walls crossable as counted penetrations (never lengthwise), bend cost, footprint mask grown 0.2 m, one search from the panel for all devices, room-side snapping. Real plans: 0 unreachable loads (was 11 on resplan-8), ≤1 penetration/route, wire total −30–40%, voltage-drop errors gone. tests/routing-real-plans.test.ts (60 checks) fails 23× on the old router. `fallback` now means "leaves the building" (contract docs updated). Removed `pathfinding`.
 - W1 (2026-10-21) 12 ResPlan test-split plans (1/2/3/4+ BR) converted + committed with attribution; wall IoU 0.95–0.96, 100% openings matched. tests/real-plans.test.ts: 85 checks (contract, full simulate, one circuit per load, protection, dedicated appliances, schedule totals, PDF). Found: unreachable rooms (resplan-8), through-wall stubs, 1.5 km star wiring → W1b/W3.
 - 0.2 (2026-10-21) self-hosted current fonts via next/font/local + @fontsource (no visual change; Archivo waits for Phase C); `.githooks/pre-commit` runs the full gate; `npm install` sets core.hooksPath. Gate: full PASSED.

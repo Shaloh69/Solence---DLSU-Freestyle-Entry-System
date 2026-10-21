@@ -78,8 +78,12 @@ function inset(p: Point, room: Room, distance: number): Point {
   return pointInPolygon(q, room.boundary) ? q : c;
 }
 
-/** Evenly spaced points along a room's perimeter. */
-function perimeterPoints(room: Room, count: number): Point[] {
+/**
+ * Evenly spaced points along a room's perimeter, each pushed `depth`
+ * meters off the wall along the edge's inward normal (works for L-shaped
+ * and other non-convex rooms, where "toward the centroid" can leave the room).
+ */
+function perimeterPoints(room: Room, count: number, depth = 0.05): Point[] {
   const pts = room.boundary;
   const segs = pts.map((a, i) => {
     const b = pts[(i + 1) % pts.length];
@@ -93,10 +97,21 @@ function perimeterPoints(room: Room, count: number): Point[] {
     let target = ((k + 0.5) / count) * total;
 
     for (const s of segs) {
-      if (target <= s.len) {
-        const t = s.len ? target / s.len : 0;
+      if (target <= s.len && s.len > 0) {
+        const t = target / s.len;
+        const p = { x: s.a.x + (s.b.x - s.a.x) * t, y: s.a.y + (s.b.y - s.a.y) * t };
+        const nx = -(s.b.y - s.a.y) / s.len;
+        const ny = (s.b.x - s.a.x) / s.len;
+        const left = { x: p.x + nx * depth, y: p.y + ny * depth };
+        const right = { x: p.x - nx * depth, y: p.y - ny * depth };
 
-        out.push({ x: s.a.x + (s.b.x - s.a.x) * t, y: s.a.y + (s.b.y - s.a.y) * t });
+        out.push(
+          pointInPolygon(left, room.boundary)
+            ? left
+            : pointInPolygon(right, room.boundary)
+              ? right
+              : inset(p, room, depth)
+        );
         break;
       }
       target -= s.len;
@@ -122,7 +137,8 @@ export interface FitOut {
 /**
  * Typical PH house fit-out:
  *  - lighting per room via the engine's lumen-method auto-placement
- *  - general receptacles every 3.6 m of wall (PEC 2.10.3.3(a)(1): no
+ *  - general receptacles flush on the wall face, every 3.6 m of wall
+ *    (PEC 2.10.3.3(a)(1): no
  *    point more than 1.8 m from an outlet), 180 VA each
  *  - GFCI receptacles in bathrooms, kitchen counters, balconies
  *  - refrigerator (kitchen), split-type A/C per bedroom, water heater
@@ -171,14 +187,14 @@ export function fitOut(
     const wet = ["bathroom", "outdoor"].includes(room.type);
     const outletCount = wet ? 1 : Math.max(1, Math.ceil(perimeter(room) / 3.6));
 
-    perimeterPoints(room, outletCount).forEach((p, i) =>
+    perimeterPoints(room, outletCount).forEach((position, i) =>
       add({
         id: `o-${room.id}-${i + 1}`,
         name: `Outlet ${room.name} ${i + 1}`,
         type: "outlet",
         va: 180,
         continuous: false,
-        position: inset(p, room, 0.25),
+        position,
         roomId: room.id,
         gfci: wet || room.type === "kitchen",
       })

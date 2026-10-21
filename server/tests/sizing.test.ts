@@ -43,22 +43,27 @@ describe("sizeBreaker", () => {
 });
 
 describe("sizeConductor", () => {
-  it("selects the smallest conductor meeting the ampacity", () => {
+  // W2: before PEC alignment this test asserted "20 A fits on 14 AWG"
+  // (THHN 90 °C column). PEC 2017 2.40.1.4(D) caps 2.0 mm² at 15 A and
+  // 1.10.1.14(C) limits ≤100 A circuits to the 60 °C column.
+  it("selects the smallest conductor the breaker may protect", () => {
     const spec = sizeConductor(20, "THHN");
 
-    // 14 AWG THHN placeholder ampacity is 25 A, so 20 A fits on 14 AWG.
-    expect(spec.awg).toBe("14");
+    expect(spec.awg).toBe("12");
+    expect(spec.mm2).toBe(3.5);
+    expect(spec.terminationTempC).toBe(60);
     expect(spec.ampacity).toBeGreaterThanOrEqual(20);
   });
 
-  it("moves up sizes as amps increase", () => {
+  it("moves up sizes as amps increase, judged at the termination rating", () => {
     const spec = sizeConductor(60, "THW");
 
     expect(spec.ampacity).toBeGreaterThanOrEqual(60);
     const index = PEC_TABLE_3_10_1.findIndex((row) => row.awg === spec.awg);
     const smaller = PEC_TABLE_3_10_1[index - 1];
 
-    expect(smaller.ampacity.THW).toBeLessThan(60);
+    // 60 A ≤ 100 A → 60 °C terminals → usable = min(THW, TW column).
+    expect(Math.min(smaller.ampacity.THW, smaller.ampacity.TW)).toBeLessThan(60);
   });
 
   it("throws when no single conductor is large enough", () => {
@@ -68,10 +73,15 @@ describe("sizeConductor", () => {
 
 describe("sizeBranchCircuit", () => {
   it("sizes conductor to protect against the breaker, not just the load", () => {
-    const { breakerAmps, conductor } = sizeBranchCircuit(4300, 4300, 230);
+    // 4300 VA fully continuous @230 V -> 23.4 A required. As an individual
+    // circuit that is a 25 A breaker, which needs 5.5 mm² (3.5 mm² is
+    // capped at 20 A by 2.40.1.4(D)).
+    const { breakerAmps, conductor } = sizeBranchCircuit(4300, 4300, 230, "THHN", {
+      individual: true,
+    });
 
-    // 4300 VA fully continuous @230 V -> 23.4 A required -> 25 A breaker
     expect(breakerAmps).toBe(25);
+    expect(conductor.mm2).toBe(5.5);
     expect(conductor.ampacity).toBeGreaterThanOrEqual(breakerAmps);
   });
 });

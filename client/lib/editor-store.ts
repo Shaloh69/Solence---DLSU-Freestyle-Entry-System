@@ -685,7 +685,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           id: state.panel?.id ?? "panel-1",
           name: state.panel?.name ?? "LP-1",
           position,
-          system: system ?? state.panel?.system ?? "1P3W-120/240",
+          system: system ?? state.panel?.system ?? "1P2W-230",
           mainBreakerAmps: state.panel?.mainBreakerAmps ?? 0,
         },
         selection: { kind: "panel" },
@@ -696,7 +696,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     placeLoad(item, position) {
       const { panel } = get();
-      const system = panel?.system ?? "1P3W-120/240";
+      const system = panel?.system ?? "1P2W-230";
       const snapped = snapLoadPosition(position);
       const room = roomAt(snapped.point);
       const id = `l-${crypto.randomUUID().slice(0, 8)}`;
@@ -756,7 +756,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             name: item.label,
             type: "lighting",
             va: item.emitsLight.va,
-            voltage: get().panel?.system === "3P4W-230/400" ? 230 : 120,
+            voltage: ["1P2W-230", "3P4W-230/400"].includes(get().panel?.system ?? "1P2W-230") ? 230 : 120,
             continuous: true,
             position: snapped.point,
             roomId: roomAt(snapped.point)?.id,

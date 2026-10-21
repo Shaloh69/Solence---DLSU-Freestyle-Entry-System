@@ -83,7 +83,12 @@ export function simulate(input: SimulationInput): SimulationResult {
     panelRoom?.boundary
   );
 
-  const circuits = buildCircuits(loads, panel, routes, options?.circuits);
+  const circuits = buildCircuits(loads, panel, routes, {
+    ...options?.circuits,
+    roomTypes:
+      options?.circuits?.roomTypes ??
+      new Map(floorPlan.rooms.map((room) => [room.id, room.type])),
+  });
 
   // Tag each route with its circuit for color-coded rendering.
   const circuitByLoad = new Map<string, string>();
@@ -105,7 +110,7 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   const violations = [
     ...runComplianceChecks(circuits, loads, { threePhase }),
-    ...runProjectChecks(floorPlan.rooms, loads),
+    ...runProjectChecks(floorPlan.rooms, loads, circuits),
   ];
 
   // Size the main breaker from feeder demand if not set manually.

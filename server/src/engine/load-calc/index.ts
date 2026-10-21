@@ -183,11 +183,25 @@ export function buildPanelSchedule(
 /** Line-to-line (or line-to-neutral for 2-wire) voltage of a panel system. */
 export function panelVoltage(panel: Panel): number {
   switch (panel.system) {
+    case "1P2W-230":
+      return 230;
     case "1P2W-120":
       return 120;
     case "1P3W-120/240":
       return 240;
     case "3P4W-230/400":
       return 400;
+  }
+}
+
+/** Voltage of an ordinary (lighting/receptacle) branch circuit on a panel system. */
+export function branchVoltageFor(system: Panel["system"]): number {
+  switch (system) {
+    case "1P2W-230":
+    case "3P4W-230/400":
+      return 230;
+    case "1P2W-120":
+    case "1P3W-120/240":
+      return 120;
   }
 }

@@ -98,6 +98,7 @@ export interface FloorPlan {
 // ---------- Electrical system ----------
 
 export type VoltageSystem =
+  | "1P2W-230" // single-phase two-wire, 230 V (Philippine residential)
   | "1P2W-120" // single-phase two-wire, 120 V
   | "1P3W-120/240" // single-phase three-wire, 120/240 V
   | "3P4W-230/400"; // three-phase four-wire, 230/400 V
@@ -157,6 +158,12 @@ export interface ConductorSpec {
   /** Rated ampacity for the chosen insulation, from PEC Table 3.10.1. */
   ampacity: number;
   insulation: InsulationType;
+  /**
+   * Terminal temperature rating the ampacity is limited to (PEC 2017
+   * 1.10.1.14(C)): 60 °C for circuits ≤100 A, 75 °C above. `ampacity`
+   * is the usable value at this rating, not the insulation rating.
+   */
+  terminationTempC: 60 | 75;
 }
 
 export interface Circuit {
@@ -173,6 +180,8 @@ export interface Circuit {
   phase: Phase;
   breakerAmps: number;
   conductor: ConductorSpec;
+  /** Equipment grounding conductor per PEC Table 2.50.6.13 (PEC-VERIFY). */
+  groundingConductor: { awg: string; mm2: number };
   /** One-way routed wire length from panel to farthest load, meters. */
   lengthM: number;
   /**

@@ -219,17 +219,19 @@ describe("MVP demo flow", () => {
       .send(panel)
       .expect(200);
 
-    // A distant, heavily loaded continuous load on a thin wire run:
-    // high VA at 120 V over a long wall-following run trips voltage drop.
+    // A distant, heavily loaded load on the thinnest LEGAL wire: 12 A on a
+    // 15 A / 2.0 mm² circuit at 120 V over the long run trips voltage drop.
+    // (Before W2 a 2000 VA continuous load got 2.0 mm² on a 25 A breaker —
+    // itself a small-conductor violation; PEC sizing now gives it 5.5 mm².)
     await request(app)
       .post(`/api/projects/${project.id}/loads`)
       .send({
         id: "heater",
         name: "Water heater",
         type: "equipment",
-        va: 2000,
+        va: 1440,
         voltage: 120,
-        continuous: true,
+        continuous: false,
         position: { x: 9.5, y: 7.5 },
         roomId: "kitchen",
       })

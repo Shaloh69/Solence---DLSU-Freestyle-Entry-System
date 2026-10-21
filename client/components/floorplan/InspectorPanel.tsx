@@ -31,6 +31,7 @@ const ROOM_TYPES: RoomType[] = [
 ];
 
 const SYSTEMS: { key: VoltageSystem; label: string }[] = [
+  { key: "1P2W-230", label: "Single-phase 2-wire (230 V, PH residential)" },
   { key: "1P2W-120", label: "Single-phase 2-wire (120 V)" },
   { key: "1P3W-120/240", label: "Single-phase 3-wire (120/240 V)" },
   { key: "3P4W-230/400", label: "Three-phase 4-wire (230/400 V)" },
@@ -187,7 +188,7 @@ export default function InspectorPanel() {
             }
             isDisabled={!panel}
             label="Panel system"
-            selectedKeys={panel ? [panel.system] : ["1P3W-120/240"]}
+            selectedKeys={panel ? [panel.system] : ["1P2W-230"]}
             size="sm"
             onSelectionChange={(keys) => {
               const system = [...keys][0] as VoltageSystem;

@@ -224,7 +224,13 @@ def convert(plan: dict) -> dict | None:
     rooms, counters = [], {}
     for key, rtype in ROOM_TYPES.items():
         for poly in parts(plan.get(key)):
-            poly = tf(poly).simplify(0.02)
+            # Close then open (mitred, so corners stay square): removes the
+            # 1-5 cm slits and spikes simplification leaves in room outlines.
+            poly = tf(poly).buffer(0.06, join_style=2).buffer(-0.12, join_style=2).buffer(0.06, join_style=2)
+            poly = max(parts(poly), key=lambda g: g.area, default=None)
+            if poly is None:
+                continue
+            poly = poly.simplify(0.02)
             if poly.area < 1.0 or not poly.is_valid:
                 continue
             counters[key] = counters.get(key, 0) + 1

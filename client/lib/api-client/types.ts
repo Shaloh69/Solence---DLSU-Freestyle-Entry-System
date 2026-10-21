@@ -78,7 +78,11 @@ export interface FloorPlan {
   backgroundImage?: string;
 }
 
-export type VoltageSystem = "1P2W-120" | "1P3W-120/240" | "3P4W-230/400";
+export type VoltageSystem =
+  | "1P2W-230" // single-phase two-wire, 230 V (Philippine residential)
+  | "1P2W-120"
+  | "1P3W-120/240"
+  | "3P4W-230/400";
 export type Phase = "A" | "B" | "C";
 
 export type LoadType =
@@ -116,6 +120,12 @@ export interface ConductorSpec {
   mm2: number;
   ampacity: number;
   insulation: InsulationType;
+  /**
+   * Terminal temperature rating the ampacity is limited to (PEC 2017
+   * 1.10.1.14(C)): 60 °C for circuits ≤100 A, 75 °C above. `ampacity`
+   * is the usable value at this rating, not the insulation rating.
+   */
+  terminationTempC: 60 | 75;
 }
 
 export interface Circuit {
@@ -128,6 +138,8 @@ export interface Circuit {
   phase: Phase;
   breakerAmps: number;
   conductor: ConductorSpec;
+  /** Equipment grounding conductor per PEC Table 2.50.6.13 (PEC-VERIFY). */
+  groundingConductor: { awg: string; mm2: number };
   lengthM: number;
   /** Branch voltage drop as a fraction (0.02 = 2%) — every circuit, not just violations. */
   voltageDropPercent: number;

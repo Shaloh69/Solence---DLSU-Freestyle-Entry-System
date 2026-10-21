@@ -14,7 +14,8 @@ import {
   simulateOptionsSchema,
   updateProjectSchema,
 } from "../schemas.js";
-import { autoPlaceLighting } from "../engine/lighting/index.js";
+import { autoPlaceLighting, DEFAULT_FIXTURE } from "../engine/lighting/index.js";
+import { branchVoltageFor } from "../engine/load-calc/index.js";
 import { broadcastToProject } from "../realtime/index.js";
 import { simulate } from "../engine/simulate.js";
 import { generatePermitPdf } from "../engine/pdf/permit-pdf.js";
@@ -227,10 +228,13 @@ export function projectsRouter(repo: ProjectRepository): Router {
         );
       }
 
+      // Fixtures run at the panel's branch voltage (230 V in the PH),
+      // never the library default.
+      const branchVoltage = project.panel ? branchVoltageFor(project.panel.system) : 230;
       const results = rooms.map((room) =>
         autoPlaceLighting(room, {
           targetLux: options.targetLux,
-          fixture: options.fixture,
+          fixture: { ...DEFAULT_FIXTURE, ...options.fixture, voltage: options.fixture?.voltage ?? branchVoltage },
           // §9.1a: photometrics change with mounting height — feed the
           // plan's real ceiling height into the solve, not a constant.
           ceilingHeight: project.floorPlan?.ceilingHeight,

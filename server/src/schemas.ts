@@ -74,7 +74,7 @@ export const panelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   position: pointSchema,
-  system: z.enum(["1P2W-120", "1P3W-120/240", "3P4W-230/400"]),
+  system: z.enum(["1P2W-230", "1P2W-120", "1P3W-120/240", "3P4W-230/400"]),
   mainBreakerAmps: z.number().nonnegative(),
 });
 

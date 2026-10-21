@@ -127,6 +127,8 @@ export function defaultVoltage(
   item: LibraryItem,
 ): number {
   switch (system) {
+    case "1P2W-230":
+      return 230;
     case "1P2W-120":
       return 120;
     case "1P3W-120/240":
