@@ -1,29 +1,86 @@
 # Claude Code prompts for the Solence revamp
 
-How to use: open Claude Code in the repo root, paste **Session start**,
-then the prompt for the item `docs/STATE.md` names. One item per session.
+How to use: the very first time, paste **Kickoff (M0)** — it merges the
+revamp into your repo. After that, every session: open Claude Code in
+the repo root, paste **Session start**, then the prompt for the item
+`docs/STATE.md` names. One item per session.
 When the gate passes and Claude has committed, run `/clear` and start the
 next item. Everything Claude must obey is already in `CLAUDE.md`,
 `.claude/rules/`, `DESIGN.md` and enforced by hooks — the prompts only
 point at the work.
 
-Order (also in `docs/STATE.md`):
-0.1 → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → W5 → W6 → W8 → W7 → W9 →
-Phase A → W10 → W11 → Phase C (C1…C5) → W12 → Phase B → Phase D → Phase E
+Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
+M0 → 0.1 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → W5 → W6 → W8 → W7 →
+W9 → A → W10 → W11 → C1…C4 → W12 → B → D → E
 
 ---
+
+## Kickoff (M0) — first session only
+
+Put `solence-revamp.bundle` somewhere on the laptop first (e.g.
+`C:\Users\<you>\Downloads\solence-revamp.bundle`), open a terminal in
+your repo folder, run `claude`, then paste — with the real bundle path:
+
+```
+Kickoff, item M0. I have the Solence revamp as a git bundle at
+C:\Users\<you>\Downloads\solence-revamp.bundle — 7 commits built on top
+of commit f197ddf of this repo. Treat it as the NEW PHASES of this
+project; the original build (brief phases 1–4) is the baseline, already
+done. Do these steps in order and stop at every STOP to show me what you
+found before continuing:
+
+1. `git status` must be clean — if not, list what's uncommitted and STOP.
+   `git fetch origin`, then `git log --oneline f197ddf..origin/main` and
+   tell me whether main moved since f197ddf.
+2. `git checkout -b revamp origin/main`, then
+   `git pull <bundle path> HEAD`. If main moved, this is a real merge:
+   keep my newer feature work AND the bundle's rules, docs, tests and
+   engine changes; never resolve a conflict by deleting a test, loosening
+   a check or dropping a rule. STOP: show the conflict list and how you
+   resolved each one.
+3. Now read CLAUDE.md (the merged one — its rules apply from here on),
+   then the repo's latest documentation as it stands after the merge:
+   README.md, HOW-TO.md, docs/HOSTING.md, docs/MACHINES.md, every folder
+   README (client/, server/, server/src/engine/**, solence-vision/**),
+   server/docs/api.md, solence-vision/HOW-TO.md, DESIGN.md,
+   docs/REVAMP-PLAN.md, docs/WIRING-AUDIT.md, docs/ROADMAP.json,
+   docs/STATE.md. Use a subagent for the folder READMEs and take its
+   summary, not the raw files.
+4. Write docs/RECONCILE.md with four lists:
+   (a) what the old docs describe that the revamp keeps;
+   (b) what the revamp changed (DESIGN.md v1 → v2, the router model,
+       230 V default, PEC sizing, fonts, hosting on FormLabs3B …);
+   (c) statements in the old docs that are now false — fix each one in
+       place in that doc (for example routing described as wall-band A*,
+       120/240 V defaults, Quick-Tunnel-only hosting, "server PC");
+   (d) features, plans or roadmap items in the old docs or code that
+       docs/ROADMAP.json doesn't cover — add each as a new ROADMAP item
+       with a phase, a weight (S=1, M=2, L=3) and status todo; mark items
+       the old code already delivers as done only if a test proves it.
+   Don't renumber existing items. STOP: show me the ROADMAP.json diff
+   and the new progress block.
+5. `npm install` (root — sets the git hooks path), `npm run install:all`,
+   `npm run gate`. It must say GATE PASSED; if not, fix the cause, never
+   the check.
+6. Mark M0 done (ROADMAP.json + a `- M0 (` line under STATE.md ## Passed),
+   set 0.1 in-progress and name it on STATE.md's `- Item:` line, commit
+   (the pre-commit gate runs), then `git push -u origin revamp`.
+7. Show the progress block (`npm run progress`) and tell me to /clear and
+   paste the 0.1 prompt from docs/PROMPTS.md.
+```
 
 ## Session start (paste first, every session)
 
 ```
-Read CLAUDE.md and docs/STATE.md. Work only on the item STATE.md names as
-"Now". Before writing code: (1) list the files you will touch, (2) list
+Show the progress block from the SessionStart hook first. Read CLAUDE.md
+and docs/STATE.md. Work only on the item STATE.md names as "Now". Before writing code: (1) list the files you will touch, (2) list
 the tests/checks that will prove it works, including which ones must
 fail on the current code first, (3) name the real-plan or real-asset
 data they use. Wait for my OK on that list, then build. You are done
 only when `node scripts/gate.mjs` passes, STATE.md is updated (item moved
 to Passed with its gate line), and the commit went through the
-pre-commit gate. Then stop and tell me to /clear.
+pre-commit gate, ROADMAP.json marks it done, and you've shown the new
+progress block. Then stop and tell me to /clear.
 ```
 
 ## Utility prompts
@@ -68,14 +125,34 @@ Open questions). Keep it under 60 lines. Commit. Then tell me to /clear.
 
 ## Item prompts
 
-### 0.1 — Prove the harness on the server PC
+### 0.1 — Prove the harness on the laptop
 ```
-Item 0.1. On this Windows machine: run `npm install` at the root (sets
-core.hooksPath), `npm run install:all`, `npm run gate`. Then prove each
-hook fires in this Claude Code session: try (a) editing
-server/tests/thresholds.json, (b) `git commit --no-verify`, (c) adding
-`it.only` to a test — all three must be blocked; revert. Record results
-in STATE.md and commit.
+Item 0.1. Prove every hook fires in this Claude Code session on this
+laptop: try (a) editing server/tests/thresholds.json, (b)
+`git commit --no-verify`, (c) adding `it.only` to a server test, (d)
+`npx playwright test --update-snapshots` — all four must be blocked;
+revert anything that slipped through and tell me which hook failed.
+Run `npm run gate`. Record results in STATE.md, mark 0.1 done, set 0.1b
+in-progress, commit, show progress.
+```
+
+### 0.1b — FormLabs3B on the tailnet
+Do the manual part of docs/MACHINES.md first (§1 join the tailnet, §2
+keep it connected, §4 OpenSSH as Administrator on FormLabs3B — these need
+you at that PC once). Then:
+```
+Item 0.1b. FormLabs3B is on the tailnet as `formlabs3b` with OpenSSH.
+Over `ssh <my-windows-user>@formlabs3b`: check `tailscale status`,
+`nvidia-smi`, node/npm/python/git versions; clone the repo to
+C:\Projects\Solence (or pull if it exists), checkout `revamp`, run
+`npm install`, `npm run install:all`, `npm run gate`. Set up the vision
+venv per solence-vision/HOW-TO.md, start the vision service detached
+(docs/HOSTING.md §3) with `--host 0.0.0.0 --port 8000`, and confirm from
+this laptop that `curl http://formlabs3b:8000/health` answers. Set
+VISION_URL=http://formlabs3b:8000 in server/.env on the laptop (not
+committed). Record versions, GPU, paths in CLAUDE.local.md and the
+result in STATE.md; mark 0.1b done, set W3 in-progress, commit, show
+progress. Ask me before changing any firewall rule or Windows service.
 ```
 
 ### W3 — Circuit topology (device to device)

@@ -3,8 +3,13 @@
 Monorepo: `client/` (Next.js 15 editor + 3D), `server/` (Express engine
 API), `solence-vision/` (FastAPI floor-plan AI). Run locally: `HOW-TO.md`.
 API contract: `server/docs/api.md`. Revamp plan: `docs/REVAMP-PLAN.md`.
+Machines (`docs/MACHINES.md`): this laptop runs Claude Code and dev;
+**FormLabs3B** (reached over Tailscale as `formlabs3b`) hosts the app,
+runs the vision service, trains models and runs GPU perf checks.
 
 Start of EVERY session, in this order:
+0. Show the progress block (`npm run progress`, also printed by the
+   SessionStart hook) verbatim as the first thing in your first reply.
 1. Read `docs/STATE.md` (current item, last gate result, next step).
 2. Read `docs/REVAMP-PLAN.md` only for the phase named in STATE.md; for
    W-items also the `docs/WIRING-AUDIT.md` rows (F-n) the item cites.
@@ -106,3 +111,30 @@ Start of EVERY session, in this order:
 - An asset's license is unclear.
 - Any change to PEC data files, auth, tiers/billing, or hosting config.
 - Anything irreversible: deleting data, force-push, DNS changes.
+
+## 7. Progress — always visible, never guessed
+
+- Progress is computed by `npm run progress` from `docs/ROADMAP.json`
+  (weighted items: S=1, M=2, L=3). Never estimate a percentage by hand.
+- Show the progress block: at the start of every session, after every
+  gate run, when an item passes, and in any answer about status. Show the
+  one-line form (`node scripts/progress.mjs --line`) at the end of every
+  reply that changed files.
+- When an item passes: set it `done` in ROADMAP.json, add its `- <id> (`
+  line under STATE.md ## Passed, set the next item `in-progress` and
+  name it on STATE.md's `- Item:` line — the gate's `progress` step
+  fails otherwise.
+- New work discovered mid-item becomes a new ROADMAP item (with weight
+  and phase), not part of the current one.
+
+## 8. Two machines
+
+- Code changes happen on the laptop. FormLabs3B gets them only by
+  `git pull` over SSH (`ssh <user>@formlabs3b`) — never edit files there.
+- Vision training, GPU benchmarks and `check:motion` perf assertions run
+  on FormLabs3B. Start long jobs there detached (docs/HOSTING.md §3) and
+  read their logs; don't hold the session open on them.
+- Dev uses FormLabs3B's vision service: `VISION_URL=http://formlabs3b:8000`
+  in `server/.env` on the laptop.
+- Never expose FormLabs3B ports publicly except through the Cloudflare
+  tunnel in Phase D. Ask before changing its firewall, services or DNS.

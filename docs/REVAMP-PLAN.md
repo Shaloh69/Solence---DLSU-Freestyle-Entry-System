@@ -19,7 +19,7 @@ rejection clause otherwise blocks the work).
 | Engine (`server/src/engine`) | **Strong.** Routing (A* on raster grid), PEC load calc + demand factors, breaker/conductor sizing, 9 compliance rules, lumen-method lighting + photometrics, vision import, PDF export | 95/95 vitest tests pass, `tsc` clean |
 | API (`server/src/routes`) | Full project CRUD, floorplan/panel/loads, auto-lighting, simulate, results, export, AI recognize; WebSocket push on `/ws` | Live run: 3 circuits sized, 1 warning, PDF 200 |
 | Client (`client/`) | Next 15 + HeroUI + R3F. Landing, About, Projects, Editor (2D plan / 3D wiring / Showcase w/ first-person walk), compliance + schedules + lighting tabs | Builds; 0 console errors on any page, both widths |
-| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — live only on the server PC |
+| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — live only on FormLabs3B |
 | Design system | `DESIGN.md` is unusually good (tokens, banned list, rejection clause), plus `.claude/` design-review agent + avoid-ai-design skill | Landing largely follows it |
 | Hosting | Doc covers Tailscale SSH + Cloudflare **Quick** Tunnel (random URL, one service, demo-only) | `docs/HOSTING.md` |
 
@@ -54,7 +54,7 @@ Severity: 🔴 blocks a public launch · 🟠 visible to judges · 🟡 polish
 8. 🟠 **Empty editor is a blank grid.** No sample project, no first-run
    guide. A pitch demo needs "Open sample house" → wired + checked in 1 click.
 9. 🟡 Fonts load from Google at build time (`next/font/google`); the build
-   fails offline. Self-host via `@fontsource` so the server PC builds
+   fails offline. Self-host via `@fontsource` so the FormLabs3B builds
    without internet. *(Verified: swapping to @fontsource builds clean.)*
 10. 🟡 `torch.load(..., weights_only=False)` — unpickles arbitrary code;
     fine for own weights, but pin hashes of `best.pt`.
@@ -127,7 +127,9 @@ Enforcement that already exists and was tested (see §7):
 ### Phase 0 — Harness (before any feature; nothing else starts until done)
 Each item = one session, one gate pass. Flip its gate step to
 `required: true` the moment it exists.
-- 0.1 Verify gate + hooks on the server PC (Windows, Node in PATH).
+- 0.1 Verify gate + hooks on the laptop (where Claude Code runs).
+- 0.1b FormLabs3B on the tailnet, OpenSSH, repo + gate, vision service
+  reachable at http://formlabs3b:8000 (docs/MACHINES.md).
 - 0.2 ✅ Self-host the current fonts (next/font/local + @fontsource; no
   visual change — Archivo arrives with Phase C); `.githooks/pre-commit`
   runs the full gate for every commit.
@@ -156,7 +158,7 @@ Each item = one session, one gate pass. Flip its gate step to
   luminance range, missing-texture detection, `renderer.info` budgets,
   pixelmatch vs baseline) and `check:motion` (rAF frame-time p95 ≤ 20 ms,
   max ≤ 50 ms, CLS 0, reduced-motion screenshot, hidden-tab pause).
-  Perf assertions run headed on the server PC GPU over Tailscale; CI
+  Perf assertions run headed on the FormLabs3B GPU over Tailscale; CI
   headless runs correctness only.
 - Exit criterion: every gate step in `gate.config.json` is `required`.
 
@@ -255,7 +257,7 @@ Seeded demo accounts + reset script, offline fallback via Tailscale URL,
 Lighthouse ≥ 90 (perf/a11y/SEO), OG image, backup video recorded from
 Showcase, real cited market figures only.
 
-## 5. Self-hosting — server PC + Tailscale + Cloudflare
+## 5. Self-hosting — FormLabs3B + Tailscale + Cloudflare
 
 **Domain reality:** Cloudflare doesn't give away domains — the Tunnel and
 the DNS zone are free, the domain is not. Two $0 routes that work with a
@@ -269,9 +271,9 @@ pitch slide.
 
 **Target topology**
 ```
-Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (Windows service on server PC)
+Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (Windows service on FormLabs3B)
                                                    └─► solence.<domain> → localhost:3000 (Next, proxies /api + /ws → :4000)
-Tailscale (private) ──► server PC: SSH, :8000 vision, Supabase/Postgres admin  (never public)
+Tailscale (private) ──► FormLabs3B: SSH, :8000 vision, Supabase/Postgres admin  (never public)
 ```
 Steps for Claude Code to script (`ops/` folder, PowerShell):
 1. `cloudflared tunnel login` → `tunnel create solence` →
@@ -309,7 +311,7 @@ emergency fallback.
 - Subagents: `Explore` for broad searches; `design-review` for grading
   (fresh context, never the builder); a fresh subagent to triage a large
   failure report and return the root cause in a paragraph.
-- Personal machine-specific notes (paths on the server PC, GPU name) go
+- Personal machine-specific notes (paths on FormLabs3B, GPU name) go
   in `CLAUDE.local.md` (gitignored).
 
 ## 7. Verified in the audit sandbox (2026-10-16)
@@ -332,5 +334,5 @@ emergency fallback.
 > will prove it works. Finish only when `node scripts/gate.mjs` passes and
 > STATE.md is updated. Then stop and tell me to /clear.
 
-Run it on the server PC first (item 0.1), because the hooks and GPU
+Run it on the laptop first (item 0.1), then bring FormLabs3B up (0.1b), because the hooks and GPU
 checks must be proven on the machine that will host production.

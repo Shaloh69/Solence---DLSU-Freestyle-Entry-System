@@ -1,95 +1,65 @@
-# Getting the revamp into your repo and working in Claude Code
+# Getting started — laptop + FormLabs3B
 
-## What you're receiving
+## What you have
 
-Six commits on top of `f197ddf` (your current `main`):
+`solence-revamp.bundle` — 7 commits on top of `f197ddf` (your `main`):
+rules + hooks + gate + DESIGN.md v2 · self-hosted fonts · W1 real-plan
+corpus · W1b router · W2 PEC sizing · docs (audit, prompts) · progress
+tracking + FormLabs3B. Claude Code merges it for you (kickoff M0).
 
-| Commit | What |
-|---|---|
-| revamp: harness, rules, DESIGN.md v2… | `CLAUDE.md`, `.claude/rules/*`, `.claude/settings.json` + hooks, gate scripts, DESIGN.md v2, registry, asset manifest, REVAMP-PLAN, STATE |
-| 0.2 | self-hosted fonts, `.githooks/pre-commit` |
-| W1 | ResPlan real-plan corpus + converter + 85 engine checks |
-| W1b | concealed-conduit router |
-| W2 | PEC 2017 sizing + rules + 230 V |
-| docs | WIRING-AUDIT, PROMPTS, SETUP, plan/state updates |
+## On the laptop (once)
 
-## 1. Put it in the repo (on the server PC)
+1. Install: Git, Node 20+, Claude Code (`npm install -g @anthropic-ai/claude-code`).
+2. Browser tools for design review: `claude mcp add playwright npx @playwright/mcp@latest`
+3. Save the bundle, e.g. `C:\Users\<you>\Downloads\solence-revamp.bundle`.
+4. Open a terminal in your repo folder, run `claude`, accept "trust this
+   folder", paste **Kickoff (M0)** from `docs/PROMPTS.md` (it's also in
+   the chat where you got the bundle) with your real bundle path.
 
-You get `solence-revamp.bundle` (all six commits in one file).
+Claude Code will: check your repo, merge the bundle on a `revamp` branch,
+read all the existing docs, write `docs/RECONCILE.md`, fix outdated docs,
+add anything missing to the roadmap, run the gate, commit, push, and
+show the progress block. It stops for your OK at each step.
 
-```powershell
-cd C:\Projects\Solence            # your clone
-git status                        # must be clean; commit or stash first
-git checkout -b revamp            # work on a branch, not main
-git pull C:\path\to\solence-revamp.bundle HEAD
-git log --oneline -7              # the six commits on top of f197ddf
-```
+## On FormLabs3B (once, at that PC)
 
-(No bundle? `git am C:\path\to\patches\*.patch` does the same from the
-patch files.)
+Follow `docs/MACHINES.md` §1, §2 and §4: join the tailnet as
+`formlabs3b`, disable key expiry, run unattended, install OpenSSH. Then
+item **0.1b** has Claude Code (on the laptop, over SSH) clone the repo
+there, run the gate, and start the vision service.
 
-Then push the branch so it's on GitHub too:
+## Every session after that
 
-```powershell
-git push -u origin revamp
-```
-
-## 2. Install and prove the gate
-
-```powershell
-npm install            # root; its "prepare" script sets core.hooksPath=.githooks
-npm run install:all    # client + server
-npm run gate           # must print: GATE PASSED · full
-```
-
-Every `git commit` now runs the full gate first (about 2 minutes, mostly
-the Next.js build). If it fails, the commit is refused and
-`.artifacts/gate-summary.md` says why.
-
-## 3. Claude Code
-
-```powershell
-npm install -g @anthropic-ai/claude-code       # if not installed
-claude mcp add playwright npx @playwright/mcp@latest   # browser tools for design review
-cd C:\Projects\Solence
-claude
-```
-
-On first start Claude Code asks to trust the project — accept, so the
-hooks in `.claude/settings.json` load. The SessionStart hook prints
-`docs/STATE.md` automatically.
-
-## 4. The loop
-
-1. Paste **Session start** from `docs/PROMPTS.md`.
-2. Paste the prompt for the item STATE.md names (first one: **0.1**).
-3. Approve Claude's file/test list, let it build.
-4. Claude finishes only when the gate passes and STATE.md is updated
-   (the Stop hook blocks it otherwise).
+1. `claude` in the repo → the progress block appears automatically.
+2. Paste **Session start**, then the prompt for the item STATE.md names.
+3. Approve Claude's plan (files + tests), let it build.
+4. It can't finish until the gate passes (Stop hook) and can't commit a
+   failing gate (pre-commit hook).
 5. `/clear`, next item.
 
-## 5. Where everything lives
+## Where everything lives
 
 | File | Role | Who edits |
 |---|---|---|
-| `CLAUDE.md` | the rules (<200 lines), loaded every session | you |
-| `.claude/rules/frontend.md`, `three-d.md`, `tests.md`, `engine.md` | area rules, load only when matching files are touched | you |
-| `.claude/settings.json`, `.claude/hooks/*.mjs` | enforcement: commit gate, protected files, post-edit checks, stop gate, session state | you |
-| `.claude/agents/design-review.md` | grades UI against its real reference, never the builder | you |
+| `CLAUDE.md` | the rules (incl. §7 progress, §8 two machines), loaded every session | you |
+| `.claude/rules/*.md` | area rules (frontend, 3D, tests, engine), load only for matching files | you |
+| `.claude/settings.json`, `.claude/hooks/*.mjs` | enforcement: progress + state at start, commit gate, protected files, post-edit checks, stop gate | you |
+| `.claude/agents/design-review.md` | grades UI against its real reference | you |
 | `DESIGN.md` | design system v2 "Conductor" | you (Claude must ask) |
-| `docs/REVAMP-PLAN.md` | audit + all phases | you / Claude per item |
-| `docs/WIRING-AUDIT.md` | wiring, PEC, CAD, layers findings + feature research | Claude per W-item |
-| `docs/STATE.md` | current item, next items, decisions, open questions | Claude every item |
+| `docs/ROADMAP.json` | every item, phase, weight, status → the % | Claude per item |
+| `docs/STATE.md` | now / next / passed / decisions / open questions | Claude per item |
+| `docs/REVAMP-PLAN.md` | audit + phases 0, W, A–E | Claude per item |
+| `docs/WIRING-AUDIT.md` | wiring/PEC/CAD/layer findings + feature research | Claude per W-item |
+| `docs/MACHINES.md` | laptop vs FormLabs3B, Tailscale, SSH, vision service | you |
 | `docs/PROMPTS.md` | what you paste | you |
-| `scripts/gate.mjs`, `gate.config.json` | the gate; steps become required as they're built | Claude may only tighten |
+| `docs/RECONCILE.md` | written by the kickoff: old docs vs revamp | Claude (M0) |
+| `scripts/gate.mjs`, `gate.config.json`, `progress.mjs` | the gate and the % | Claude may only tighten |
 | `server/tests/thresholds.json`, `scripts/hygiene-allowlist.json` | protected limits | you only |
-| `design-refs/registry.json` | real references per page/component | Claude, you sign off |
-| `test-assets/plans/resplan/` | 12 real houses (CC BY 4.0) + converter output | regenerate via script |
-| `test-assets/manifest.json` | every real asset with license + sha256 | Claude, you approve licenses |
+| `test-assets/plans/resplan/` | 12 real houses (CC BY 4.0) | regenerate via script |
 
-## 6. Things only you can provide
+## Things only you can provide
 
 - A real Philippine residential electrical plan set (with permission) —
-  the template for the permit sheets (W9) and the pitch demo house.
-- A licensed EE to confirm every `PEC-VERIFY` value before any real permit use.
+  template for the permit sheets (W9) and the pitch demo house.
+- A licensed EE to confirm every `PEC-VERIFY` value before real permit use.
 - The domain choice before Phase D.

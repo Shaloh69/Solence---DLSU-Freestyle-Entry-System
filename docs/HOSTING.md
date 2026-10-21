@@ -1,5 +1,10 @@
 # Remote access to Solence — $0, no domain required
 
+> The host is **FormLabs3B**; joining it to the tailnet, SSH and the
+> vision service are in `docs/MACHINES.md`. Read `your-pc-name` below as
+> `formlabs3b`. Tailscale SSH (`tailscale up --ssh`) does not run as a
+> server on Windows — use the OpenSSH steps.
+
 Two different needs, two different free tools. Don't reach for a
 Cloudflare named Tunnel + real domain unless you actually get one later
 (§4) — everything below costs nothing and needs no domain at all.

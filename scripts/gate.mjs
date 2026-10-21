@@ -35,6 +35,8 @@ const verdict = failed ? `GATE FAILED — ${failed} required step(s) failed` : "
 let md = `# Gate summary\n\n${verdict} · ${fast ? "fast" : "full"} · ${stamp}\n\n| step | result | time |\n|---|---|---|\n`;
 for (const [id, res, t] of rows) md += `| ${id} | ${res} | ${t} |\n`;
 for (const [id, , , tail] of rows) if (tail) md += `\n## ${id} — last lines (full log: .artifacts/gate/${id}.log)\n\`\`\`\n${tail}\n\`\`\`\n`;
+const prog = spawnSync("node scripts/progress.mjs --line", { cwd: root, shell: true, encoding: "utf8" });
+if (prog.status === 0) md = md.replace("\n\n| step", `\n\n${prog.stdout.trim()}\n\n| step`);
 writeFileSync(join(root, ".artifacts/gate-summary.md"), md);
 console.log(md);
 process.exit(failed ? 1 : 0);
