@@ -13,11 +13,18 @@ const tool = input.tool_name;
 const ti = input.tool_input ?? {};
 const block = (msg) => { process.stderr.write(msg + "\n"); process.exit(2); };
 
-if (tool === "Bash") {
+// PowerShell runs the same git/npx commands as Bash on Windows, so it gets the same checks.
+if (tool === "Bash" || tool === "PowerShell") {
   const cmd = String(ti.command ?? "");
   if (/--no-verify|-c\s+core\.hooksPath/.test(cmd)) block("Blocked: bypassing git hooks is not allowed (CLAUDE.md §1).");
-  if (/git\s+config\b[^\n]*core\.hooksPath/.test(cmd) && !/core\.hooksPath\s+\.githooks\s*$/.test(cmd))
-    block("Blocked: core.hooksPath may only be set to .githooks (CLAUDE.md §1).");
+  // Reading core.hooksPath is fine; setting it to anything but .githooks, or unsetting it, is not.
+  const hp = cmd.match(/git\s+config\b([^\n;&|]*?)\bcore\.hooksPath\b[ \t]*([^\s;&|]*)/);
+  if (hp) {
+    const flags = hp[1], value = hp[2].replace(/^["']|["']$/g, "");
+    const reading = /--get(-all|-regexp)?\b|--list\b|(^|\s)-l\b/.test(flags) || (value === "" && !/--unset/.test(flags));
+    if (!reading && (/--unset/.test(flags) || value !== ".githooks"))
+      block("Blocked: core.hooksPath may only be set to .githooks (CLAUDE.md §1).");
+  }
   if (/\bgit\s+push\b.*(--force|-f\b)/.test(cmd)) block("Blocked: force-push needs the user (CLAUDE.md §6).");
   if (/\b(update-snapshots|--update-snapshots|-u\b.*playwright|playwright.*-u\b)/.test(cmd) && process.env.SOLENCE_ALLOW_BASELINE !== "1")
     block("Blocked: regenerating visual baselines needs the user's go-ahead this session (set SOLENCE_ALLOW_BASELINE=1).");

@@ -4,7 +4,7 @@
       { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.mjs\"", "timeout": 10 } ] }
     ],
     "PreToolUse": [
-      { "matcher": "Bash|Edit|Write|MultiEdit",
+      { "matcher": "Bash|PowerShell|Edit|Write|MultiEdit",
         "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-tool.mjs\"", "timeout": 1800 } ] }
     ],
     "PostToolUse": [

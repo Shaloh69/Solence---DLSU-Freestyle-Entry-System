@@ -87,14 +87,14 @@
       "id": "0.1",
       "phase": "0",
       "weight": 1,
-      "status": "in-progress",
+      "status": "done",
       "title": "Prove gate + hooks on the laptop (Claude Code machine)"
     },
     {
       "id": "0.1b",
       "phase": "0",
       "weight": 2,
-      "status": "todo",
+      "status": "in-progress",
       "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable"
     },
     {

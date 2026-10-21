@@ -2,7 +2,8 @@
   "$comment": "Steps run in order by scripts/gate.mjs. A step's 'required' may be flipped false->true by Claude Code as the step gets built; true->false needs the user (this file is hook-protected). 'fast' steps also run on every Stop.",
   "steps": [
     { "id": "hygiene",   "run": "node scripts/check-test-hygiene.mjs", "required": true,  "fast": true },
-    { "id": "progress",  "run": "node scripts/progress.mjs --check", "required": true, "fast": true },
+    { "id": "hooks",     "run": "node scripts/check-hooks.mjs", "required": true, "fast": true },
+    { "id": "progress", "run": "node scripts/progress.mjs --check", "required": true, "fast": true },
     { "id": "handoff",   "run": "node scripts/handoff.mjs --check", "required": true, "fast": true },
     { "id": "server-typecheck", "run": "npm run typecheck --prefix server", "required": true, "fast": true },
     { "id": "server-tests", "run": "npm test --prefix server", "required": true, "fast": true },
