@@ -87,8 +87,8 @@ Start of EVERY session, in this order:
 
 ## 5. Context management
 
-- One item per session. After its gate passes: update STATE.md, commit,
-  then tell the user to run `/clear` before the next item.
+- One item per session. After its gate passes: update STATE.md and
+  ROADMAP.json, commit, then end with the session handoff (§9).
 - If a session runs long, `/compact` with a focus line, e.g.
   "keep: current item, failing checks, files touched".
 - Broad searches go to the `Explore` subagent; take its conclusion, not
@@ -139,3 +139,25 @@ Start of EVERY session, in this order:
   in `server/.env` on the laptop.
 - Never expose FormLabs3B ports publicly except through the Cloudflare
   tunnel in Phase D. Ask before changing its firewall, services or DNS.
+
+## 9. Every session ends with the handoff
+
+- The last thing in your final reply of a session is the output of
+  `npm run handoff`, pasted **verbatim** inside the reply: the progress
+  block (current %) and the exact prompt the user pastes after `/clear`.
+  Never write the next prompt yourself and never paraphrase it — it is
+  assembled from docs/PROMPTS.md for the item ROADMAP.json has
+  in-progress.
+- "End of a session" means any of: the item passed and was committed;
+  the user says stop, pause, or done for today; you are blocked waiting
+  on the user's decision; the context is getting long and you are about
+  to suggest `/compact` or `/clear`. Mid-item, update STATE.md first so
+  the resume prompt picks up where you stopped.
+- Before running it: ROADMAP.json and STATE.md must name the right
+  in-progress item (the next unblocked todo item after the one that
+  passed).
+- Enforced: after a commit in a session, the Stop hook won't let the
+  session end until a reply contains the `SESSION HANDOFF` block; the
+  gate's `handoff` step fails if any remaining item has no prompt.
+- New roadmap items need a `### <id> — title` prompt in docs/PROMPTS.md
+  in the same commit.

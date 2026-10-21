@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for progress. Weights: S=1, M=2, L=3 points. status: todo | in-progress | done. Exactly one item is in-progress. A done item must have a '- <id> (' line under '## Passed' in docs/STATE.md, and the in-progress id must appear on STATE.md's '- Item:' line — `node scripts/progress.mjs --check` (a required gate step) enforces both. Percent = done points / total points. Legacy build is shown as a baseline and not counted.",
+  "$comment": "Single source of truth for progress. Weights: S=1, M=2, L=3 points. status: todo | in-progress | done. Exactly one item is in-progress. A done item must have a '- <id> (' line under '## Passed' in docs/STATE.md, and the in-progress id must appear on STATE.md's '- Item:' line — `node scripts/progress.mjs --check` (a required gate step) enforces both. Percent = done points / total points. Legacy build is shown as a baseline and not counted. Items are listed in execution order: when an item passes, the next item set in-progress is the first todo item below it that isn't 'blocked'.",
   "goal": "Production-ready Solence for the pitching contest: PEC-correct wiring on real houses, CAD-grade editing, permit sheet set, DESIGN.md v2 UI, hosted on FormLabs3B behind Cloudflare.",
   "baseline": "Original build (brief phases 1–4: engine, editor, 3D, showcase, vision v2) — done before the revamp, not counted.",
   "phases": [
@@ -42,13 +42,6 @@
   ],
   "items": [
     {
-      "id": "M0",
-      "phase": "M",
-      "weight": 1,
-      "status": "in-progress",
-      "title": "Merge revamp bundle into the repo, reconcile with the latest repo docs"
-    },
-    {
       "id": "0.0",
       "phase": "0",
       "weight": 2,
@@ -56,46 +49,11 @@
       "title": "Rules, hooks, gate, DESIGN.md v2, registry, manifest"
     },
     {
-      "id": "0.1",
-      "phase": "0",
-      "weight": 1,
-      "status": "todo",
-      "title": "Prove gate + hooks on the laptop (Claude Code machine)"
-    },
-    {
-      "id": "0.1b",
-      "phase": "0",
-      "weight": 2,
-      "status": "todo",
-      "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable"
-    },
-    {
       "id": "0.2",
       "phase": "0",
       "weight": 1,
       "status": "done",
       "title": "Self-hosted fonts + git pre-commit gate"
-    },
-    {
-      "id": "0.3",
-      "phase": "0",
-      "weight": 2,
-      "status": "todo",
-      "title": "assets:fetch + check:assets (real models, textures, HDRIs)"
-    },
-    {
-      "id": "0.5",
-      "phase": "0",
-      "weight": 2,
-      "status": "todo",
-      "title": "refs:capture + side-by-side report"
-    },
-    {
-      "id": "0.6",
-      "phase": "0",
-      "weight": 3,
-      "status": "todo",
-      "title": "gallery, tokens, a11y, visual, render, motion, pdf checks"
     },
     {
       "id": "W1",
@@ -119,6 +77,27 @@
       "title": "PEC 2017 sizing + rules + 230 V"
     },
     {
+      "id": "M0",
+      "phase": "M",
+      "weight": 1,
+      "status": "in-progress",
+      "title": "Merge revamp bundle into the repo, reconcile with the latest repo docs"
+    },
+    {
+      "id": "0.1",
+      "phase": "0",
+      "weight": 1,
+      "status": "todo",
+      "title": "Prove gate + hooks on the laptop (Claude Code machine)"
+    },
+    {
+      "id": "0.1b",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable"
+    },
+    {
       "id": "W3",
       "phase": "W",
       "weight": 3,
@@ -131,6 +110,34 @@
       "weight": 2,
       "status": "todo",
       "title": "Layer views (presets, lock) + Playwright project"
+    },
+    {
+      "id": "0.3",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "assets:fetch + check:assets (real models, textures, HDRIs)"
+    },
+    {
+      "id": "0.5",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "refs:capture + side-by-side report"
+    },
+    {
+      "id": "0.6",
+      "phase": "0",
+      "weight": 3,
+      "status": "todo",
+      "title": "gallery, tokens, a11y, visual, render, motion, pdf checks"
+    },
+    {
+      "id": "V3",
+      "phase": "V",
+      "weight": 2,
+      "status": "todo",
+      "title": "Vision regression tests on real fixtures (replaces the pytest skips) + YOLO run finished on FormLabs3B"
     },
     {
       "id": "W5",
@@ -147,13 +154,6 @@
       "title": "Derating + conduit fill"
     },
     {
-      "id": "W7",
-      "phase": "W",
-      "weight": 2,
-      "status": "todo",
-      "title": "Service entrance + one-line diagram"
-    },
-    {
       "id": "W8",
       "phase": "W",
       "weight": 1,
@@ -161,11 +161,39 @@
       "title": "PEC 2.20 dwelling load computation"
     },
     {
+      "id": "W7",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Service entrance + one-line diagram"
+    },
+    {
       "id": "W9",
       "phase": "W",
       "weight": 3,
       "status": "todo",
       "title": "A3 permit sheet set"
+    },
+    {
+      "id": "A",
+      "phase": "A",
+      "weight": 3,
+      "status": "todo",
+      "title": "Auth, ownership, tiers, production storage"
+    },
+    {
+      "id": "V2",
+      "phase": "V",
+      "weight": 1,
+      "status": "todo",
+      "title": "Refetch project after WS reconnect during recognition — AUDIT.md 2026-07 Medium"
+    },
+    {
+      "id": "V1",
+      "phase": "V",
+      "weight": 2,
+      "status": "todo",
+      "title": "Scale calibration for AI-imported plans (two points + real distance) — AUDIT.md 2026-07 Medium"
     },
     {
       "id": "W10",
@@ -180,48 +208,6 @@
       "weight": 3,
       "status": "todo",
       "title": "Editing II: snaps, polyline walls, room detection, dimensions"
-    },
-    {
-      "id": "W12",
-      "phase": "W",
-      "weight": 2,
-      "status": "todo",
-      "title": "DXF import/export"
-    },
-    {
-      "id": "V1",
-      "phase": "V",
-      "weight": 2,
-      "status": "todo",
-      "title": "Scale calibration for AI-imported plans (two points + real distance) — AUDIT.md 2026-07 Medium"
-    },
-    {
-      "id": "V2",
-      "phase": "V",
-      "weight": 1,
-      "status": "todo",
-      "title": "Refetch project after WS reconnect during recognition — AUDIT.md 2026-07 Medium"
-    },
-    {
-      "id": "V3",
-      "phase": "V",
-      "weight": 2,
-      "status": "todo",
-      "title": "Vision regression tests on real fixtures (replaces the pytest skips) + YOLO run finished on FormLabs3B"
-    },
-    {
-      "id": "V4",
-      "phase": "V",
-      "weight": 3,
-      "status": "todo",
-      "title": "Furniture-detection training — blocked on dataset license decision (AUDIT.md needs-input #2)"
-    },
-    {
-      "id": "A",
-      "phase": "A",
-      "weight": 3,
-      "status": "todo",
-      "title": "Auth, ownership, tiers, production storage"
     },
     {
       "id": "C1",
@@ -252,6 +238,13 @@
       "title": "Screens rebuilt from approved primitives"
     },
     {
+      "id": "W12",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "DXF import/export"
+    },
+    {
       "id": "B",
       "phase": "B",
       "weight": 3,
@@ -271,6 +264,14 @@
       "weight": 2,
       "status": "todo",
       "title": "Demo accounts, fallback, Lighthouse, backup video"
+    },
+    {
+      "id": "V4",
+      "phase": "V",
+      "weight": 3,
+      "status": "todo",
+      "title": "Furniture-detection training — blocked on dataset license decision (AUDIT.md needs-input #2)",
+      "blocked": "dataset-license decision (STATE.md open questions)"
     }
   ]
 }

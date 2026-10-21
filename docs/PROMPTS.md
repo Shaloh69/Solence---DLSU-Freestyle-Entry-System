@@ -1,9 +1,10 @@
 # Claude Code prompts for the Solence revamp
 
 How to use: the very first time, paste **Kickoff (M0)** — it merges the
-revamp into your repo. After that, every session: open Claude Code in
-the repo root, paste **Session start**, then the prompt for the item
-`docs/STATE.md` names. One item per session.
+revamp into your repo. After that you never hunt for prompts: every
+session ends with a **SESSION HANDOFF** block (progress % + the exact
+prompt for the next session). Type `/clear`, paste that prompt, repeat.
+One item per session.
 When the gate passes and Claude has committed, run `/clear` and start the
 next item. Everything Claude must obey is already in `CLAUDE.md`,
 `.claude/rules/`, `DESIGN.md` and enforced by hooks — the prompts only
@@ -65,22 +66,26 @@ found before continuing:
 6. Mark M0 done (ROADMAP.json + a `- M0 (` line under STATE.md ## Passed),
    set 0.1 in-progress and name it on STATE.md's `- Item:` line, commit
    (the pre-commit gate runs), then `git push -u origin revamp`.
-7. Show the progress block (`npm run progress`) and tell me to /clear and
-   paste the 0.1 prompt from docs/PROMPTS.md.
+7. End with the output of `npm run handoff`, verbatim — it shows the
+   progress and the exact prompt for item 0.1.
 ```
 
 ## Session start (paste first, every session)
 
+You rarely type this yourself: every session ends with a SESSION HANDOFF
+block (`npm run handoff`) that already contains this prompt plus the next
+item's prompt. This is the source it's built from.
+
 ```
 Show the progress block from the SessionStart hook first. Read CLAUDE.md
-and docs/STATE.md. Work only on the item STATE.md names as "Now". Before writing code: (1) list the files you will touch, (2) list
-the tests/checks that will prove it works, including which ones must
-fail on the current code first, (3) name the real-plan or real-asset
-data they use. Wait for my OK on that list, then build. You are done
-only when `node scripts/gate.mjs` passes, STATE.md is updated (item moved
-to Passed with its gate line), and the commit went through the
-pre-commit gate, ROADMAP.json marks it done, and you've shown the new
-progress block. Then stop and tell me to /clear.
+and docs/STATE.md. Work only on the item STATE.md names as "Now". Before
+writing code: (1) list the files you will touch, (2) list the
+tests/checks that will prove it works, including which ones must fail on
+the current code first, (3) name the real-plan or real-asset data they
+use. Wait for my OK on that list, then build. You are done only when
+`node scripts/gate.mjs` passes, STATE.md and ROADMAP.json mark the item
+done with the next one in progress, and the commit went through the
+pre-commit gate. Then end with the output of `npm run handoff`, verbatim.
 ```
 
 ## Utility prompts
@@ -115,10 +120,11 @@ subagent verdict → my sign-off. Show me the side-by-side report before
 asking for sign-off.
 ```
 
-**End of session**
+**End of session (also when stopping mid-item)**
 ```
-Update docs/STATE.md (Now / Next / Passed with the gate line / Decisions /
-Open questions). Keep it under 60 lines. Commit. Then tell me to /clear.
+Wrap up: update docs/STATE.md (Now / Next / Passed with the gate line /
+Decisions / Open questions, under 60 lines) and ROADMAP.json, commit if
+the gate passes, then end with the output of `npm run handoff`, verbatim.
 ```
 
 ---
@@ -239,6 +245,14 @@ recognition job is running, refetch the project once. E2E: start
 recognition, drop the socket mid-job, the recognized plan still appears.
 ```
 
+### V4 — Furniture-detection training
+```
+Item V4 — only after I've decided the dataset licenses (STATE.md open
+questions). Record the licenses in test-assets/manifest.json, convert
+the datasets, train on FormLabs3B detached and logged, add regression
+tests on held-out real plans, then enable detected furniture in imports.
+```
+
 ### V1 — Scale calibration for AI imports
 ```
 Item V1 (AUDIT.md Medium). Replace ASSUMED_PX_PER_METER with a
@@ -299,7 +313,7 @@ every circuit id and every title-block field; render each page to PNG
 for the visual check.
 ```
 
-### Phase A — Production foundation
+### A — Production foundation
 ```
 Phase A (REVAMP-PLAN §4). Supabase auth, owner_id on projects,
 owner-scoped REST and WebSocket, tier from profiles.tier (header only in
@@ -309,7 +323,7 @@ change each other's projects over REST or WS. Ask me before any schema
 migration is applied to a real database.
 ```
 
-### W10 / W11 — CAD editing
+### W10 — Editing I
 ```
 Item W10 (WIRING-AUDIT §4): undo/redo with a command history (Ctrl+Z,
 Ctrl+Shift+Z), multi-select, copy/paste/duplicate, assign load →
@@ -317,6 +331,8 @@ circuit, split/merge circuits, lock a route and drag its vertices,
 re-route one run. Engine changes first with tests; every new UI control
 goes through the design rule.
 ```
+
+### W11 — Editing II
 ```
 Item W11: object snaps (endpoint, midpoint, perpendicular, intersection)
 + ortho, typed lengths while drawing, polyline walls, wall join/trim,
@@ -325,11 +341,42 @@ ResPlan houses from their walls, area within 5%), measure, dimensions,
 text notes.
 ```
 
-### Phase C — Design rebuild (one prompt per step)
+### C1 — DESIGN.md v2 tokens in code
 ```
-Phase C step <C1 tokens | C2 primitive "<id>" | C3 animation "<id>" |
-C4 screen "<id>" | C5 permit sheet>. Follow CLAUDE.md §2 exactly; one
-registry item in review at a time.
+Item C1 (REVAMP-PLAN Phase C step 1). Put DESIGN.md v2 tokens into
+client/styles/tokens.css + the Tailwind theme, switch fonts to Archivo
+(self-hosted @fontsource-variable/archivo), dark "conduit" default in the
+editor and light "sheet" on marketing, remove HeroUI theme overrides.
+Add npm run check:tokens (computed-style scan) and make it required.
+Visual baselines change here — ask me before regenerating any.
+```
+
+### C2 — UI primitives
+```
+Item C2. Build the DESIGN.md §5 primitives in client/components/ui/ in
+the order REVAMP-PLAN Phase C lists, ONE at a time, each through the
+full template rule (CLAUDE.md §2): registry entry with captured real
+reference → spec → /dev/gallery → gate → design-review subagent →
+my sign-off. Include lib/notify.ts (toast API) and migrate the 4 legacy
+sonner imports. C2 is done when every listed primitive is approved.
+```
+
+### C3 — Animations
+```
+Item C3. Build the DESIGN.md §6 animations as registry items, one at a
+time: wire draw-in, violation flash, figure tick, hero sequence,
+showcase reveal (real PBR textures + HDRI from the asset manifest).
+Each passes check:motion on FormLabs3B's GPU and the reduced-motion
+screenshot.
+```
+
+### C4 — Screens
+```
+Item C4. Rebuild screens from approved primitives only, one per
+session: projects dashboard → editor shell → landing → about → auth →
+404/error → mobile summary. Each removes its legacy raw hex colors
+(docs/RECONCILE.md "Known debt") and its HeroUI usage. C4 is done when
+HeroUI is gone from package.json and the known-debt list is empty.
 ```
 
 ### W12 — DXF
@@ -339,7 +386,16 @@ match the layer presets) and DXF import of walls. Test: export → import
 round-trip of all 12 houses preserves walls within 1 cm.
 ```
 
-### Phase D — Hosting
+### B — Product features
+```
+Item B (REVAMP-PLAN Phase B). One feature per session, each with an E2E
+on a real ResPlan house: sample projects from the corpus + the real PH
+bungalow, first-run guide, command palette (approved C2 primitive),
+conflict-safe autosave, multi-storey, short-circuit analysis. Add each
+as its own ROADMAP item before starting it.
+```
+
+### D — Hosting
 ```
 Phase D (REVAMP-PLAN §5). Script ops/ for this PC: cloudflared named
 tunnel as a Windows service for one hostname, PM2 or NSSM services for
@@ -347,7 +403,7 @@ web/api/vision, deploy.ps1 (pull → install → gate → restart),
 health.ps1. Stop and ask me before any DNS change.
 ```
 
-### Phase E — Pitch hardening
+### E — Pitch hardening
 ```
 Phase E. Seeded demo accounts + reset script, sample projects from the
 ResPlan houses, offline fallback via the Tailscale URL, Lighthouse ≥ 90 on

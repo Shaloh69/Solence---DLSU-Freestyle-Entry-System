@@ -47,7 +47,7 @@ if (process.argv.includes("--check")) {
 const total = pts(items);
 const overall = pct(pts(done), total);
 const now = items.find((i) => i.status === "in-progress");
-const next = items.filter((i) => i.status === "todo").slice(0, 3);
+const next = items.filter((i) => i.status === "todo" && !i.blocked).slice(0, 3);
 let gate = "not run yet";
 const gs = join(root, ".artifacts/gate-summary.md");
 if (existsSync(gs)) gate = (readFileSync(gs, "utf8").split("\n").find((l) => l.startsWith("GATE")) ?? gate).trim();

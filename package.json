@@ -16,7 +16,8 @@
     "gate:fast": "node scripts/gate.mjs --fast",
     "progress": "node scripts/progress.mjs",
     "check:refs": "node scripts/check-design-refs.mjs",
-    "check:hygiene": "node scripts/check-test-hygiene.mjs"
+    "check:hygiene": "node scripts/check-test-hygiene.mjs",
+    "handoff": "node scripts/handoff.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
