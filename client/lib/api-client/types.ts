@@ -179,7 +179,14 @@ export interface RoutedPath {
   circuitId?: string;
   points: Point[];
   lengthM: number;
+  /**
+   * True if the route leaves the building footprint (runs outside the
+   * house) — a design smell the UI surfaces with a dashed line.
+   * (Before W1b this meant "had to leave the wall band".)
+   */
   fallback: boolean;
+  /** Number of walls the run passes through (each needs a sleeve/hole). */
+  penetrations?: number;
 }
 
 export interface PanelDirectoryEntry {

@@ -1,0 +1,5 @@
+{
+  "$comment": "Engine test limits. Protected file (pre-tool hook): only the user loosens these. Measured 2026-10-21 on the 12 ResPlan plans: simulate 17-128 ms, max penetrations per route 1.",
+  "simulateMsPerPlanMax": 1500,
+  "maxPenetrationsPerRoute": 3
+}

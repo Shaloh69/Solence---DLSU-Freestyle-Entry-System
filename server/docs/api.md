@@ -87,7 +87,9 @@ Preconditions (422): floor plan set, panel placed, at least one load.
 
 ```jsonc
 {
-  "routes": [ { "loadId", "circuitId", "points": [{x,y},…], "lengthM", "fallback" } ],
+  "routes": [ { "loadId", "circuitId", "points": [{x,y},…], "lengthM",
+                "fallback",        // true = run leaves the building footprint
+                "penetrations" } ], // walls passed through (sleeves/holes)
   "circuits": [ { "id", "description", "loadIds", "connectedVa", "continuousVa",
                   "voltage", "phase", "breakerAmps",
                   "conductor": { "awg", "mm2", "ampacity", "insulation" },

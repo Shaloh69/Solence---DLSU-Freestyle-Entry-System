@@ -11,9 +11,10 @@ relies on.
 - `types.ts` — the shared domain model (geometry, loads, circuits,
   panels, schedules, violations). Mirrored in `client/lib/api-client/types.ts`.
 - `geometry.ts` — polygon/segment helpers shared by rasterizer, lighting, rules.
-- `routing/` — floor-plan rasterizer (walkability grid with a near-wall
-  standoff band; doors become routable gaps) + A* wall-following router
-  over the `pathfinding` package.
+- `routing/` — floor-plan rasterizer (wall bodies, near-wall band,
+  building footprint) + weighted concealed-conduit router: walls are
+  crossable as counted penetrations; one search from the panel routes
+  every device.
 - `load-calc/` — branch loads, PEC Section 2 demand tiers, feeder
   ampacity, panel schedule builder. Data: `pec-demand-factors.ts` (PEC-VERIFY).
 - `sizing/` — 125%-continuous required amps, standard breaker selection,

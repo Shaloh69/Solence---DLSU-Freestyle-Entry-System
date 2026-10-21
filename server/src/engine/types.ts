@@ -239,6 +239,12 @@ export interface RoutedPath {
   /** Polyline in floor-plan meters from panel to load. */
   points: Point[];
   lengthM: number;
-  /** True if the router had to fall back to open-floor routing. */
+  /**
+   * True if the route leaves the building footprint (runs outside the
+   * house) — a design smell the UI surfaces with a dashed line.
+   * (Before W1b this meant "had to leave the wall band".)
+   */
   fallback: boolean;
+  /** Number of walls the run passes through (each needs a sleeve/hole). */
+  penetrations?: number;
 }

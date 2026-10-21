@@ -14,7 +14,8 @@ import {
   Violation,
   Circuit,
 } from "./types.js";
-import { rasterizeFloorPlan, routeWire } from "./routing/index.js";
+import { rasterizeFloorPlan, routeAll } from "./routing/index.js";
+import { pointInPolygon } from "./geometry.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
 import {
   runComplianceChecks,
@@ -67,19 +68,20 @@ export function simulate(input: SimulationInput): SimulationResult {
     clearance: options?.clearance,
   });
 
-  const routes: RoutedPath[] = [];
-  const routingErrors: { loadId: string; message: string }[] = [];
-
-  for (const load of loads) {
-    try {
-      routes.push(routeWire(panel.position, load.position, load.id, grid));
-    } catch (error) {
-      routingErrors.push({
-        loadId: load.id,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
+  const roomById = new Map(floorPlan.rooms.map((room) => [room.id, room]));
+  const panelRoom = floorPlan.rooms.find((room) =>
+    pointInPolygon(panel.position, room.boundary)
+  );
+  const { routes, errors: routingErrors } = routeAll(
+    panel.position,
+    loads.map((load) => ({
+      id: load.id,
+      position: load.position,
+      room: load.roomId ? roomById.get(load.roomId)?.boundary : undefined,
+    })),
+    grid,
+    panelRoom?.boundary
+  );
 
   const circuits = buildCircuits(loads, panel, routes, options?.circuits);
 

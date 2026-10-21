@@ -2,7 +2,8 @@
  * Floor-plan-to-grid rasterizer.
  *
  * Converts wall segments into a walkability grid for the A* router:
- *  - `blocked`  — cell center lies inside a wall (impassable)
+ *  - `blocked`  — cell center lies inside a wall body (the router may
+ *                 cross it as a costed penetration, never run along it)
  *  - `nearWall` — cell center lies within the standoff band around a wall
  *                 (preferred lane so routed wire hugs walls instead of
  *                 beelining across open floor)
@@ -12,7 +13,8 @@
  * rooms, and openings.
  */
 import { FloorPlan, Point, Wall } from "../types.js";
-import { pointAlongWall } from "../geometry.js";
+import { pointAlongWall, pointInPolygon } from "../geometry.js";
+import { FOOTPRINT_TOLERANCE_M } from "./routing-costs.js";
 
 export interface WalkabilityGrid {
   /** Cells per row (x direction). */
@@ -25,6 +27,11 @@ export interface WalkabilityGrid {
   blocked: boolean[][];
   /** nearWall[y][x] — inside the wall-hugging band, not blocked. */
   nearWall: boolean[][];
+  /**
+   * inside[y][x] — cell lies within the building footprint (a room
+   * polygon or a wall). All true when the plan has no rooms yet.
+   */
+  inside: boolean[][];
 }
 
 export interface RasterizerOptions {
@@ -119,7 +126,40 @@ export function rasterizeFloorPlan(
     }
   }
 
-  return { cols, rows, cellSize, blocked, nearWall };
+  const inside = makeMatrix(rows, cols);
+  const rooms = plan.rooms ?? [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (rooms.length === 0 || blocked[row][col]) {
+        inside[row][col] = true;
+        continue;
+      }
+      const center: Point = { x: (col + 0.5) * cellSize, y: (row + 0.5) * cellSize };
+
+      inside[row][col] = rooms.some((room) => pointInPolygon(center, room.boundary));
+    }
+  }
+
+  // Close slivers between room polygons and wall bodies.
+  const grow = Math.round(FOOTPRINT_TOLERANCE_M / cellSize);
+
+  for (let pass = 0; pass < grow; pass++) {
+    const prev = inside.map((r) => r.slice());
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (prev[row][col]) continue;
+        inside[row][col] =
+          (row > 0 && prev[row - 1][col]) ||
+          (row < rows - 1 && prev[row + 1][col]) ||
+          (col > 0 && prev[row][col - 1]) ||
+          (col < cols - 1 && prev[row][col + 1]);
+      }
+    }
+  }
+
+  return { cols, rows, cellSize, blocked, nearWall, inside };
 }
 
 /** Convert a floor-plan point (meters) to grid cell indices, clamped. */

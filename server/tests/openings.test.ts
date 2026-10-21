@@ -49,19 +49,25 @@ describe("rasterizer openings", () => {
     expect(grid.blocked[atWindow.row][atWindow.col]).toBe(true);
   });
 
-  it("routes through the door instead of failing on a sealed room", () => {
+  // W1b model change: concealed conduit can pass through a wall, so a
+  // room with no door is still wired — with one counted penetration —
+  // instead of being reported unreachable (real case: ResPlan 8 kitchen).
+  it("reaches a sealed room through exactly one wall penetration", () => {
     const sealed = rasterizeFloorPlan(planWithDoor("none"), { cellSize: 0.1 });
+    const route = routeWire({ x: 1, y: 1 }, { x: 9, y: 7 }, "load-x", sealed);
 
-    expect(() =>
-      routeWire({ x: 1, y: 1 }, { x: 9, y: 7 }, "load-x", sealed)
-    ).toThrow();
+    expect(route.lengthM).toBeGreaterThan(0);
+    expect(route.penetrations).toBe(1);
+  });
 
+  it("uses the doorway, with no penetration, when there is one", () => {
     const withDoor = rasterizeFloorPlan(planWithDoor("door"), {
       cellSize: 0.1,
     });
     const route = routeWire({ x: 1, y: 1 }, { x: 9, y: 7 }, "load-x", withDoor);
 
     expect(route.lengthM).toBeGreaterThan(0);
+    expect(route.penetrations).toBe(0);
     // The route must pass near the doorway (x≈5, y between 3.5 and 4.4).
     const nearDoor = route.points.some(
       (point) =>
