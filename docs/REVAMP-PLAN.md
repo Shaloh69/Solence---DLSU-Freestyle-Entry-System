@@ -128,8 +128,9 @@ Enforcement that already exists and was tested (see §7):
 Each item = one session, one gate pass. Flip its gate step to
 `required: true` the moment it exists.
 - 0.1 Verify gate + hooks on the server PC (Windows, Node in PATH).
-- 0.2 Self-host Archivo; remove `next/font/google`; husky pre-commit →
-  `node scripts/gate.mjs` so the gate also applies to human commits.
+- 0.2 ✅ Self-host the current fonts (next/font/local + @fontsource; no
+  visual change — Archivo arrives with Phase C); `.githooks/pre-commit`
+  runs the full gate for every commit.
 - 0.3 **Real corpus.** `npm run assets:fetch` downloads every
   `test-assets/manifest.json` entry to `test-assets/cache/`, pins exact
   files + sha256. `check:assets`: Khronos `gltf-validator` (0 errors),
@@ -159,6 +160,64 @@ Each item = one session, one gate pass. Flip its gate step to
   headless runs correctness only.
 - Exit criterion: every gate step in `gate.config.json` is `required`.
 
+### Phase W — Wiring realism & PEC (findings in docs/WIRING-AUDIT.md)
+Engine items run on the 12 real ResPlan houses (`test-assets/plans/
+resplan/`, CC BY 4.0). Every item: tests first, prove they fail on the
+old code, then implement, full gate, commit. UI parts of W-items still
+follow the template rule (registry → spec → gallery → review).
+- W1 ✅ Real-plan corpus: ResPlan converter (allowlist unpickler,
+  door-anchored scale, wall centerlines IoU ≥ 0.80, openings on walls,
+  room cleanup) + `tests/real-plans.test.ts`.
+- W1b ✅ Concealed-conduit router: walls crossable as counted
+  penetrations, bend cost, footprint mask, one search from the panel,
+  room-side snapping. `tests/routing-real-plans.test.ts`.
+- W2 ✅ PEC sizing: 60 °C terminations ≤100 A, small-conductor caps,
+  multi-outlet ratings, EGC, required 20 A circuits, receptacle spacing,
+  `1P2W-230` default. `tests/pec-alignment.test.ts`.
+- W3 Circuit topology: per circuit, a home run from the panel to the
+  nearest device, then device→device (minimum spanning tree over route
+  costs, through junction boxes at branch points). Each segment carries
+  its conductor set (L + N/L2 + G, sizes) and the downstream current;
+  voltage drop sums segment by segment to the far device. Outputs a wire
+  bill of materials (m per size and color) and conduit length. 2D: one
+  line per conduit segment, tick marks (L/N/G count), home-run arrow
+  with circuit number. Tests on all 12 plans: each circuit is one
+  connected tree; total wire < sum of home runs; BOM = sum of segments;
+  VD per chain ≤ old worst-case VD.
+- W4 Layer views: presets (Architectural, Furniture plan, Electrical
+  (no furniture), Lighting plan, Power plan, Wiring only, Compliance
+  review, All), lock, persisted per project; `data-layer` attributes on
+  every 2D element. Sets up the Playwright project (item 0.4). Tests:
+  store unit tests per preset; E2E on a real plan furnished by a test
+  helper: 2D element counts on/off, 3D pixel diff on/off, preset ==
+  manual toggles, locked layer not selectable.
+- W5 Switches & switch legs: switch load type, auto-place at door latch
+  side (1.2–1.4 m, DESIGN-VERIFY), each lighting group controlled by a
+  switch; switch legs in the topology; PH legend symbols.
+- W6 Derating + raceways: >3 current-carrying conductors (0.80/0.70/
+  0.50), ambient correction (default 35 °C ceiling, configurable),
+  conduit size by fill (40% >2 conductors), all PEC-VERIFY.
+- W7 Service & feeder: service entrance, kWh meter, main breaker,
+  service conductors, grounding electrode conductor, generated one-line
+  (riser) diagram.
+- W8 Dwelling load computation (PEC 2.20): general lighting at
+  24 VA/m² used (not warned), small-appliance + laundry 1500 VA,
+  fixed-appliance 75% (≥4), A/C at 100%; schedule of loads in PH format.
+- W9 Permit sheet set (A3, embedded fonts): E-1 legend + general notes,
+  E-2 lighting layout, E-3 power layout, E-4 one-line + schedule of loads
+  + design analysis; title block (project, owner, PEE name, PRC/PTR,
+  sheet no., revision, signature box). `check:pdf` extracts text and
+  asserts `mm²`, title-block fields, every circuit id. Template: a real
+  PH plan set (open question in STATE).
+- W10 Editing I: undo/redo (command history), multi-select, copy/
+  paste/duplicate, assign load → circuit, split/merge circuits, lock a
+  route and drag its vertices, re-route one run.
+- W11 Editing II: object snaps + ortho, typed lengths, polyline walls,
+  wall join/trim, rooms auto-detected from closed wall loops (any
+  shape), measure + dimensions + text notes.
+- W12 DXF import/export (walls/rooms/devices on named layers that match
+  the Solence layer presets).
+
 ### Phase A — Production foundation (unchanged scope, now gated)
 Auth (Supabase) + `owner_id` + owner-scoped REST and WS; tier from
 `profiles.tier`, header only in tests; refuse in-memory storage in
@@ -166,12 +225,12 @@ production; Next rewrites `/api` + `/ws` (one hostname); PDF font
 embedding; `trust proxy` + `CF-Connecting-IP`.
 Gate adds: two-user isolation tests over REST **and** WS.
 
-### Phase B — Functionality
-Undo/redo (command history, ⌘Z/⇧⌘Z), sample projects built from real
-corpus plans + the real PH bungalow, first-run guide, permit-sheet PDF
-(A3, title block, load schedule, riser, notes, PEC-VERIFY), command
-palette, conflict-safe autosave, short-circuit analysis (roadmap V3,
-pulled forward). Each item's E2E runs on a real plan.
+### Phase B — Product features
+(Undo/redo and the permit sheet set moved to W10 and W9.) Sample
+projects built from the real ResPlan houses + the real PH bungalow,
+first-run guide, command palette, conflict-safe autosave, multi-storey,
+short-circuit analysis (roadmap V3, pulled forward). Each item's E2E
+runs on a real plan.
 
 ### Phase C — Design rebuild on DESIGN.md v2 (replacement, not polish)
 Order, each item gated individually:

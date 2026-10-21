@@ -5,17 +5,18 @@ Keep under 60 lines. Update at every gate result.
 
 ## Now
 - Phase: **0 / W — Harness + wiring realism** (docs/REVAMP-PLAN.md §4, docs/WIRING-AUDIT.md)
-- Item: `W3 wiring topology: device-to-device circuit runs, L/N/G conductor set, wire BOM`
-- Status: in-progress
-- Last gate: full PASSED 2026-10-21 (after W2)
+- Item: `0.1 prove gate + hooks on the server PC (Windows)` — then W3
+- Status: pending (W1, W1b, W2 were built in the cloud sandbox; 0.1 must run on the real machine)
+- Last gate: full PASSED 2026-10-21 (after W2, sandbox)
 
-## Next (in order, one at a time)
-1. W3 Wiring topology: device-to-device circuit runs (home run + chain), L/N/G conductor set, wire bill of materials
-2. W4 Layer views: presets (electrical/power/lighting/furniture/architectural/all) + lock; E2E on a real plan, 2D DOM + 3D pixel diff
-3. 0.3 `assets:fetch` + `check:assets` (Khronos sample assets reachable via GitHub; Poly Haven/ambientCG on the server PC)
-4. 0.4 Playwright project wired into the gate (W4 seeds it)
-5. 0.5 `refs:capture` + side-by-side report
-6. 0.6 `check:tokens`, `test:a11y`, `check:motion`, `check:render`, `check:pdf`
+## Next (in order, one at a time — prompts in docs/PROMPTS.md)
+1. W3 circuit topology: device-to-device runs, L/N/G sets, junction boxes, wire/conduit BOM
+2. W4 layer views (presets, lock, persistence) + Playwright project (= 0.4)
+3. 0.3 `assets:fetch` + `check:assets` (real 3D models/textures/HDRIs)
+4. 0.5 `refs:capture` + side-by-side report
+5. 0.6 gallery, check:tokens, test:a11y, test:visual, check:render, check:motion, check:pdf
+6. W5 switches · 7. W6 derating + conduit fill · 8. W8 dwelling load calc · 9. W7 service + one-line · 10. W9 permit sheet set
+11. Phase A (auth, ownership) · 12. W10 editing I · 13. W11 editing II · 14. Phase C (C1–C5) · 15. W12 DXF · 16. Phase B · 17. Phase D · 18. Phase E
 
 ## Passed
 - W2 (2026-10-21) PEC sizing: 60 °C termination column for circuits ≤100 A (1.10.1.14(C)), small-conductor caps 2.0/3.5/5.5 mm² → 15/20/30 A (2.40.1.4(D)), multi-outlet ratings 15/20/30/40/50 A only (2.10.2.1), EGC per Table 2.50.6.13 on every circuit, 20 A circuits for kitchen/dining/laundry/bath receptacles + rule (2.10.1.11(C)), receptacle-spacing rule (2.10.3.3(A)(1), conservative), ampacity rule recomputes usable rating from the table. New system 1P2W-230 (PH residential) = default for new panels; auto-lighting uses panel branch voltage. Converter now closes/opens room polygons (removed slits). Before: 20 A breaker got 2.0 mm², 30 A got 3.5 mm². tests/pec-alignment.test.ts 62 checks; 306 total.

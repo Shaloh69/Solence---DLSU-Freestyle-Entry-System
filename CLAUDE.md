@@ -6,7 +6,8 @@ API contract: `server/docs/api.md`. Revamp plan: `docs/REVAMP-PLAN.md`.
 
 Start of EVERY session, in this order:
 1. Read `docs/STATE.md` (current item, last gate result, next step).
-2. Read `docs/REVAMP-PLAN.md` only for the phase named in STATE.md.
+2. Read `docs/REVAMP-PLAN.md` only for the phase named in STATE.md; for
+   W-items also the `docs/WIRING-AUDIT.md` rows (F-n) the item cites.
 3. Say in one line which single item you are working on. Nothing else.
 
 ## 1. The gate — nothing moves forward until it passes
