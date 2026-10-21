@@ -21,7 +21,10 @@ npm run typecheck
 ```
 
 The suite needs no database and no network — the API tests inject the
-in-memory repository.
+in-memory repository, and the real-plan suites read committed JSON from
+`test-assets/plans/resplan/` (regenerate with
+`scripts/resplan/convert_resplan.py`). Before committing, run the
+repo-wide gate from the root: `npm run gate`.
 
 ## Supabase setup
 
@@ -32,8 +35,9 @@ in-memory repository.
 3. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env` and
    restart. The healthcheck flips to `"supabase":"configured"`.
 
-There are no incremental migrations yet; schema changes mean editing
-`schema.sql` and applying it manually.
+There are no incremental migrations yet. From Phase A on, schema
+changes are new files in `supabase/migrations/` (never edits to an
+applied one) — `.claude/rules/engine.md`.
 
 ## Common failure modes
 

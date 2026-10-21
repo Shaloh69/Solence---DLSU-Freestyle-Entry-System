@@ -11,6 +11,8 @@ The 2D drafting surface and its chrome.
   settings when nothing is selected): room name/type, load ratings,
   GFCI, lumens, panel system, trace-image upload.
 - `LayersPanel.tsx` — CAD layer toggles (shared with the 3D view).
+  Presets ("Electrical plan without furniture" …), layer lock and
+  persistence are item W4.
 - `StatusBar.tsx` — cursor coordinates, snap state, shortcut reference.
 
 Conventions: all state flows through `lib/editor-store.ts` (components

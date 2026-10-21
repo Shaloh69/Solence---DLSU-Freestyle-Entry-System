@@ -10,8 +10,9 @@ next item. Everything Claude must obey is already in `CLAUDE.md`,
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → W5 → W6 → W8 → W7 →
-W9 → A → W10 → W11 → C1…C4 → W12 → B → D → E
+M0 → 0.1 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 → W8 →
+W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → D → E
+(V4 waits for your dataset-license decision.)
 
 ---
 
@@ -23,8 +24,8 @@ your repo folder, run `claude`, then paste — with the real bundle path:
 
 ```
 Kickoff, item M0. I have the Solence revamp as a git bundle at
-C:\Users\<you>\Downloads\solence-revamp.bundle — 7 commits built on top
-of commit f197ddf of this repo. Treat it as the NEW PHASES of this
+C:\Users\<you>\Downloads\solence-revamp.bundle — the commits built on
+top of commit f197ddf of this repo. Treat it as the NEW PHASES of this
 project; the original build (brief phases 1–4) is the baseline, already
 done. Do these steps in order and stop at every STOP to show me what you
 found before continuing:
@@ -46,19 +47,18 @@ found before continuing:
    docs/REVAMP-PLAN.md, docs/WIRING-AUDIT.md, docs/ROADMAP.json,
    docs/STATE.md. Use a subagent for the folder READMEs and take its
    summary, not the raw files.
-4. Write docs/RECONCILE.md with four lists:
-   (a) what the old docs describe that the revamp keeps;
-   (b) what the revamp changed (DESIGN.md v1 → v2, the router model,
-       230 V default, PEC sizing, fonts, hosting on FormLabs3B …);
-   (c) statements in the old docs that are now false — fix each one in
-       place in that doc (for example routing described as wall-band A*,
-       120/240 V defaults, Quick-Tunnel-only hosting, "server PC");
-   (d) features, plans or roadmap items in the old docs or code that
-       docs/ROADMAP.json doesn't cover — add each as a new ROADMAP item
-       with a phase, a weight (S=1, M=2, L=3) and status todo; mark items
-       the old code already delivers as done only if a test proves it.
-   Don't renumber existing items. STOP: show me the ROADMAP.json diff
-   and the new progress block.
+4. docs/RECONCILE.md already exists (reconciled in the sandbox against
+   f197ddf). If main had commits after f197ddf, read their diff and
+   append an "Upstream changes" section: (a) what they add that the
+   revamp keeps, (b) what conflicts with the revamp and how you merged
+   it, (c) any doc statement those commits made false — fix it in place,
+   (d) any new feature/plan they introduce that docs/ROADMAP.json
+   doesn't cover — add it as a ROADMAP item (phase, weight S=1 M=2 L=3,
+   todo). Also re-run the stale-doc check: grep every *.md (except
+   .claude/skills) for statements contradicted by the code (routing,
+   voltage system, rule list, scripts that don't exist in package.json)
+   and fix them. Don't renumber existing items. STOP: show me the
+   RECONCILE.md diff, the ROADMAP.json diff and the new progress block.
 5. `npm install` (root — sets the git hooks path), `npm run install:all`,
    `npm run gate`. It must say GATE PASSED; if not, fix the cause, never
    the check.
@@ -148,9 +148,9 @@ C:\Projects\Solence (or pull if it exists), checkout `revamp`, run
 `npm install`, `npm run install:all`, `npm run gate`. Set up the vision
 venv per solence-vision/HOW-TO.md, start the vision service detached
 (docs/HOSTING.md §3) with `--host 0.0.0.0 --port 8000`, and confirm from
-this laptop that `curl http://formlabs3b:8000/health` answers. Set
-VISION_URL=http://formlabs3b:8000 in server/.env on the laptop (not
-committed). Record versions, GPU, paths in CLAUDE.local.md and the
+this laptop that `curl http://formlabs3b:8000/health` answers. You can't
+read .env files: tell me the exact line to add to server/.env on the
+laptop (VISION_URL=http://formlabs3b:8000). Record versions, GPU, paths in CLAUDE.local.md and the
 result in STATE.md; mark 0.1b done, set W3 in-progress, commit, show
 progress. Ask me before changing any firewall rule or Windows service.
 ```
@@ -216,6 +216,36 @@ DESIGN.md), test:a11y (axe, 0 serious/critical), test:visual
 (toHaveScreenshot vs approved baselines), check:render and check:motion
 per .claude/rules/three-d.md, check:pdf (text extraction). Flip each to
 required as it lands. Perf assertions run headed on this PC's GPU.
+```
+
+### V3 — Vision tests on real fixtures (FormLabs3B)
+```
+Item V3. Replace the three allowlisted pytest.skip tests in
+solence-vision/tests with tests that fail loudly when weights or fixtures
+are missing; fixtures = ResPlan houses rendered to PNG at a known scale
+(script in solence-vision/scripts, output pinned by sha256) plus their
+ground-truth walls/rooms; assert wall IoU and room count within limits
+in a protected thresholds file. Pin best.pt sha256 and check it before
+torch.load. Over SSH on FormLabs3B: resume the interrupted YOLO run from
+its checkpoint, detached and logged; run the vision tests there. Remove
+the three entries from scripts/hygiene-allowlist.json only after the new
+tests pass (ask me — that file is protected).
+```
+
+### V2 — Catch-up after WebSocket reconnect
+```
+Item V2 (AUDIT.md Medium). When the realtime socket reconnects while a
+recognition job is running, refetch the project once. E2E: start
+recognition, drop the socket mid-job, the recognized plan still appears.
+```
+
+### V1 — Scale calibration for AI imports
+```
+Item V1 (AUDIT.md Medium). Replace ASSUMED_PX_PER_METER with a
+calibration step: user clicks two points on the imported plan and types
+the real distance; engine rescales walls/rooms/furniture. Engine + test
+first (a ResPlan house rendered at a known scale comes back within 3%),
+then the UI step through the design rule.
 ```
 
 ### W5 — Switches

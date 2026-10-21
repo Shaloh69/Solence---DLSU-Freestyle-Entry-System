@@ -16,10 +16,16 @@ const block = (msg) => { process.stderr.write(msg + "\n"); process.exit(2); };
 if (tool === "Bash") {
   const cmd = String(ti.command ?? "");
   if (/--no-verify|-c\s+core\.hooksPath/.test(cmd)) block("Blocked: bypassing git hooks is not allowed (CLAUDE.md §1).");
+  if (/git\s+config\b[^\n]*core\.hooksPath/.test(cmd) && !/core\.hooksPath\s+\.githooks\s*$/.test(cmd))
+    block("Blocked: core.hooksPath may only be set to .githooks (CLAUDE.md §1).");
   if (/\bgit\s+push\b.*(--force|-f\b)/.test(cmd)) block("Blocked: force-push needs the user (CLAUDE.md §6).");
   if (/\b(update-snapshots|--update-snapshots|-u\b.*playwright|playwright.*-u\b)/.test(cmd) && process.env.SOLENCE_ALLOW_BASELINE !== "1")
     block("Blocked: regenerating visual baselines needs the user's go-ahead this session (set SOLENCE_ALLOW_BASELINE=1).");
   if (/\bgit\s+commit\b/.test(cmd)) {
+    // When the git pre-commit hook is installed it runs the same full gate;
+    // don't run it twice. Without it, this hook is the gate.
+    const hooksPath = spawnSync("git config core.hooksPath", { cwd: root, shell: true, encoding: "utf8" }).stdout.trim();
+    if (hooksPath === ".githooks") process.exit(0);
     const r = spawnSync("node scripts/gate.mjs", { cwd: root, shell: true, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     if (r.status !== 0) {
       const summary = (r.stdout || "").split("\n").slice(0, 40).join("\n");

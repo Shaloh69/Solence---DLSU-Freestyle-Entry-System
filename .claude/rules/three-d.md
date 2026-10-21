@@ -8,6 +8,9 @@ paths:
 
 # 3D, textures and animation rules
 
+(`check:assets` is created in item 0.3, `check:render`/`check:motion` in
+0.6 — until then follow these rules by hand and say so in STATE.md.)
+
 Every model, texture, HDRI and animation is checked by tools, not by eye.
 
 ## Assets (`npm run check:assets`)

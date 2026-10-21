@@ -45,13 +45,16 @@ Gated endpoints return 403 with an upgrade message.
 `FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
 — meters, origin top-left; `backgroundImage` is an optional image data URL
 used as a trace layer. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
-(offset = meters from the wall's start). Doors are routable gaps; windows
-stay blocked for routing and are cut visually in 3D. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
+(offset = meters from the wall's start). Doors are free passages for
+routing; walls and windows can be crossed by a run only as a counted
+penetration (concealed conduit — see `RoutedPath.penetrations`); windows
+are cut visually in 3D. `Wall`: `{ id, start: {x,y}, end: {x,y}, thickness? }`.
 `Room`: `{ id, name, type, boundary: {x,y}[] }` with `type` one of
 `bathroom | kitchen | garage | laundry | bedroom | living | dining | office | hallway | outdoor | other`.
 
 `Panel`: `{ id, name, position, system, mainBreakerAmps }` with `system` one
-of `1P2W-120 | 1P3W-120/240 | 3P4W-230/400`. `mainBreakerAmps: 0` lets the
+of `1P2W-230 | 1P2W-120 | 1P3W-120/240 | 3P4W-230/400` — `1P2W-230` (PH
+residential, 230 V single-phase) is the editor's default for new panels. `mainBreakerAmps: 0` lets the
 engine size the main breaker from feeder demand.
 
 ## Loads
@@ -92,8 +95,10 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                 "penetrations" } ], // walls passed through (sleeves/holes)
   "circuits": [ { "id", "description", "loadIds", "connectedVa", "continuousVa",
                   "voltage", "phase", "breakerAmps",
-                  "conductor": { "awg", "mm2", "ampacity", "insulation" },
-                  "lengthM" } ],
+                  "conductor": { "awg", "mm2", "ampacity", "insulation",
+                                 "terminationTempC" },   // ampacity = usable at 60/75 °C terminals
+                  "groundingConductor": { "awg", "mm2" }, // PEC Table 2.50.6.13
+                  "lengthM", "voltageDropPercent" } ],
   "schedule": { "panelId", "system", "rows": [PanelScheduleRow…],
                 "totalConnectedVa", "totalDemandVa",
                 "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps" },
@@ -107,8 +112,9 @@ Preconditions (422): floor plan set, panel placed, at least one load.
 target, fixture count) and `luxHeatmap` (workplane illuminance samples
 for the heatmap layer).
 
-Violation `ruleId`s so far: `ampacity`, `continuous-80`,
-`voltage-drop-branch`, `voltage-drop-total`, `gfci-required`,
+Violation `ruleId`s so far: `ampacity`, `small-conductor`,
+`continuous-80`, `voltage-drop-branch`, `voltage-drop-total`,
+`gfci-required`, `required-branch-circuit`, `receptacle-spacing`,
 `illuminance-none`, `illuminance-low`, `illuminance-high`,
 `general-lighting-basis`, `egress-dedicated-circuit`.
 

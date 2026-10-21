@@ -3,44 +3,274 @@
   "goal": "Production-ready Solence for the pitching contest: PEC-correct wiring on real houses, CAD-grade editing, permit sheet set, DESIGN.md v2 UI, hosted on FormLabs3B behind Cloudflare.",
   "baseline": "Original build (brief phases 1–4: engine, editor, 3D, showcase, vision v2) — done before the revamp, not counted.",
   "phases": [
-    { "id": "M", "name": "Merge & reconcile" },
-    { "id": "0", "name": "Harness" },
-    { "id": "W", "name": "Wiring & PEC" },
-    { "id": "A", "name": "Production foundation" },
-    { "id": "C", "name": "Design rebuild" },
-    { "id": "B", "name": "Product features" },
-    { "id": "D", "name": "Hosting (FormLabs3B)" },
-    { "id": "E", "name": "Pitch hardening" }
+    {
+      "id": "M",
+      "name": "Merge & reconcile"
+    },
+    {
+      "id": "0",
+      "name": "Harness"
+    },
+    {
+      "id": "W",
+      "name": "Wiring & PEC"
+    },
+    {
+      "id": "V",
+      "name": "Vision (FormLabs3B)"
+    },
+    {
+      "id": "A",
+      "name": "Production foundation"
+    },
+    {
+      "id": "C",
+      "name": "Design rebuild"
+    },
+    {
+      "id": "B",
+      "name": "Product features"
+    },
+    {
+      "id": "D",
+      "name": "Hosting (FormLabs3B)"
+    },
+    {
+      "id": "E",
+      "name": "Pitch hardening"
+    }
   ],
   "items": [
-    { "id": "M0", "phase": "M", "weight": 1, "status": "in-progress", "title": "Merge revamp bundle into the repo, reconcile with the latest repo docs" },
-    { "id": "0.0", "phase": "0", "weight": 2, "status": "done", "title": "Rules, hooks, gate, DESIGN.md v2, registry, manifest" },
-    { "id": "0.1", "phase": "0", "weight": 1, "status": "todo", "title": "Prove gate + hooks on the laptop (Claude Code machine)" },
-    { "id": "0.1b", "phase": "0", "weight": 2, "status": "todo", "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable" },
-    { "id": "0.2", "phase": "0", "weight": 1, "status": "done", "title": "Self-hosted fonts + git pre-commit gate" },
-    { "id": "0.3", "phase": "0", "weight": 2, "status": "todo", "title": "assets:fetch + check:assets (real models, textures, HDRIs)" },
-    { "id": "0.5", "phase": "0", "weight": 2, "status": "todo", "title": "refs:capture + side-by-side report" },
-    { "id": "0.6", "phase": "0", "weight": 3, "status": "todo", "title": "gallery, tokens, a11y, visual, render, motion, pdf checks" },
-    { "id": "W1", "phase": "W", "weight": 2, "status": "done", "title": "Real-plan corpus (ResPlan) + engine tests" },
-    { "id": "W1b", "phase": "W", "weight": 2, "status": "done", "title": "Concealed-conduit router" },
-    { "id": "W2", "phase": "W", "weight": 2, "status": "done", "title": "PEC 2017 sizing + rules + 230 V" },
-    { "id": "W3", "phase": "W", "weight": 3, "status": "todo", "title": "Device-to-device circuit topology, L/N/G, BOM" },
-    { "id": "W4", "phase": "W", "weight": 2, "status": "todo", "title": "Layer views (presets, lock) + Playwright project" },
-    { "id": "W5", "phase": "W", "weight": 2, "status": "todo", "title": "Switches + switch legs" },
-    { "id": "W6", "phase": "W", "weight": 2, "status": "todo", "title": "Derating + conduit fill" },
-    { "id": "W7", "phase": "W", "weight": 2, "status": "todo", "title": "Service entrance + one-line diagram" },
-    { "id": "W8", "phase": "W", "weight": 1, "status": "todo", "title": "PEC 2.20 dwelling load computation" },
-    { "id": "W9", "phase": "W", "weight": 3, "status": "todo", "title": "A3 permit sheet set" },
-    { "id": "W10", "phase": "W", "weight": 3, "status": "todo", "title": "Editing I: undo/redo, multi-select, circuit edits" },
-    { "id": "W11", "phase": "W", "weight": 3, "status": "todo", "title": "Editing II: snaps, polyline walls, room detection, dimensions" },
-    { "id": "W12", "phase": "W", "weight": 2, "status": "todo", "title": "DXF import/export" },
-    { "id": "A", "phase": "A", "weight": 3, "status": "todo", "title": "Auth, ownership, tiers, production storage" },
-    { "id": "C1", "phase": "C", "weight": 2, "status": "todo", "title": "DESIGN.md v2 tokens in code" },
-    { "id": "C2", "phase": "C", "weight": 3, "status": "todo", "title": "UI primitives (approved one by one)" },
-    { "id": "C3", "phase": "C", "weight": 2, "status": "todo", "title": "Animations" },
-    { "id": "C4", "phase": "C", "weight": 3, "status": "todo", "title": "Screens rebuilt from approved primitives" },
-    { "id": "B", "phase": "B", "weight": 3, "status": "todo", "title": "Sample projects, onboarding, palette, multi-storey, short-circuit" },
-    { "id": "D", "phase": "D", "weight": 2, "status": "todo", "title": "FormLabs3B services + Cloudflare tunnel + deploy scripts" },
-    { "id": "E", "phase": "E", "weight": 2, "status": "todo", "title": "Demo accounts, fallback, Lighthouse, backup video" }
+    {
+      "id": "M0",
+      "phase": "M",
+      "weight": 1,
+      "status": "in-progress",
+      "title": "Merge revamp bundle into the repo, reconcile with the latest repo docs"
+    },
+    {
+      "id": "0.0",
+      "phase": "0",
+      "weight": 2,
+      "status": "done",
+      "title": "Rules, hooks, gate, DESIGN.md v2, registry, manifest"
+    },
+    {
+      "id": "0.1",
+      "phase": "0",
+      "weight": 1,
+      "status": "todo",
+      "title": "Prove gate + hooks on the laptop (Claude Code machine)"
+    },
+    {
+      "id": "0.1b",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable"
+    },
+    {
+      "id": "0.2",
+      "phase": "0",
+      "weight": 1,
+      "status": "done",
+      "title": "Self-hosted fonts + git pre-commit gate"
+    },
+    {
+      "id": "0.3",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "assets:fetch + check:assets (real models, textures, HDRIs)"
+    },
+    {
+      "id": "0.5",
+      "phase": "0",
+      "weight": 2,
+      "status": "todo",
+      "title": "refs:capture + side-by-side report"
+    },
+    {
+      "id": "0.6",
+      "phase": "0",
+      "weight": 3,
+      "status": "todo",
+      "title": "gallery, tokens, a11y, visual, render, motion, pdf checks"
+    },
+    {
+      "id": "W1",
+      "phase": "W",
+      "weight": 2,
+      "status": "done",
+      "title": "Real-plan corpus (ResPlan) + engine tests"
+    },
+    {
+      "id": "W1b",
+      "phase": "W",
+      "weight": 2,
+      "status": "done",
+      "title": "Concealed-conduit router"
+    },
+    {
+      "id": "W2",
+      "phase": "W",
+      "weight": 2,
+      "status": "done",
+      "title": "PEC 2017 sizing + rules + 230 V"
+    },
+    {
+      "id": "W3",
+      "phase": "W",
+      "weight": 3,
+      "status": "todo",
+      "title": "Device-to-device circuit topology, L/N/G, BOM"
+    },
+    {
+      "id": "W4",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Layer views (presets, lock) + Playwright project"
+    },
+    {
+      "id": "W5",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Switches + switch legs"
+    },
+    {
+      "id": "W6",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Derating + conduit fill"
+    },
+    {
+      "id": "W7",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Service entrance + one-line diagram"
+    },
+    {
+      "id": "W8",
+      "phase": "W",
+      "weight": 1,
+      "status": "todo",
+      "title": "PEC 2.20 dwelling load computation"
+    },
+    {
+      "id": "W9",
+      "phase": "W",
+      "weight": 3,
+      "status": "todo",
+      "title": "A3 permit sheet set"
+    },
+    {
+      "id": "W10",
+      "phase": "W",
+      "weight": 3,
+      "status": "todo",
+      "title": "Editing I: undo/redo, multi-select, circuit edits"
+    },
+    {
+      "id": "W11",
+      "phase": "W",
+      "weight": 3,
+      "status": "todo",
+      "title": "Editing II: snaps, polyline walls, room detection, dimensions"
+    },
+    {
+      "id": "W12",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "DXF import/export"
+    },
+    {
+      "id": "V1",
+      "phase": "V",
+      "weight": 2,
+      "status": "todo",
+      "title": "Scale calibration for AI-imported plans (two points + real distance) — AUDIT.md 2026-07 Medium"
+    },
+    {
+      "id": "V2",
+      "phase": "V",
+      "weight": 1,
+      "status": "todo",
+      "title": "Refetch project after WS reconnect during recognition — AUDIT.md 2026-07 Medium"
+    },
+    {
+      "id": "V3",
+      "phase": "V",
+      "weight": 2,
+      "status": "todo",
+      "title": "Vision regression tests on real fixtures (replaces the pytest skips) + YOLO run finished on FormLabs3B"
+    },
+    {
+      "id": "V4",
+      "phase": "V",
+      "weight": 3,
+      "status": "todo",
+      "title": "Furniture-detection training — blocked on dataset license decision (AUDIT.md needs-input #2)"
+    },
+    {
+      "id": "A",
+      "phase": "A",
+      "weight": 3,
+      "status": "todo",
+      "title": "Auth, ownership, tiers, production storage"
+    },
+    {
+      "id": "C1",
+      "phase": "C",
+      "weight": 2,
+      "status": "todo",
+      "title": "DESIGN.md v2 tokens in code"
+    },
+    {
+      "id": "C2",
+      "phase": "C",
+      "weight": 3,
+      "status": "todo",
+      "title": "UI primitives (approved one by one)"
+    },
+    {
+      "id": "C3",
+      "phase": "C",
+      "weight": 2,
+      "status": "todo",
+      "title": "Animations"
+    },
+    {
+      "id": "C4",
+      "phase": "C",
+      "weight": 3,
+      "status": "todo",
+      "title": "Screens rebuilt from approved primitives"
+    },
+    {
+      "id": "B",
+      "phase": "B",
+      "weight": 3,
+      "status": "todo",
+      "title": "Sample projects, onboarding, palette, multi-storey, short-circuit"
+    },
+    {
+      "id": "D",
+      "phase": "D",
+      "weight": 2,
+      "status": "todo",
+      "title": "FormLabs3B services + Cloudflare tunnel + deploy scripts"
+    },
+    {
+      "id": "E",
+      "phase": "E",
+      "weight": 2,
+      "status": "todo",
+      "title": "Demo accounts, fallback, Lighthouse, backup video"
+    }
   ]
 }

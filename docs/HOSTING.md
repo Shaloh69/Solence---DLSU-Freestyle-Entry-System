@@ -141,7 +141,7 @@ cd solence-vision
 .\.venv\Scripts\python.exe scripts\train_yolo.py --dataset cubicasa5k --epochs 100
 .\.venv\Scripts\python.exe scripts\train_unet.py --dataset cubicasa5k --epochs 40 --imgsz 512 --batch 2
 .\.venv\Scripts\python.exe scripts\run_inference.py --image path\to\plan.png
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000   # reachable from the laptop over the tailnet
 ```
 
 **Monitoring a detached/background process**
@@ -174,10 +174,10 @@ this later:
 
 - **[GitHub Student Developer Pack](https://education.github.com/pack)**
   → free `.me` domain via Namecheap for a year, if you qualify with a
-  school email (this looks like a DLSU project, so likely yes).
+  school email (your UCLM address should qualify).
 - Already have a domain sitting unused elsewhere — point its
   nameservers at Cloudflare's Free plan, same result, $0.
 
-Full walkthrough for that setup (named tunnel, per-service ingress
-rules, DNS routes, Cloudflare Access) is preserved in git history of
-this file if/when you want it — ask and it'll come back into this doc.
+The named-tunnel setup on FormLabs3B (one hostname, Windows service,
+deploy/health scripts) is Phase D in docs/REVAMP-PLAN.md §5; its prompt
+is in docs/PROMPTS.md.

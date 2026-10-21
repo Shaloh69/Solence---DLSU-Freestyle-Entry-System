@@ -2,10 +2,10 @@
 
 ## What you have
 
-`solence-revamp.bundle` — 7 commits on top of `f197ddf` (your `main`):
-rules + hooks + gate + DESIGN.md v2 · self-hosted fonts · W1 real-plan
-corpus · W1b router · W2 PEC sizing · docs (audit, prompts) · progress
-tracking + FormLabs3B. Claude Code merges it for you (kickoff M0).
+`solence-revamp.bundle` — the revamp commits on top of `f197ddf` (your
+`main`): rules + hooks + gate + DESIGN.md v2 · self-hosted fonts · W1
+real-plan corpus · W1b router · W2 PEC sizing · docs (audit, prompts) ·
+progress tracking + FormLabs3B · full docs reconcile. Claude Code merges it for you (kickoff M0).
 
 ## On the laptop (once)
 

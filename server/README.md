@@ -18,12 +18,17 @@ Run/test/deploy instructions: [HOW-TO.md](HOW-TO.md). API contract:
 - `src/middleware/` — error handling (Zod-aware) and tier gating.
 - `src/schemas.ts` — Zod request validation; the runtime half of docs/api.md.
 - `src/tiers.ts` — Free/Pro/Firm/LGU feature flags.
-- `tests/` — vitest: engine unit tests + supertest API integration tests.
+- `tests/` — vitest: engine unit tests, supertest API integration tests,
+  and real-plan suites (`real-plans`, `routing-real-plans`,
+  `pec-alignment`) over the 12 ResPlan houses in `test-assets/plans/resplan/`.
+  Limits in `tests/thresholds.json` (protected — only the user loosens them).
 - `supabase/schema.sql` — the Postgres schema to run in Supabase.
 
 ## Hosting (Cloudflare Tunnel)
 
-> Current setup uses Tailscale + Quick Tunnel (no domain, see root README) — the config below only applies to the optional persistent-domain path in docs/HOSTING.md §4.
+> Runs on **FormLabs3B** (docs/MACHINES.md). Until Phase D picks a
+> domain, the public demo path is a Quick Tunnel to the client only; the
+> config below is the Phase D named-tunnel setup.
 
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). Once tunneled,
 allow the public frontend origin through CORS:
@@ -46,7 +51,11 @@ WebSocket config needed):
 
 - Engine code never imports Express types; routes never do math.
 - Every PEC/IES numeric value lives in a dedicated data file flagged
-  `PEC-VERIFY`/`LIGHTING-VERIFY` — a licensed EE must confirm figures
-  before permit use. Do not inline code-compliance numbers elsewhere.
+  `PEC-VERIFY`/`LIGHTING-VERIFY` (`sizing/pec-table-3-10-1.ts`,
+  `sizing/breaker-sizes.ts`, `sizing/pec-overcurrent.ts`,
+  `load-calc/pec-demand-factors.ts`, `lighting/lighting-data.ts`); router
+  weights are `DESIGN-VERIFY` in `routing/routing-costs.ts`. A licensed EE
+  must confirm figures before permit use. Never inline them elsewhere.
+- Engine rules for Claude Code: `.claude/rules/engine.md`.
 - New endpoints: add the Zod schema in `schemas.ts`, document the shape
   in `docs/api.md`, and mirror types in `client/lib/api-client/types.ts`.

@@ -29,61 +29,66 @@ trained. Move it to Shipping and demo it.
 
 ## 2. Findings — what blocks "production"
 
-Severity: 🔴 blocks a public launch · 🟠 visible to judges · 🟡 polish
+Severity: 🔴 blocks a public launch · 🟠 visible to judges · 🟡 polish.
+Status (2026-10-21) → the roadmap item that owns each finding; ✅ = fixed.
 
 ### Functionality / backend
-1. 🔴 **No auth, no ownership.** `projects` table has no `user_id`;
+1. 🔴 → **A** · **No auth, no ownership.** `projects` table has no `user_id`;
    `GET /projects` returns everyone's projects; the WebSocket lets any
    client subscribe to any project id. On a public URL every visitor sees
    and can delete every project.
-2. 🔴 **Tier is client-controlled.** `x-solence-tier` request header sets
+2. 🔴 → **A** · **Tier is client-controlled.** `x-solence-tier` request header sets
    the tier, default fallback is `pro`. Anyone gets Pro by adding a header.
-3. 🔴 **In-memory storage** whenever Supabase isn't configured — a server
+3. 🔴 → **A** · **In-memory storage** whenever Supabase isn't configured — a server
    restart mid-pitch wipes all demo data.
-4. 🟠 **Permit PDF glyph bug.** PDFKit's built-in Helvetica can't draw
+4. 🟠 → **W9** · **Permit PDF glyph bug.** PDFKit's built-in Helvetica can't draw
    `²` or `⚠`: conductors print as "2 mm", violations print with "&".
    Fix: embed IBM Plex Sans + JetBrains Mono TTFs (`doc.registerFont`).
-5. 🟠 **PDF isn't permit-shaped.** Letter page, no title block (project,
+5. 🟠 → **W9** · **PDF isn't permit-shaped.** Letter page, no title block (project,
    owner, EE name + PRC no., sheet no. E-1/E-2…, scale, revision, signature
    box), diagram uses ~half the sheet. Real PH electrical plans are A3/A2
    sheets with a title block — compare against an actual submitted plan set.
-6. 🟠 **No undo/redo** in `editor-store.ts` (916 lines, no history). A CAD
+6. 🟠 → **W10** · **No undo/redo** in `editor-store.ts` (916 lines, no history). A CAD
    tool without Ctrl+Z is the first thing a judge will try.
-7. 🟠 **Destructive actions have no confirm.** Project delete is one click,
+7. 🟠 → **C2/C4** · **Destructive actions have no confirm.** Project delete is one click,
    no modal, no undo toast.
-8. 🟠 **Empty editor is a blank grid.** No sample project, no first-run
+8. 🟠 → **B** · **Empty editor is a blank grid.** No sample project, no first-run
    guide. A pitch demo needs "Open sample house" → wired + checked in 1 click.
-9. 🟡 Fonts load from Google at build time (`next/font/google`); the build
-   fails offline. Self-host via `@fontsource` so the FormLabs3B builds
+9. ✅ **0.2** · Fonts load from Google at build time (`next/font/google`); the build
+   fails offline. Self-host via `@fontsource` so FormLabs3B builds
    without internet. *(Verified: swapping to @fontsource builds clean.)*
-10. 🟡 `torch.load(..., weights_only=False)` — unpickles arbitrary code;
+10. 🟡 → **V3** · `torch.load(..., weights_only=False)` — unpickles arbitrary code;
     fine for own weights, but pin hashes of `best.pt`.
-11. 🟡 Rate limiter is per-process in-memory and keyed on `req.ip` —
+11. 🟡 → **A** · Rate limiter is per-process in-memory and keyed on `req.ip` —
     behind Cloudflare Tunnel every request has the same IP unless
     `app.set("trust proxy", ...)` + `CF-Connecting-IP` is used.
 
 ### Design (from screenshots)
-12. 🟠 **Projects page is the weakest screen.** No page title, input +
+12. 🟠 → **C4** · **Projects page is the weakest screen.** No page title, input +
     card float over clouds, card uses an icon-in-a-rounded-square (a
     DESIGN.md §7 banned item), HeroUI default grey input and pink danger
     button. Rebuild as a proper dashboard shell.
-13. 🟠 **Editor chrome still reads as stock HeroUI:** grey filled inputs,
+13. 🟠 → **C4** · **Editor chrome still reads as stock HeroUI:** grey filled inputs,
     amber flat buttons for *Auto-light* / *AI Recognize* (amber is reserved
     for caution/eyebrows — §2 scarcity rule), pink delete chips. Two solid
     teal actions visible at once (active tool + Re-check).
-14. 🟡 Landing: scroll-reveal sections are invisible until scrolled (fine
+14. 🟡 → **C4** · Landing: scroll-reveal sections are invisible until scrolled (fine
     for users, bad for link previews/SEO — render visible on the server,
     animate from a JS-added class). Reduced-motion path verified correct.
-15. 🟡 Mobile editor is honest ("open on a larger screen") but the tabs
+15. 🟡 → **C4** · Mobile editor is honest ("open on a larger screen") but the tabs
     overflow off-screen with no affordance.
-16. 🟡 No toast/modal/dialog system defined in DESIGN.md beyond the toast
+16. ✅ **0.0** (DESIGN.md v2 §5–6) · No toast/modal/dialog system defined in DESIGN.md beyond the toast
     shadow token — this is the gap the revamp fills (§4).
 
-17. 🟠 **Vision tests pass without testing anything.** `test_unet_model`,
+17. 🟠 → **V3** · **Vision tests pass without testing anything.** `test_unet_model`,
     `test_yolo_model` and one API test `pytest.skip` when weights or
     fixture images are missing — so a green run proves nothing. Caught by
-    the new hygiene check; allowlisted until item 0.3 replaces them with
-    real-corpus tests.
+    the new hygiene check; allowlisted until item V3 replaces them with
+    real-fixture tests.
+
+Wiring, PEC, CAD-editing and layer findings (F-1…F-19, 2026-10-21) are in
+`docs/WIRING-AUDIT.md`; F-1…F-8 are fixed (W1b, W2). Open items from the
+July `AUDIT.md` are mapped at its top.
 
 > **Design is replaced, not improved.** DESIGN.md v1 ("instrument
 > panel": navy/teal, three typefaces, mono-caps eyebrows everywhere) is
@@ -140,7 +145,8 @@ Each item = one session, one gate pass. Flip its gate step to
   texture color space / size / seam checks, license present. Replace the
   skipping vision tests with corpus-backed ones that fail when inputs are
   missing.
-- 0.4 **Real-plan E2E** (Playwright): for each pinned CubiCasa plan →
+- 0.4 (now part of **W4**; the server-side real-plan suites already exist
+  from W1/W1b/W2) **Real-plan E2E** (Playwright): for each pinned CubiCasa plan →
   upload → AI recognize → compare to ground-truth SVG (room count ±1,
   wall IoU ≥ threshold in `test-assets/expectations/<id>.json`) → place
   panel + loads → simulate → compliance → PDF (text extracted, asserts
@@ -219,6 +225,22 @@ follow the template rule (registry → spec → gallery → review).
   shape), measure + dimensions + text notes.
 - W12 DXF import/export (walls/rooms/devices on named layers that match
   the Solence layer presets).
+
+### Phase V — Vision service on FormLabs3B
+From the July AUDIT.md, now gated like everything else. Runs and trains
+on FormLabs3B (docs/MACHINES.md); the laptop calls it at
+`http://formlabs3b:8000`.
+- V1 Scale calibration for AI-imported plans: user clicks two points and
+  enters the real distance; replaces `ASSUMED_PX_PER_METER`. Test: a
+  ResPlan house rendered to an image at a known scale, recognized,
+  calibrated → wall lengths within 3%.
+- V2 Catch-up after a WebSocket reconnect during recognition (refetch the
+  project). Test: drop the socket mid-job in E2E, result still appears.
+- V3 Vision regression tests on real fixtures (remove the allowlisted
+  `pytest.skip`s; missing weights/fixtures fail loudly), pin `best.pt`
+  sha256 (finding 10), finish the interrupted YOLO run on FormLabs3B.
+- V4 Furniture-detection training — blocked until you decide the dataset
+  licenses (AUDIT.md needs-input #2).
 
 ### Phase A — Production foundation (unchanged scope, now gated)
 Auth (Supabase) + `owner_id` + owner-scoped REST and WS; tier from
@@ -313,26 +335,37 @@ emergency fallback.
   failure report and return the root cause in a paragraph.
 - Personal machine-specific notes (paths on FormLabs3B, GPU name) go
   in `CLAUDE.local.md` (gitignored).
+- Progress is computed, never estimated: `npm run progress` reads
+  `docs/ROADMAP.json`; the SessionStart hook prints it, every gate
+  summary carries the one-line form, and the gate's `progress` step fails
+  if ROADMAP and STATE.md disagree (CLAUDE.md §7).
 
-## 7. Verified in the audit sandbox (2026-10-16)
+## 7. Verified in the audit sandbox
+
+2026-10-16 (harness):
 
 | Check | Result |
 |---|---|
-| Fast gate | PASS — hygiene, server typecheck, 95 server tests, client typecheck, design-refs |
-| Full gate | FAIL on client-build only (Google Fonts unreachable) → item 0.2 |
-| Stop hook, clean tree / passing | allows stop |
 | Stop hook, injected type error | blocks with failing summary; second attempt doesn't loop |
-| Commit hook | refuses commit while full gate fails |
 | Blocked as intended | threshold edit, `--no-verify`, `--update-snapshots`, un-requiring a gate step, raw hex in `components/ui`, `.only` in a test, UI primitive without registry entry |
 | Allowed as intended | normal edits, making a gate step required |
 | Palette contrast | every text/action/signal pair ≥ 4.5:1 in both themes |
 
-## 8. Kickoff prompt for Claude Code
+2026-10-21 (after 0.2, W1, W1b, W2, docs):
 
-> Read CLAUDE.md and docs/STATE.md. Work only on the item STATE.md names.
-> Before writing code, list the files you'll touch and the checks that
-> will prove it works. Finish only when `node scripts/gate.mjs` passes and
-> STATE.md is updated. Then stop and tell me to /clear.
+| Check | Result |
+|---|---|
+| Full gate | PASS — hygiene, progress, typechecks, 306 server tests (incl. 12 real houses), design refs, client build |
+| Post-edit hook (ratchet) | legacy files editable; new hex, new sonner import, new suppression, new UI file with hex → blocked |
+| Commit | Claude hook defers to `.githooks/pre-commit` (one gate per commit); `--no-verify` and changing `core.hooksPath` blocked |
+| New routing tests vs old router | 23 failures on the old code, all pass on the new |
+| Bundle | applies cleanly to a fresh clone of the GitHub repo (no upstream commits after f197ddf) |
 
-Run it on the laptop first (item 0.1), then bring FormLabs3B up (0.1b), because the hooks and GPU
-checks must be proven on the machine that will host production.
+## 8. Kickoff
+
+The first-ever session is **Kickoff (M0)** in `docs/PROMPTS.md`: Claude
+Code merges the revamp bundle onto a `revamp` branch, reads the repo's
+latest docs, writes `docs/RECONCILE.md`, folds anything uncovered into
+`docs/ROADMAP.json`, runs the gate, commits and pushes. Every later
+session: "Session start" + the item prompt. Laptop first (0.1), then
+FormLabs3B (0.1b).

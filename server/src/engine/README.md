@@ -17,14 +17,17 @@ relies on.
   every device.
 - `load-calc/` — branch loads, PEC Section 2 demand tiers, feeder
   ampacity, panel schedule builder. Data: `pec-demand-factors.ts` (PEC-VERIFY).
-- `sizing/` — 125%-continuous required amps, standard breaker selection,
-  conductor lookup, phase balancing. Data: `pec-table-3-10-1.ts`,
-  `breaker-sizes.ts` (both PEC-VERIFY).
+- `sizing/` — 125%-continuous required amps, breaker selection,
+  termination- and small-conductor-aware conductor selection, grounding
+  conductor, phase balancing. Data: `pec-table-3-10-1.ts`,
+  `breaker-sizes.ts`, `pec-overcurrent.ts` (all PEC-VERIFY).
 - `compliance/` — the rules engine; see its README for the extension pattern.
 - `lighting/` — the ported BEPVY lumen-method engine: photometric core,
   per-room fixture auto-placement, room analysis + lux heatmap.
   Data: `lighting-data.ts` (LIGHTING-VERIFY).
-- `circuits.ts` — groups loads into branch circuits and sizes them.
+- `circuits.ts` — groups loads into branch circuits and sizes them
+  (each load is still its own home run from the panel; device-to-device
+  circuit topology is item W3, docs/WIRING-AUDIT.md F-9).
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).
@@ -33,5 +36,6 @@ relies on.
 
 Add domain math here, expose it through `simulate.ts` (or a route), and
 write its vitest suite in `../../tests/` first-class — no engine change
-ships untested. Keep every code-table number in a `*-data.ts`/`pec-*.ts`
+ships untested, and every change also runs on the 12 real houses in
+`test-assets/plans/resplan/`. Keep every code-table number in a `*-data.ts`/`pec-*.ts`
 file with the VERIFY flag.

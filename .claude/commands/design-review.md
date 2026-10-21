@@ -35,4 +35,4 @@ Review the complete diff above. This contains all code changes in the PR.
 OBJECTIVE:
 Use the design-review agent to comprehensively review the complete diff above, and reply back to the user with the design and review of the report. Your final reply must contain the markdown report and nothing else.
 
-Follow and implement the design principles and style guide located in the ../DESIGN.md and ../DESIGN.md docs.
+Follow DESIGN.md (v2 "Conductor") and the item's entry in design-refs/registry.json: grade against its captured real reference, as the design-review agent's "Solence override" section requires.

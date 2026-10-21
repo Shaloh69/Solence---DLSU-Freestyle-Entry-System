@@ -81,8 +81,9 @@ Start of EVERY session, in this order:
   with a test.
 - From Phase A on, every endpoint is owner-scoped. A new endpoint
   without an ownership test fails review.
-- Secrets only in `.env*` (gitignored). Never print them in logs or
-  screenshots.
+- Secrets only in `.env*` (gitignored). You cannot read `.env` files
+  (settings deny it): when a value must change, tell the user the exact
+  line to add. Never print secrets in logs or screenshots.
 
 ## 5. Context management
 

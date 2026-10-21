@@ -7,7 +7,7 @@ whole core product.
 ## Prerequisites
 
 - Node.js 20+ and npm
-- Python 3.11+ (only for `solence-vision`)
+- Python 3.11+ (only for `solence-vision`; normally on FormLabs3B)
 - A Supabase project (optional — the API falls back to in-memory
   storage when unconfigured; data then resets on API restart)
 
@@ -48,19 +48,32 @@ http://localhost:4000 (ws on /ws)`; the client logs `Ready` and serves
 cd solence-vision
 python -m venv .venv && .venv\Scripts\activate    # Windows
 pip install -r requirements.txt
-uvicorn app.main:app --port 8000
+uvicorn app.main:app --port 8000          # local only
+uvicorn app.main:app --host 0.0.0.0 --port 8000   # on FormLabs3B, reachable over the tailnet
 ```
 
-Recognition endpoints return 503 until models are trained — see
+Normally the vision service runs on **FormLabs3B** (GPU) and the laptop
+points at it: `VISION_URL=http://formlabs3b:8000` in `server/.env`
+(docs/MACHINES.md §5). Recognition endpoints return 503 until models are trained — see
 [solence-vision/HOW-TO.md](solence-vision/HOW-TO.md) for the full
 dataset → training → serving walkthrough.
 
-## 5. Hosting publicly / remote access
+## 5. The gate (before every commit)
 
-To expose all three services under your own domain (free, via
-Cloudflare Tunnel) and get SSH access to run commands on this machine
-remotely (`git pull`, retrain models, etc. from another PC): see
-[docs/HOSTING.md](docs/HOSTING.md).
+```bash
+npm run gate        # full: hygiene, progress, typechecks, server tests, design refs, client build
+npm run gate:fast   # what the Claude Code Stop hook runs
+npm run progress    # where the revamp stands
+```
+
+`npm install` at the root points git at `.githooks/`, so every commit
+runs the full gate. Summary: `.artifacts/gate-summary.md`.
+
+## 6. Hosting / remote access
+
+FormLabs3B is the host (Tailscale + Windows OpenSSH; vision service
+and training live there): [docs/MACHINES.md](docs/MACHINES.md).
+Public exposure via Cloudflare: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Common failure modes
 
@@ -72,5 +85,10 @@ remotely (`git pull`, retrain models, etc. from another PC): see
   kill the process listening on 4000.
 - **Everything saves but nothing simulates**: place a panel and at
   least one load; simulation requires floor plan + panel + loads.
+- **A commit is refused**: the pre-commit gate failed — read
+  `.artifacts/gate-summary.md`; fix the cause, never the check.
+- **Vision calls time out from the laptop**: the service on FormLabs3B
+  must run with `--host 0.0.0.0`, and Windows Firewall must allow 8000
+  from 100.64.0.0/10 (docs/MACHINES.md §4).
 - **Export returns 403**: tier gating — set `DEFAULT_TIER=pro` in
   `server/.env` (dev default) or send `x-solence-tier: pro`.

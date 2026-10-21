@@ -12,6 +12,8 @@ the script's header.
 
 ## Map
 
+- `config/fonts.ts` — self-hosted fonts (`next/font/local` + pinned
+  `@fontsource` packages); the build needs no network.
 - `app/` — routes. `/projects` (list), `/projects/[id]/editor` (the
   editor). The old standalone `/simulator` page was deleted per brief
   §9.1 — lighting lives in the editor's lighting layer, backed by
@@ -30,7 +32,9 @@ the script's header.
 
 ## Hosting (Cloudflare Tunnel)
 
-> Current setup uses Tailscale + Quick Tunnel (no domain, see root README) — the config below only applies to the optional persistent-domain path in docs/HOSTING.md §4.
+> Served from **FormLabs3B** (docs/MACHINES.md). Until Phase D picks a
+> domain, the public demo path is a Quick Tunnel; the config below is the
+> Phase D named-tunnel setup.
 
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). Once the tunnel is
 running, point the client at the public API hostname instead of
@@ -52,7 +56,16 @@ Ingress line for this service in `~/.cloudflared/config.yml`:
 
 - Server components by default; `"use client"` only where interaction,
   canvas, or Three.js requires it.
-- Toasts via sonner for every async action (success/error/warning/info
-  per section 4.2 of the brief) — no ad-hoc alerts.
+- Toasts for every async action (success/error/warning/info per section
+  4.2 of the brief) — no ad-hoc alerts. New code goes through
+  `lib/notify.ts` (create it as a thin sonner wrapper the first time new
+  code needs a toast); the four legacy direct `sonner` imports are
+  migrated in Phase C.
+- Design: the current UI follows DESIGN.md **v1** (navy/teal); DESIGN.md
+  **v2** "Conductor" is binding for all new UI and replaces v1 screen by
+  screen in Phase C (template rule: `CLAUDE.md` §2,
+  `.claude/rules/frontend.md`). New code may not add raw hex colors.
+- Panel systems: `1P2W-230` (PH residential 230 V) is the default for new
+  panels; library items take the panel's branch voltage.
 - Keep `lib/api-client/types.ts` in lockstep with
   `server/src/engine/types.ts` and `server/docs/api.md`.

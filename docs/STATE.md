@@ -13,8 +13,8 @@ Keep under 60 lines. Update at every gate result.
 ## Next (in order, one at a time — prompts in docs/PROMPTS.md)
 1. 0.1 prove gate + hooks on the laptop · 2. 0.1b FormLabs3B on the tailnet (docs/MACHINES.md)
 3. W3 circuit topology · 4. W4 layer views + Playwright · 5. 0.3 real assets · 6. 0.5 refs capture · 7. 0.6 checks
-8. W5 switches · 9. W6 derating · 10. W8 load calc · 11. W7 service + one-line · 12. W9 permit sheets
-13. A auth · 14. W10 editing I · 15. W11 editing II · 16. C1–C4 design · 17. W12 DXF · 18. B · 19. D hosting · 20. E pitch
+8. V3 vision tests + finish YOLO run (FormLabs3B) · 9. W5 switches · 10. W6 derating · 11. W8 load calc · 12. W7 service + one-line · 13. W9 permit sheets
+14. A auth · 15. V2 WS catch-up · 16. V1 scale calibration · 17. W10 editing I · 18. W11 editing II · 19. C1–C4 design · 20. W12 DXF · 21. B · 22. D hosting · 23. E pitch · (V4 blocked on dataset licenses)
 
 ## Passed
 - 0.0 (2026-10-16) rules (CLAUDE.md, .claude/rules), hooks, gate runner, DESIGN.md v2, design-refs registry, asset manifest, REVAMP-PLAN.
@@ -31,9 +31,13 @@ Keep under 60 lines. Update at every gate result.
 - 2026-10-21: Real-plan corpus = ResPlan (17k residential plans, data CC BY 4.0, GitHub-hosted). Converted JSON for pinned test plans is committed with attribution; source zip pinned by sha256.
 - 2026-10-21: ResPlan pickle loaded only through an allowlist unpickler (shapely from_wkb + numpy scalar/dtype).
 - 2026-10-21: User asked for PEC alignment → treated as the go-ahead for PEC data changes in W2. Every new number stays PEC-VERIFY with its section.
+- 2026-10-21: Post-edit hook is a ratchet (blocks only NEW hex/sonner/fetch/suppressions vs HEAD) so legacy files stay editable; legacy debt listed in docs/RECONCILE.md is removed in Phase C.
+- 2026-10-21: Progress = docs/ROADMAP.json weighted points; July AUDIT.md open items became Phase V (V1–V4).
 
 ## Open questions for the user
 - Domain choice (GitHub Student Pack vs DigitalPlat) — needed before Phase D.
 - Machines: laptop = Claude Code + dev; FormLabs3B = hosting, vision service, training, GPU perf checks (docs/MACHINES.md).
 - Real PH plan set (with permission) for the permit-sheet reference + demo house.
 - Official PEC 2017 text: values so far come from an unofficial transcription (filipinoengineer wiki); a licensed EE must confirm.
+- Dataset licenses for furniture detection (FloorPlanCAD terms, Kaggle CC BY-NC) — blocks V4.
+- `SOLENCE_BUGFIX_AUTO_LIGHTING_GRID.md` (cited by the Phase 3 brief) is missing — share it or name the two bugs.

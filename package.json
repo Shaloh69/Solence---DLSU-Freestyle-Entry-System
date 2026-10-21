@@ -14,7 +14,9 @@
     "prepare": "git config core.hooksPath .githooks",
     "gate": "node scripts/gate.mjs",
     "gate:fast": "node scripts/gate.mjs --fast",
-    "progress": "node scripts/progress.mjs"
+    "progress": "node scripts/progress.mjs",
+    "check:refs": "node scripts/check-design-refs.mjs",
+    "check:hygiene": "node scripts/check-test-hygiene.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

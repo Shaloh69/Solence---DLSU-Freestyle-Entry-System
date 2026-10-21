@@ -1,5 +1,24 @@
 # Solence Audit — 2026-07-17
 
+> **Status 2026-10-21 — historical.** This is the July audit of the
+> original build. Its open items now live in the revamp roadmap
+> (`docs/ROADMAP.json`, `npm run progress`):
+>
+> | Finding here | Now tracked as |
+> |---|---|
+> | [Critical] no auth/authz | Phase **A** |
+> | [Medium] WS drop loses AI result | **V2** |
+> | [Medium] assumed px→m scale | **V1** |
+> | P2 §6.4 YOLO training interrupted on FormLabs3B | **V3** |
+> | Dataset licenses (needs-input #2) | **V4** (blocked on your decision) |
+> | Manual verification 1–5 (perf, design, toasts, reduced motion) | automated in **0.6** (`check:motion`, `test:visual`, `test:a11y`) |
+> | Quick-Tunnel exposure | Phase **D** (named tunnel on FormLabs3B, auth first) |
+> | `SOLENCE_BUGFIX_AUTO_LIGHTING_GRID.md` missing | still open — STATE.md open questions |
+>
+> New findings from the revamp audits: `docs/REVAMP-PLAN.md` §2 and
+> `docs/WIRING-AUDIT.md`.
+
+
 Phase 3 §2 full-system audit. Method: code-level verification (greps,
 test runs, contract tracing) plus test-suite evidence; findings needing
 a live browser are explicitly marked **manual-pending** rather than

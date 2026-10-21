@@ -19,10 +19,16 @@ paths:
   a `prefers-reduced-motion` path and is verified by the motion check.
 - Never animate the 2D/3D canvas during pointer interaction. Animate
   results (wires drawing in after re-check), not the act of drawing.
-- Toasts go through `client/lib/notify.ts` only (one API: success,
-  warning, danger, info, promise, undo). No direct `toast()` calls.
+- Toasts go through `client/lib/notify.ts` (one API: success, warning,
+  danger, info, promise, undo). If it doesn't exist yet, create it as a
+  thin sonner wrapper the first time new code needs a toast. Never add a
+  direct `sonner` import; the 4 legacy ones are migrated in Phase C.
+- The post-edit hook is a ratchet: it compares with the last commit and
+  blocks only NEW raw hex, sonner imports, fetch calls or suppression
+  comments. Legacy ones may stay while you edit nearby; never add more.
 - Destructive actions use the confirm dialog primitive AND an undo
   toast. No one-click deletes.
 - Data comes from `client/lib/api-client/`. No `fetch` in components.
-- After any UI change run `npm run gate:ui`; do not report done on a
+- After any UI change run `npm run gate` (its visual/a11y/token/motion
+  steps become required as item 0.6 lands); do not report done on a
   screenshot you looked at yourself.

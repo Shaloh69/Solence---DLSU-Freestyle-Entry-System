@@ -19,7 +19,9 @@ service existing, but recognition is live, not just scaffolded.
   any model), `models.py` (lazy weight loading with loud failures).
 - `scripts/` — idempotent dataset/training automation; see its README.
 - `tests/` — pytest suite: fusion + API contract tests run with no
-  models; model regression tests skip until weights exist.
+  models. The model regression tests still `pytest.skip` without weights
+  or fixture images — allowlisted debt (`scripts/hygiene-allowlist.json`)
+  that item V3 replaces with real-fixture tests that fail loudly.
 - `data/`, `models/` — gitignored payloads (datasets, weights); the
   scripts are what's checked in.
 - `Dockerfile` — CPU-inference container; mount `models/` in.
@@ -35,7 +37,9 @@ engine.
 
 ## Hosting (Cloudflare Tunnel)
 
-> Current setup uses Tailscale + Quick Tunnel (no domain, see root README) — the config below only applies to the optional persistent-domain path in docs/HOSTING.md §4.
+> Runs and trains on **FormLabs3B** (GPU). The laptop's API reaches it
+> over Tailscale at `http://formlabs3b:8000` — start it with
+> `--host 0.0.0.0` (docs/MACHINES.md §5). It never needs a public hostname.
 
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). This service is
 normally called only by the Express API on the same host, so it
