@@ -12,10 +12,13 @@ Run/test/deploy instructions: [HOW-TO.md](HOW-TO.md). API contract:
 ## What lives here
 
 - `src/engine/` — the pure domain engine, no Express imports; see its README.
-- `src/routes/` — HTTP surface (projects, loads, simulate, lighting, export).
+- `src/routes/` — HTTP surface, all under `/api`: `health.ts`,
+  `projects.ts` (projects, floor plan, panel, loads, lighting, simulate,
+  results, export) and `vision.ts` (`POST /projects/:id/recognize`).
 - `src/db/` — repository layer: in-memory (dev/tests) or Supabase.
 - `src/realtime/` — WebSocket gateway pushing simulation results per project.
-- `src/middleware/` — error handling (Zod-aware) and tier gating.
+- `src/middleware/` — error handling (Zod-aware), tier gating and rate
+  limiting (`rate-limit.ts`).
 - `src/schemas.ts` — Zod request validation; the runtime half of docs/api.md.
 - `src/tiers.ts` — Free/Pro/Firm/LGU feature flags.
 - `tests/` — vitest: engine unit tests, supertest API integration tests,

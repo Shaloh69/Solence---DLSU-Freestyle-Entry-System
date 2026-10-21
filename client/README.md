@@ -14,8 +14,8 @@ the script's header.
 
 - `config/fonts.ts` — self-hosted fonts (`next/font/local` + pinned
   `@fontsource` packages); the build needs no network.
-- `app/` — routes. `/projects` (list), `/projects/[id]/editor` (the
-  editor). The old standalone `/simulator` page was deleted per brief
+- `app/` — routes. `/` (landing), `/about`, `/projects` (list),
+  `/projects/[id]/editor` (the editor). The old standalone `/simulator` page was deleted per brief
   §9.1 — lighting lives in the editor's lighting layer, backed by
   `server/src/engine/lighting/`. Auth is not wired yet — the legacy
   BEPVY MySQL/JWT stack was removed; Supabase Auth lands once a

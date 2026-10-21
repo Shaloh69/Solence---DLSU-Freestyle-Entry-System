@@ -80,14 +80,14 @@
       "id": "M0",
       "phase": "M",
       "weight": 1,
-      "status": "in-progress",
+      "status": "done",
       "title": "Merge revamp bundle into the repo, reconcile with the latest repo docs"
     },
     {
       "id": "0.1",
       "phase": "0",
       "weight": 1,
-      "status": "todo",
+      "status": "in-progress",
       "title": "Prove gate + hooks on the laptop (Claude Code machine)"
     },
     {

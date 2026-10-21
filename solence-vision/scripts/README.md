@@ -13,6 +13,11 @@ Run order:
 5. `train_yolo.py` / `train_unet.py` — weights into `models/`
 6. `run_inference.py --image <file>` — fused pipeline on one image
 
+Extra sources: `convert_floorplancad.py` (FloorPlanCAD HF mirror → YOLO,
+CC BY-SA 4.0) replaces step 2 for that dataset; `merge_datasets.py
+--sources a b` combines converted sets onto the unified `CLASSES` before
+step 4 (solence-vision/HOW-TO.md §4).
+
 ## `cubicasa_svg.py`
 
 Shared parser for CubiCasa5K's original layout (not a runnable script

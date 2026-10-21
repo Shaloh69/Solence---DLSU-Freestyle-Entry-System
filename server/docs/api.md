@@ -130,7 +130,7 @@ events relayed from solence-vision during floor-plan recognition
 
 | Method | Path | Description |
 | --- | --- | --- |
-| POST | `/api/projects/:id/recognize` | multipart image upload; starts a solence-vision job, relays progress over `/ws`, and on completion replaces the project's floor plan with the recognized walls/openings/rooms and appends confidently-detected furniture. |
+| POST | `/projects/:id/recognize` | multipart image upload; starts a solence-vision job, relays progress over `/ws`, and on completion replaces the project's floor plan with the recognized walls/openings/rooms and appends confidently-detected furniture. |
 
 Recognition-derived furniture (Phase 3 §1.3): each detected symbol
 carries `category, confidence, center, size, rotationDeg` from the

@@ -65,7 +65,8 @@ Start of EVERY session, in this order:
   CC BY-NC-SA 4.0) are test/research only — never shipped in
   `client/public/`.
 - Binaries live in `test-assets/cache/` (gitignored), fetched by
-  `npm run assets:fetch`, verified by hash. Never commit them.
+  `npm run assets:fetch` (created in item 0.3), verified by hash. Never
+  commit them.
 - Each feature's E2E runs on at least one real plan from the corpus end
   to end: import → recognize/edit → simulate → compliance → PDF → 3D.
 

@@ -10,9 +10,11 @@ termination column (60 °C for circuits ≤100 A, 75 °C above,
 equipment grounding conductor (Table 2.50.6.13), and greedy phase
 balancing.
 
-- `index.ts` — sizing functions (`sizeBranchCircuit`, `sizeConductor`,
-  `effectiveAmpacity`, `terminationTempFor`, `smallConductorLimit`,
-  `sizeEquipmentGroundingConductor`, `balancePhases`).
+- `index.ts` — sizing functions (`requiredAmps`, `sizeBreaker`,
+  `sizeBranchCircuit`, `sizeConductor`, `effectiveAmpacity`,
+  `terminationTempFor`, `smallConductorLimit`,
+  `sizeEquipmentGroundingConductor`, `balancePhases`,
+  `balanceThreePhase`).
 - `pec-table-3-10-1.ts` — PEC-VERIFY ampacity (TW = 60 °C, THW = 75 °C,
   THHN = 90 °C columns) + resistance data.
 - `breaker-sizes.ts` — PEC-VERIFY standard ratings.

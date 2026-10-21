@@ -9,7 +9,11 @@ objective, per-room illuminance analysis, and the lux heatmap.
 - `auto-place.ts` — per-room fixture generation; outputs ordinary
   `ElectricalLoad`s so lighting flows through circuits/sizing/routing.
 - `analysis.ts` — room average-lux vs target + heatmap samples.
+- `daylight.ts` — simplified daylight factor per room; advisory only,
+  never reduces the code-required fixture count (constants come from
+  `lighting-data.ts`).
 - `lighting-data.ts` — LIGHTING-VERIFY flagged targets/factors.
+- `index.ts` — barrel export.
 
 All illuminance targets are placeholders pending licensed-EE
 verification; never present them as authoritative.

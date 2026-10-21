@@ -126,7 +126,7 @@ python scripts/train_yolo.py --dataset merged
 ```
 
 `merge_datasets.py` remaps every source's classes onto the unified
-13-class taxonomy (`scripts/cubicasa_svg.py` `CLASSES`), stratifies the
+19-class taxonomy (`scripts/cubicasa_svg.py` `CLASSES`), stratifies the
 val split across sources, prefixes filenames with their source (so
 per-source validation metrics stay computable), and oversamples small
 sources via repeated `train.txt` entries — add a `SOURCE_CLASS_MAPS`
@@ -139,6 +139,9 @@ pytest tests/
 ```
 
 Without weights, the model tests skip and only the fusion/API tests run.
+Those skips are allowlisted debt (`scripts/hygiene-allowlist.json`), not
+a pass: item V3 replaces them with real-fixture tests that fail when
+weights or fixtures are missing.
 With weights, the suite catches a model that silently regressed (stopped
 detecting doors, collapsed to all-background walls). Add a handful of
 real PH floor plan images to `tests/fixtures/` per its README — that's

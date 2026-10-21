@@ -9,7 +9,7 @@
     "dev:server": "npm run dev --prefix server",
     "build": "npm run build --prefix client && npm run build --prefix server",
     "test": "npm test --prefix server",
-    "install:all": "npm install --prefix client && npm install --prefix server",
+    "install:all": "cd client && npm install && cd ../server && npm install",
     "tunnel": "cloudflared tunnel run solence",
     "prepare": "git config core.hooksPath .githooks",
     "gate": "node scripts/gate.mjs",

@@ -14,6 +14,10 @@ rejection clause otherwise blocks the work).
 
 ## 1. What exists today (verified)
 
+State at `f197ddf`, before the revamp. Since then W1b replaced the A*
+router (weighted Dijkstra, counted wall penetrations) and W2 took the
+rules from 9 to 13 — see docs/RECONCILE.md (b).
+
 | Layer | State | Evidence |
 | --- | --- | --- |
 | Engine (`server/src/engine`) | **Strong.** Routing (A* on raster grid), PEC load calc + demand factors, breaker/conductor sizing, 9 compliance rules, lumen-method lighting + photometrics, vision import, PDF export | 95/95 vitest tests pass, `tsc` clean |

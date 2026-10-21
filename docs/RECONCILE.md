@@ -79,4 +79,51 @@ were marked done without a test.
 
 ## Upstream changes
 
-(none at reconciliation time — M0 appends here if `main` moved)
+M0, 2026-10-21: `git log f197ddf..origin/main` is empty — `main` had not
+moved, so the bundle fast-forwarded onto `revamp` (no merge commit, no
+conflicts).
+
+- (a) Kept from upstream: nothing new to keep.
+- (b) Conflicts: none.
+- (c) Doc statements made false by upstream: none.
+- (d) New upstream features/plans for the roadmap: none — ROADMAP.json
+  unchanged by this section.
+
+### Stale-doc re-check (M0)
+
+Every tracked `*.md` except `.claude/skills/` grepped against the code
+(routing, voltage system, rule list, npm scripts, file paths). Confirmed
+correct: 13 `ruleId`s in code = api.md list; `1P2W-230` default mirrored
+in both `types.ts` and the editor store; 230 V in load-calc. Fixed in place:
+
+| File | Was | Fixed to |
+|---|---|---|
+| CLAUDE.md §3 | `npm run assets:fetch` as if it exists | "(created in item 0.3)" |
+| .claude/rules/frontend.md | `npm run check:tokens` as if it exists | "(created in item 0.6; post-edit hook blocks new hex until then)" |
+| docs/REVAMP-PLAN.md §1 | "A* on raster grid … 9 compliance rules" read as current | dated as the `f197ddf` state; points to W1b/W2 |
+| docs/WIRING-AUDIT.md F-16 | "Letter/A4 … no legend" | A4 (code), circuit legend exists; PH symbol legend missing |
+| server/docs/api.md | recognize row `/api/projects/:id/recognize` under an `/api` base URL | `/projects/:id/recognize` |
+| server/README.md | routes "(projects, loads, simulate, lighting, export)"; middleware without rate limit | real files `health.ts`/`projects.ts`/`vision.ts`; `rate-limit.ts` |
+| server/src/engine/README.md | no `vision-import.ts` | listed |
+| server/src/engine/sizing/README.md | export list missing `requiredAmps`, `sizeBreaker`, `balanceThreePhase` | complete |
+| server/src/engine/lighting/README.md | no `daylight.ts`, `index.ts` | listed (daylight is advisory) |
+| server/src/engine/pdf/README.md | "no … legend" (code draws a circuit legend) | no PH symbol legend / notes / one-line |
+| server/src/engine/routing/rasterizer.ts (comment) | "grid for the A* router" | "conduit router" |
+| client/README.md | routes omit `/` and `/about` | listed |
+| solence-vision/README.md | `/health` = `{"unet":true,"yolo":true}`; "GFCI/AFCI rules" (no AFCI rule exists); `CLASSES` in `convert_to_yolo.py`; allowlist path | real `/health` body + "weights live on FormLabs3B, fresh clone → 503"; GFCI + required circuits; `cubicasa_svg.py`; repo-root path |
+| solence-vision/scripts/README.md | run order omits `convert_floorplancad.py`, `merge_datasets.py` | added |
+| solence-vision/HOW-TO.md | "13-class taxonomy"; model-test skips presented as normal | 19 classes (`CLASSES`); skips = allowlisted debt → V3 |
+
+### Windows-only bugs found running the harness on the laptop (M0)
+
+The sandbox was Linux; two scripts misbehaved on Windows (npm 10.9.3):
+
+| File | Symptom | Fix |
+|---|---|---|
+| scripts/check-test-hygiene.mjs | allowlisted vision skips reported as failures — `relative()` gives `\` paths, the allowlist uses `/` | normalize to `/` (same as `.claude/hooks/post-edit.mjs`); allowlist untouched |
+| package.json `install:all` | `npm install --prefix <dir>` (either flag order) added `"solence-monorepo": "file:.."` to client/server `package.json` + a junction to the repo root | `cd client && npm install && cd ../server && npm install` |
+
+Left as is on purpose: AUDIT.md (July, historical — "13 classes" was true
+then); docs/PROMPTS.md and REVAMP-PLAN.md naming scripts that their own
+items create (`assets:fetch`, `refs:capture`, `check:*`);
+`.claude/rules/three-d.md` already says when its scripts arrive.

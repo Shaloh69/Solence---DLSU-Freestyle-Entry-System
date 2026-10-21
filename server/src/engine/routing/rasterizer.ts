@@ -1,7 +1,7 @@
 /**
  * Floor-plan-to-grid rasterizer.
  *
- * Converts wall segments into a walkability grid for the A* router:
+ * Converts wall segments into a walkability grid for the conduit router:
  *  - `blocked`  — cell center lies inside a wall body (the router may
  *                 cross it as a costed penetration, never run along it)
  *  - `nearWall` — cell center lies within the standoff band around a wall

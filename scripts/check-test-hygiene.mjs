@@ -34,7 +34,7 @@ function walk(d) {
     if (!rules) continue;
     const lines = readFileSync(p, "utf8").split("\n");
     lines.forEach((line, i) => {
-      for (const [re, name] of rules) if (re.test(line)) hits.push(`${relative(root, p)}:${i + 1}  ${name}`);
+      for (const [re, name] of rules) if (re.test(line)) hits.push(`${relative(root, p).replace(/\\/g, "/")}:${i + 1}  ${name}`);
     });
   }
 }

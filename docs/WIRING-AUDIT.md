@@ -56,7 +56,7 @@ vertical drop to the device. Wires are not selectable or editable.
 | F-13 | No derating: >3 current-carrying conductors in a raceway (0.80/0.70/0.50) or ambient >30 °C (PH ceilings run 35–40 °C: ×0.91/0.82 at 60 °C). No conduit size / fill (40% for >2 conductors). | sizing | 🔜 W6 |
 | F-14 | `general-lighting-basis` fires on every real plan: the engine *warns* that LED load is below 24 VA/m² instead of *using* the unit load in the feeder calc, as the code requires. | real-plan run | 🔜 W8 |
 | F-15 | Feeder/service: no service entrance, kWh meter, grounding electrode conductor, one-line/riser diagram. Permit needs a one-line diagram + schedule of loads + design analysis (>70 A main). | OCBO permit list | 🔜 W7, W9 |
-| F-16 | PDF: Letter/A4, built-in Helvetica (can't print `²`/`⚠`), no title block, no legend/notes/one-line. | audit 2026-10-16 | 🔜 W9 |
+| F-16 | PDF: A4 (not A3), built-in Helvetica (can't print `²`/`⚠`), no title block, no PH symbol legend/notes/one-line (circuit legend only). | audit 2026-10-16 | 🔜 W9 |
 | F-17 | Wires are not editable: no manual route, no assigning a load to a circuit, no locking a route. | editor-store actions | 🔜 W10 |
 | F-18 | CAD editing gaps (see §4). | editor-store | 🔜 W10–W12 |
 | F-19 | Layers: 8 on/off toggles only — no presets ("electrical plan without furniture"), lock, per-view state, persistence. No tests. | LayersPanel | 🔜 W4 |

@@ -7,7 +7,8 @@ paths:
 # Frontend rules (client/)
 
 - Read `DESIGN.md` §2–§6 before editing any UI file. Tokens only:
-  `npm run check:tokens` fails on any hex, font, radius, shadow, or
+  `npm run check:tokens` (created in item 0.6; until then the post-edit
+  hook blocks new raw hex) fails on any hex, font, radius, shadow, or
   duration not defined in DESIGN.md.
 - UI primitives live in `client/components/ui/` and nowhere else. Screens
   import primitives; they never restyle HeroUI/Radix directly.

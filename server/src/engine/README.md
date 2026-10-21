@@ -31,6 +31,9 @@ relies on.
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).
+- `vision-import.ts` — converts a solence-vision `/recognize` result
+  (pixel walls/openings/rooms) into a `FloorPlan` in meters
+  (`VISION-VERIFY` assumed scale until item V1).
 
 ## Extending
 

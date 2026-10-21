@@ -7,8 +7,11 @@ Express API's rasterizer consumes from manually drawn plans, so the
 routing/compliance engine never knows the plan came from a model.
 
 **Status: both models trained.** U-Net (wall segmentation) and YOLO26-seg
-(door/window/room detection) are trained and loaded — `/health` reports
-`{"unet":true,"yolo":true}`. The core simulator does not depend on this
+(door/window/room detection) are trained; the weights are gitignored and
+live on FormLabs3B, where `/health` reports
+`{"status":"ok","service":"solence-vision","models":{"unet":true,"yolo":true}}`.
+A fresh clone has no weights: `models` is all `false` and `/recognize`
+returns 503. The core simulator does not depend on this
 service existing, but recognition is live, not just scaffolded.
 
 ## What lives here
@@ -20,7 +23,7 @@ service existing, but recognition is live, not just scaffolded.
 - `scripts/` — idempotent dataset/training automation; see its README.
 - `tests/` — pytest suite: fusion + API contract tests run with no
   models. The model regression tests still `pytest.skip` without weights
-  or fixture images — allowlisted debt (`scripts/hygiene-allowlist.json`)
+  or fixture images — allowlisted debt (repo-root `scripts/hygiene-allowlist.json`)
   that item V3 replaces with real-fixture tests that fail loudly.
 - `data/`, `models/` — gitignored payloads (datasets, weights); the
   scripts are what's checked in.
@@ -32,8 +35,8 @@ U-Net (ResNet encoder, `segmentation_models_pytorch`) segments walls;
 YOLO26-seg (`ultralytics`, NMS-free end-to-end) detects doors/windows/
 room instances; the
 fusion step cuts wall segments where opening boxes intersect them.
-Room-type labels feed the GFCI/AFCI compliance rules in the Express
-engine.
+Room-type labels feed the room-based compliance rules in the Express
+engine (GFCI locations, required 20 A branch circuits).
 
 ## Hosting (Cloudflare Tunnel)
 
@@ -60,7 +63,7 @@ in `scripts/` exactly as documented in [HOW-TO.md](HOW-TO.md).
 - New dataset: register it in `scripts/_common.py` `DATASETS`, then the
   whole `download → convert → verify → train` chain works with
   `--dataset <name>`.
-- New detection class: add it to `CLASSES` in `scripts/convert_to_yolo.py`
+- New detection class: add it to `CLASSES` in `scripts/cubicasa_svg.py`
   and (if it's an opening/room) teach `app/fusion.py` about it.
 - Retrained a model? Run `pytest tests/` before deploying — that's the
   regression gate.
