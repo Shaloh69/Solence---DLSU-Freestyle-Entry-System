@@ -1,0 +1,3 @@
+#!/bin/sh
+# Same gate as Claude Code's commit hook, for every commit (CLAUDE.md §1).
+exec node scripts/gate.mjs
