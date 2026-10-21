@@ -4,9 +4,10 @@ How to use: the very first time, paste **Kickoff (M0)** — it merges the
 revamp into your repo. After that you never hunt for prompts: every
 session ends with a **SESSION HANDOFF** block (progress % + the exact
 prompt for the next session). Type `/clear`, paste that prompt, repeat.
-One item per session.
-When the gate passes and Claude has committed, run `/clear` and start the
-next item. Everything Claude must obey is already in `CLAUDE.md`,
+One item at a time. When the gate passes and Claude has committed, it
+carries on with the next item in the same session while context is
+fresh (`CONTINUING WITH <id>`); it hands off only when context runs long,
+it's blocked on you, or you say stop. Everything Claude must obey is already in `CLAUDE.md`,
 `.claude/rules/`, `DESIGN.md` and enforced by hooks — the prompts only
 point at the work.
 
@@ -85,7 +86,9 @@ the current code first, (3) name the real-plan or real-asset data they
 use. Wait for my OK on that list, then build. You are done only when
 `node scripts/gate.mjs` passes, STATE.md and ROADMAP.json mark the item
 done with the next one in progress, and the commit went through the
-pre-commit gate. Then end with the output of `npm run handoff`, verbatim.
+pre-commit gate. Then, if context is still fresh, continue with the next
+item in this session (CLAUDE.md §5); otherwise end with the output of
+`npm run handoff`, verbatim.
 ```
 
 ## Utility prompts

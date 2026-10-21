@@ -88,8 +88,12 @@ Start of EVERY session, in this order:
 
 ## 5. Context management
 
-- One item per session. After its gate passes: update STATE.md and
-  ROADMAP.json, commit, then end with the session handoff (§9).
+- One item at a time. After its gate passes: update STATE.md and
+  ROADMAP.json, commit. Then, if context is still fresh (no compaction
+  this session and well under half the window used), **don't end the
+  session**: show the progress block, put `CONTINUING WITH <next id>` on
+  its own line, and start the next item's prompt from docs/PROMPTS.md in
+  this session (pre-build list first, wait for OK). Otherwise hand off (§9).
 - If a session runs long, `/compact` with a focus line, e.g.
   "keep: current item, failing checks, files touched".
 - Broad searches go to the `Explore` subagent; take its conclusion, not
@@ -149,16 +153,18 @@ Start of EVERY session, in this order:
   Never write the next prompt yourself and never paraphrase it — it is
   assembled from docs/PROMPTS.md for the item ROADMAP.json has
   in-progress.
-- "End of a session" means any of: the item passed and was committed;
-  the user says stop, pause, or done for today; you are blocked waiting
-  on the user's decision; the context is getting long and you are about
-  to suggest `/compact` or `/clear`. Mid-item, update STATE.md first so
-  the resume prompt picks up where you stopped.
+- "End of a session" means any of: the user says stop, pause, or done
+  for today; you are blocked waiting on the user's decision (beyond the
+  next item's pre-build OK); the context is getting long and you are
+  about to suggest `/compact` or `/clear`. An item passing is not by
+  itself the end — continue per §5 while context is fresh. Mid-item,
+  update STATE.md first so the resume prompt picks up where you stopped.
 - Before running it: ROADMAP.json and STATE.md must name the right
   in-progress item (the next unblocked todo item after the one that
   passed).
 - Enforced: after a commit in a session, the Stop hook won't let the
-  session end until a reply contains the `SESSION HANDOFF` block; the
+  session end until a reply contains the `SESSION HANDOFF` block or a
+  `CONTINUING WITH <id>` line naming ROADMAP's in-progress item; the
   gate's `handoff` step fails if any remaining item has no prompt.
 - New roadmap items need a `### <id> — title` prompt in docs/PROMPTS.md
   in the same commit.

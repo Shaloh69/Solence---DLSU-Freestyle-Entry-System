@@ -62,14 +62,24 @@ function lastAssistantText() {
 
 const text = lastAssistantText();
 if (text === null) process.exit(0);
-if (text.includes(MARKER)) {
+// Continuing in the same session (CLAUDE.md §5) is fine once the bookkeeping
+// names the next item: the reply says `CONTINUING WITH <in-progress id>`.
+let nowId = "";
+try {
+  nowId = JSON.parse(readFileSync(join(root, "docs/ROADMAP.json"), "utf8")).items.find((i) => i.status === "in-progress")?.id ?? "";
+} catch {}
+const continuing = text.match(/^CONTINUING WITH (\S+)/m)?.[1];
+if (text.includes(MARKER) || (continuing && continuing === nowId)) {
   mkdirSync(art, { recursive: true });
   writeFileSync(handedFile, head);
   process.exit(0);
 }
 if (input.stop_hook_active) process.exit(0);
 block(
-  "You committed work this session but haven't given the handoff (CLAUDE.md §9). " +
-    "Make sure ROADMAP.json and STATE.md name the next in-progress item, run `npm run handoff`, " +
-    "and paste its full output verbatim at the end of your reply."
+  (continuing
+    ? `Your reply says CONTINUING WITH ${continuing}, but ROADMAP.json has ${nowId || "no item"} in-progress. `
+    : "You committed work this session but haven't handed off or continued (CLAUDE.md §5, §9). ") +
+    "Make sure ROADMAP.json and STATE.md name the next in-progress item, then either put " +
+    "`CONTINUING WITH <that id>` on its own line and start it (context still fresh), or run " +
+    "`npm run handoff` and paste its full output verbatim at the end of your reply."
 );

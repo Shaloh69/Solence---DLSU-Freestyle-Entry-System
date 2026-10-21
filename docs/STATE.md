@@ -37,6 +37,7 @@ Keep under 60 lines. Update at every gate result.
 - 2026-10-21: Progress = docs/ROADMAP.json weighted points; July AUDIT.md open items became Phase V (V1–V4).
 
 - 2026-10-21: Laptop working copy = D:\Projects-Shem\Websites\2026-2027\Solence (real path, not the C:\Projects junction); kickoff files kept in ..\_kickoff\.
+- 2026-10-21: User: a passed item doesn't end the session — continue with the next item while context is fresh (`CONTINUING WITH <id>`, accepted by the Stop hook); hand off only when context runs long, blocked, or told to stop.
 - 2026-10-21: `install:all` runs `npm install` inside each folder — `npm install --prefix` adds the root package as a dependency on npm 10.9.3/Windows.
 
 ## Open questions for the user

@@ -112,7 +112,7 @@ node scripts/gate.mjs  ──fail──► fix the cause (never the check) ─�
 design-review subagent (UI items) ──fail───────────────────────────┘
         │ pass + user sign-off
         ▼
-STATE.md updated → commit (hook re-runs full gate) → /clear → next item
+STATE.md updated → commit (hook re-runs full gate) → next item (same session while context is fresh, else handoff + /clear)
 ```
 
 Enforcement that already exists and was tested (see §7):
@@ -134,7 +134,7 @@ Enforcement that already exists and was tested (see §7):
 ## 4. Phases
 
 ### Phase 0 — Harness (before any feature; nothing else starts until done)
-Each item = one session, one gate pass. Flip its gate step to
+Each item = one gate pass (one at a time). Flip its gate step to
 `required: true` the moment it exists.
 - 0.1 Verify gate + hooks on the laptop (where Claude Code runs).
 - 0.1b FormLabs3B on the tailnet, OpenSSH, repo + gate, vision service
@@ -329,7 +329,7 @@ emergency fallback.
 - `docs/STATE.md` is the handoff: current item, last gate line, next
   items, decisions, open questions. The SessionStart hook injects it, so
   every fresh session starts oriented without re-reading the repo.
-- One item per session → gate → commit → `/clear`. Long session →
+- One item at a time → gate → commit → next item while context is fresh (CLAUDE.md §5), else handoff → `/clear`. Long session →
   `/compact` with an explicit "keep" list.
 - Logs and screenshots go to `.artifacts/`; Claude reads
   `.artifacts/gate-summary.md` (the gate writes only failing tails into
