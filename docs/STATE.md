@@ -5,12 +5,12 @@ Keep under 60 lines. Update at every gate result.
 
 ## Now
 - Phase: **0 / W — Harness + wiring realism** (docs/REVAMP-PLAN.md §4, docs/WIRING-AUDIT.md)
-- Item: `W1 real-plan corpus (ResPlan) + engine runs on real plans`
+- Item: `W1b routing model: reach every room, no through-wall stubs`
 - Status: in-progress
 - Last gate: full PASSED 2026-10-21 (after 0.2)
 
 ## Next (in order, one at a time)
-1. W1 ResPlan converter + pinned test-split plans + server tests over every real plan
+1. W1b Router: wall penetration at a cost (concealed conduit), device snapping on its own room side; tests: every load routed on all 12 plans, no route crosses a wall except at a counted penetration
 2. W2 PEC sizing: small-conductor limits (2.40.1.4(D)), 60 °C termination column ≤100 A, EGC per Table 2.50.6.13, PH 230 V system as default
 3. W3 Wiring topology: device-to-device circuit runs (home run + chain), L/N/G conductor set, wire bill of materials
 4. W4 Layer views: presets (electrical/power/lighting/furniture/architectural/all) + lock; E2E on a real plan, 2D DOM + 3D pixel diff
@@ -20,6 +20,7 @@ Keep under 60 lines. Update at every gate result.
 8. 0.6 `check:tokens`, `test:a11y`, `check:motion`, `check:render`, `check:pdf`
 
 ## Passed
+- W1 (2026-10-21) 12 ResPlan test-split plans (1/2/3/4+ BR) converted + committed with attribution; wall IoU 0.95–0.96, 100% openings matched. tests/real-plans.test.ts: 85 checks (contract, full simulate, one circuit per load, protection, dedicated appliances, schedule totals, PDF). Found: unreachable rooms (resplan-8), through-wall stubs, 1.5 km star wiring → W1b/W3.
 - 0.2 (2026-10-21) self-hosted current fonts via next/font/local + @fontsource (no visual change; Archivo waits for Phase C); `.githooks/pre-commit` runs the full gate; `npm install` sets core.hooksPath. Gate: full PASSED.
 
 ## Decisions

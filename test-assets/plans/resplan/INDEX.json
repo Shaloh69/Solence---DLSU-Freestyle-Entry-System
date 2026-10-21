@@ -1,0 +1,255 @@
+{
+  "source": "https://github.com/m-agour/ResPlan",
+  "license": "CC BY 4.0 (data), MIT (code)",
+  "attribution": "ResPlan: A Large-Scale Vector-Graph Dataset of 17,000 Residential Floor Plans (m-agour/ResPlan)",
+  "sourceSha256": {
+    "ResPlan.zip": "f718de8865e51bbe93b49b584798e3c536ed6b4b8a5d32f01b56812f389aeb46",
+    "split.json": "7761df4ad4c860d7e89d1ef9c7004737cd407615b66ed9cde676d7087108c9a7"
+  },
+  "converter": "scripts/resplan/convert_resplan.py",
+  "selection": "test split, ascending id, 3 per bedroom bucket (1/2/3/4+), sanity checks pass",
+  "tried": 12,
+  "rejected": 0,
+  "plans": [
+    {
+      "file": "resplan-72.json",
+      "bedroomBucket": "1",
+      "source": "ResPlan",
+      "resplanId": 72,
+      "metersPerUnit": 0.03649,
+      "wallThicknessM": 0.177,
+      "wallIoU": 0.9568,
+      "openingMatchRate": 1.0,
+      "doors": 6,
+      "windows": 9,
+      "rooms": {
+        "bedroom": 1,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "stair": 1
+      }
+    },
+    {
+      "file": "resplan-444.json",
+      "bedroomBucket": "1",
+      "source": "ResPlan",
+      "resplanId": 444,
+      "metersPerUnit": 0.03276,
+      "wallThicknessM": 0.159,
+      "wallIoU": 0.9521,
+      "openingMatchRate": 1.0,
+      "doors": 6,
+      "windows": 3,
+      "rooms": {
+        "bedroom": 1,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 2
+      }
+    },
+    {
+      "file": "resplan-455.json",
+      "bedroomBucket": "1",
+      "source": "ResPlan",
+      "resplanId": 455,
+      "metersPerUnit": 0.03235,
+      "wallThicknessM": 0.167,
+      "wallIoU": 0.9608,
+      "openingMatchRate": 1.0,
+      "doors": 4,
+      "windows": 5,
+      "rooms": {
+        "bedroom": 1,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1
+      }
+    },
+    {
+      "file": "resplan-8.json",
+      "bedroomBucket": "2",
+      "source": "ResPlan",
+      "resplanId": 8,
+      "metersPerUnit": 0.03984,
+      "wallThicknessM": 0.192,
+      "wallIoU": 0.9626,
+      "openingMatchRate": 1.0,
+      "doors": 7,
+      "windows": 8,
+      "rooms": {
+        "bedroom": 2,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 2
+      }
+    },
+    {
+      "file": "resplan-69.json",
+      "bedroomBucket": "2",
+      "source": "ResPlan",
+      "resplanId": 69,
+      "metersPerUnit": 0.05124,
+      "wallThicknessM": 0.215,
+      "wallIoU": 0.9583,
+      "openingMatchRate": 1.0,
+      "doors": 6,
+      "windows": 6,
+      "rooms": {
+        "bedroom": 2,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "storage": 1,
+        "balcony": 1
+      }
+    },
+    {
+      "file": "resplan-80.json",
+      "bedroomBucket": "2",
+      "source": "ResPlan",
+      "resplanId": 80,
+      "metersPerUnit": 0.04859,
+      "wallThicknessM": 0.181,
+      "wallIoU": 0.9539,
+      "openingMatchRate": 1.0,
+      "doors": 7,
+      "windows": 12,
+      "rooms": {
+        "bedroom": 2,
+        "bathroom": 2,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 1
+      }
+    },
+    {
+      "file": "resplan-1.json",
+      "bedroomBucket": "3",
+      "source": "ResPlan",
+      "resplanId": 1,
+      "metersPerUnit": 0.04479,
+      "wallThicknessM": 0.217,
+      "wallIoU": 0.9649,
+      "openingMatchRate": 1.0,
+      "doors": 9,
+      "windows": 8,
+      "rooms": {
+        "bedroom": 3,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 1
+      }
+    },
+    {
+      "file": "resplan-59.json",
+      "bedroomBucket": "3",
+      "source": "ResPlan",
+      "resplanId": 59,
+      "metersPerUnit": 0.04397,
+      "wallThicknessM": 0.155,
+      "wallIoU": 0.9534,
+      "openingMatchRate": 1.0,
+      "doors": 9,
+      "windows": 10,
+      "rooms": {
+        "bedroom": 3,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 2
+      }
+    },
+    {
+      "file": "resplan-71.json",
+      "bedroomBucket": "3",
+      "source": "ResPlan",
+      "resplanId": 71,
+      "metersPerUnit": 0.05826,
+      "wallThicknessM": 0.228,
+      "wallIoU": 0.9584,
+      "openingMatchRate": 1.0,
+      "doors": 8,
+      "windows": 7,
+      "rooms": {
+        "bedroom": 3,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 1
+      }
+    },
+    {
+      "file": "resplan-124.json",
+      "bedroomBucket": "4+",
+      "source": "ResPlan",
+      "resplanId": 124,
+      "metersPerUnit": 0.0692,
+      "wallThicknessM": 0.232,
+      "wallIoU": 0.9567,
+      "openingMatchRate": 1.0,
+      "doors": 10,
+      "windows": 15,
+      "rooms": {
+        "bedroom": 4,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 2
+      }
+    },
+    {
+      "file": "resplan-125.json",
+      "bedroomBucket": "4+",
+      "source": "ResPlan",
+      "resplanId": 125,
+      "metersPerUnit": 0.06226,
+      "wallThicknessM": 0.232,
+      "wallIoU": 0.9616,
+      "openingMatchRate": 1.0,
+      "doors": 10,
+      "windows": 15,
+      "rooms": {
+        "bedroom": 4,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 2
+      }
+    },
+    {
+      "file": "resplan-249.json",
+      "bedroomBucket": "4+",
+      "source": "ResPlan",
+      "resplanId": 249,
+      "metersPerUnit": 0.05653,
+      "wallThicknessM": 0.173,
+      "wallIoU": 0.9573,
+      "openingMatchRate": 1.0,
+      "doors": 9,
+      "windows": 9,
+      "rooms": {
+        "bedroom": 4,
+        "bathroom": 3,
+        "kitchen": 1,
+        "living": 1,
+        "inner": 1,
+        "balcony": 1
+      }
+    }
+  ]
+}
