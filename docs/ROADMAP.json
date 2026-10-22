@@ -98,6 +98,13 @@
       "title": "Vision on the laptop: CUDA venv, data on C: (SOLENCE_VISION_DATA), CubiCasa5K prepared + fit-tested, training started, service on localhost:8000"
     },
     {
+      "id": "V0b",
+      "phase": "V",
+      "weight": 1,
+      "status": "done",
+      "title": "Training robustness: cap YOLO image size at conversion, fewer dataloader workers, restart the laptop run (epoch-2 RAM crash)"
+    },
+    {
       "id": "W3",
       "phase": "W",
       "weight": 3,

@@ -24,11 +24,21 @@ function Invoke-Stage($name, $runDir, $last, [string[]]$fresh, [string[]]$resume
   Write-Output "$(Get-Date -Format s) $name start: $($argv -join ' ')" | Tee-Object -Append $log
   & $py @argv *>> $log
   # Keep this file ASCII: Windows PowerShell 5.1 reads BOM-less scripts as ANSI.
+  [GC]::Collect()  # release this launcher's own memory between stages
   if ($LASTEXITCODE -ne 0) { throw "$name failed (exit $LASTEXITCODE) - see $log, then re-run this script" }
   New-Item -ItemType Directory -Force $runDir | Out-Null
   Set-Content $done (Get-Date -Format s)
   Write-Output "$(Get-Date -Format s) $name done" | Tee-Object -Append $log
 }
+
+# Free memory for training: the local vision service (uvicorn from this venv)
+# holds torch in RAM and is not needed while training. It is restarted at the end.
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+  Where-Object { $_.CommandLine -like '*uvicorn*app.main:app*' } |
+  ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    Write-Output "$(Get-Date -Format s) stopped vision service pid $($_.ProcessId) to free memory"
+  }
 
 $yoloRun = Join-Path $data 'runs\yolo\cubicasa5k'
 Invoke-Stage 'yolo' $yoloRun (Join-Path $yoloRun 'weights\last.pt') `
@@ -39,3 +49,9 @@ $unetRun = Join-Path $data 'runs\unet\cubicasa5k'
 Invoke-Stage 'unet' $unetRun (Join-Path $unetRun 'last.pt') `
   @('scripts\train_unet.py', '--dataset', 'cubicasa5k', '--imgsz', '512', '--batch', '2', '--epochs', '40') `
   @('scripts\train_unet.py', '--dataset', 'cubicasa5k', '--imgsz', '512', '--batch', '2', '--epochs', '40', '--resume', (Join-Path $unetRun 'last.pt'))
+
+# Both models trained: bring the vision service back up on 127.0.0.1:8000 with the new weights.
+Start-Process -FilePath $py -ArgumentList '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000' `
+  -WorkingDirectory $vision -WindowStyle Hidden `
+  -RedirectStandardOutput (Join-Path $data 'logs\service.log') -RedirectStandardError (Join-Path $data 'logs\service.err.log')
+Write-Output "$(Get-Date -Format s) training finished; vision service started on 127.0.0.1:8000"

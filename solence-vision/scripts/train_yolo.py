@@ -65,6 +65,15 @@ def main() -> None:
         help="batch size (-1 = Ultralytics auto-batch from available VRAM)",
     )
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        # On Windows every worker is a new process that loads torch + CUDA
+        # (GBs of commit each), and validation adds more: the default 8,
+        # then 2, both exhausted the 16 GB laptop's commit limit.
+        help="dataloader worker processes (0 = load in the training process)",
+    )
+    parser.add_argument(
         "--resume",
         default="",
         help="continue an interrupted run from its weights/last.pt (keeps that run's settings)",
@@ -95,6 +104,7 @@ def main() -> None:
             epochs=args.epochs,
             imgsz=args.imgsz,
             batch=args.batch,
+            workers=args.workers,
             task="segment",
             project=str(RUNS / "yolo"),
             name=args.dataset,

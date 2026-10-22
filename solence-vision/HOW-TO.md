@@ -108,6 +108,12 @@ Weights land in `models/yolo/best.pt` and `models/unet/best.pt`
 (previous weights are kept timestamped, never overwritten). Runs and
 checkpoints stay under `data/runs/`.
 
+RAM, not just VRAM: some CubiCasa images are ~90 MP. `convert_to_yolo.py`
+writes images over `--max-side 2048` as downscaled copies, and
+`train_yolo.py` uses `--workers 0`. On Windows each dataloader worker is
+a separate process that loads torch + CUDA; with 8 (the Ultralytics
+default) and even 2 workers the 16 GB laptop hit its commit limit.
+
 Pick the YOLO26 scale with `--model` (`yolo26n-seg.pt` … `yolo26x-seg.pt`;
 default `yolo26m-seg.pt`) and the batch size with `--batch` (default `-1`
 = auto-fit to VRAM). Verified limits: a 4 GB RTX 3050 Laptop **cannot**

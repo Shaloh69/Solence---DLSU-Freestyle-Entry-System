@@ -12,7 +12,7 @@ it's blocked on you, or you say stop. Everything Claude must obey is already in 
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → V0 → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
+M0 → 0.1 → V0 → V0b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
 W8 → W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → V5 → D → E
 (V4 waits for your dataset-license decision.)
 
@@ -161,6 +161,18 @@ the app with uvicorn on 127.0.0.1:8000 and confirm /health answers; tell
 me the exact VISION_URL line for server/.env. CubiCasa5K is CC BY-NC-SA:
 these weights are research/demo-only until V5. Record in STATE.md, mark
 V0 done, set W3 in-progress, commit, show progress.
+```
+
+### V0b — Training robustness on 16 GB RAM
+```
+Item V0b. The laptop YOLO run died at epoch 2: a dataloader worker ran
+out of RAM decoding a ~90 MP CubiCasa image. Cap image size when
+convert_to_yolo writes images (longest side 2048; labels are normalized,
+so they stay valid; never write through a hardlink to raw/), with a
+pytest that fails on the current code. Lower dataloader workers in
+train_yolo.py. Regenerate the YOLO dataset, verify it, restart
+train-laptop.ps1 detached and confirm it gets past epoch 2. Record in
+STATE.md, mark V0b done, set W3 in-progress, commit, show progress.
 ```
 
 ### W3 — Circuit topology (device to device)

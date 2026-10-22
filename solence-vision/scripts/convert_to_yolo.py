@@ -1,7 +1,7 @@
 """Convert a raw dataset into YOLO instance-segmentation format.
 
 Usage:
-    python scripts/convert_to_yolo.py --dataset cubicasa5k [--force]
+    python scripts/convert_to_yolo.py --dataset cubicasa5k [--force] [--max-side 2048]
 
 Output: data/yolo/<dataset>/ with images/{train,val}/, labels/{train,val}/,
 and data.yaml (classes: door, window, room_* — see cubicasa_svg.CLASSES).
@@ -9,7 +9,10 @@ and data.yaml (classes: door, window, room_* — see cubicasa_svg.CLASSES).
 Two source layouts are supported, detected automatically:
 1. CubiCasa5K original (model.svg per sample + train/val/test.txt) —
    the SVG polygons are parsed directly (brief §7.3). Images are
-   hardlinked when possible to avoid duplicating ~5 GB.
+   hardlinked when possible to avoid duplicating ~5 GB; images whose
+   longest side exceeds --max-side are written as downscaled copies
+   instead (some are ~90 MP — decoding those in dataloader workers ran a
+   16 GB laptop out of RAM). Labels are normalized, so they stay valid.
 2. Generic COCO instance-seg JSON (any dataset providing polygon
    segmentation with matching category names).
 
@@ -35,6 +38,9 @@ from cubicasa_svg import (
 )
 
 
+MAX_IMAGE_SIDE = 2048  # training runs at imgsz 640-1024; more resolution is only RAM
+
+
 def link_or_copy(source: Path, target: Path) -> None:
     """Hardlink (same-volume, instant, no extra space) or fall back to copy."""
     if target.exists():
@@ -43,6 +49,32 @@ def link_or_copy(source: Path, target: Path) -> None:
         os.link(source, target)
     except OSError:
         shutil.copy2(source, target)
+
+
+def capped_size(width: int, height: int, max_side: int) -> tuple[int, int]:
+    longest = max(width, height)
+    if max_side <= 0 or longest <= max_side:
+        return width, height
+    scale = max_side / longest
+    return max(1, round(width * scale)), max(1, round(height * scale))
+
+
+def place_image(source: Path, target: Path, max_side: int = MAX_IMAGE_SIDE) -> None:
+    """Link small images; write a new, downscaled file for large ones.
+
+    The downscaled copy is a fresh file, never a write through a hardlink,
+    so raw/ is never modified.
+    """
+    from PIL import Image
+
+    if target.exists():
+        return
+    with Image.open(source) as image:
+        size = capped_size(*image.size, max_side)
+        if size == image.size:
+            link_or_copy(source, target)
+            return
+        image.convert("RGB").resize(size, Image.Resampling.BOX).save(target)
 
 
 def normalize(polygon: Polygon, width: int, height: int) -> list[str] | None:
@@ -73,7 +105,7 @@ def write_data_yaml(out_dir: Path) -> None:
 # CubiCasa5K SVG layout
 # ---------------------------------------------------------------------------
 
-def convert_cubicasa(root: Path, out_dir: Path) -> int:
+def convert_cubicasa(root: Path, out_dir: Path, max_side: int = MAX_IMAGE_SIDE) -> int:
     from PIL import Image
 
     total = 0
@@ -116,7 +148,7 @@ def convert_cubicasa(root: Path, out_dir: Path) -> int:
                 continue
 
             stem = sample_rel.replace("/", "_").replace("\\", "_")
-            link_or_copy(png, images_dir / f"{stem}.png")
+            place_image(png, images_dir / f"{stem}.png", max_side)
             (labels_dir / f"{stem}.txt").write_text(
                 "\n".join(lines), encoding="utf-8"
             )
@@ -180,6 +212,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--max-side",
+        type=int,
+        default=MAX_IMAGE_SIDE,
+        help="downscale images whose longest side exceeds this (0 = keep originals)",
+    )
     args = parser.parse_args()
 
     require_dataset_name(args.dataset)
@@ -189,7 +227,7 @@ def main() -> None:
     svg_root = cubicasa_root(raw)
     if svg_root:
         print(f"CubiCasa SVG layout detected at {svg_root}")
-        count = convert_cubicasa(svg_root, out_dir)
+        count = convert_cubicasa(svg_root, out_dir, args.max_side)
     else:
         coco_files = [
             f
