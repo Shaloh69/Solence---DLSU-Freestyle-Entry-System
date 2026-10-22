@@ -4,19 +4,21 @@ Read first every session (auto-injected by the SessionStart hook).
 Keep under 60 lines. Update at every gate result.
 
 ## Now
-- Phase: **V — Vision (laptop)**
-- Item: `V0 vision on the laptop: CUDA venv, data on C:, CubiCasa5K fit-tested, training started, service on localhost:8000`
-- Status: in-progress (re-plan committed; build next)
-- Last gate: GATE PASSED · full · 2026-10-21T11:58:32.859Z (laptop)
+- Phase: **0 — Harness**
+- Item: `0.1b FormLabs3B on the tailnet: OpenSSH, clone, app gate`
+- Status: in-progress — blocked on your manual steps at FormLabs3B (docs/MACHINES.md §1, §2, §4); not on the tailnet as of 2026-10-21
+- Training (V0 → V3): `solence-vision/scripts/train-laptop.ps1` running detached since 2026-10-22 23:26 (YOLO 100 ep ≈ 14 h, then U-Net 40 ep ≈ 7 h); logs `C:\SolenceData\vision\logs\train-*.log`; after a sleep/reboot re-run the script (resumes).
+- Last gate: GATE PASSED · full · 2026-10-22T15:30:45.046Z (laptop)
 - Progress: `npm run progress` (docs/ROADMAP.json is the source; never estimate by hand)
 
 ## Next (in order, one at a time — prompts in docs/PROMPTS.md)
-1. V0 vision on the laptop (now) · 2. 0.1b FormLabs3B on the tailnet (needs your manual steps there first)
+2. 0.1b FormLabs3B on the tailnet (now; needs your manual steps there first)
 3. W3 circuit topology · 4. W4 layer views + Playwright · 5. 0.3 real assets · 6. 0.5 refs capture · 7. 0.6 checks
 8. V3 vision tests + finish the laptop training runs · 9. W5 switches · 10. W6 derating · 11. W8 load calc · 12. W7 service + one-line · 13. W9 permit sheets
 14. A auth · 15. V2 WS catch-up · 16. V1 scale calibration · 17. W10 editing I · 18. W11 editing II · 19. C1–C4 design · 20. W12 DXF · 21. B · 21b. V5 ResPlan vision weights · 22. D hosting · 23. E pitch · (V4 blocked on dataset licenses)
 
 ## Passed
+- V0 (2026-10-22) Vision on the laptop. venv: torch 2.11.0+cu128 (CPU build from PyPI swapped out; wheels in C:\SolenceData\wheels) → cuda True, RTX 3050 Laptop. `SOLENCE_VISION_DATA` (user env, C:\SolenceData\vision) holds raw/yolo/unet/_previews/runs; weights stay in solence-vision/models; tests/test_data_root.py fails 2/2 on the old _common.py. CubiCasa5K (Kaggle qmarva/cubicasa5k v4, archive sha256 63D73353…F254E, CC BY-NC-SA) 5000 plans → YOLO 4199+400 (1 skipped: >89 MP image), U-Net 4200+400; verify_dataset passes both (one transient Errno 22 file lock on first YOLO run, likely AV), previews checked. Fit test 1 epoch: yolo26s-seg 640/2 8.5 min, 3878 MiB peak, val mAP50 box 0.42 / mask 0.41; U-Net 512/2 10.7 min, 1742 MiB, val_loss 0.155 (fit artifacts kept in runs/*/cubicasa5k-fit1, not served). train_yolo/train_unet: runs under the data root + `--resume` (U-Net now checkpoints every epoch); train-laptop.ps1 runs both, resumable. Service on 127.0.0.1:8000, /health 200 (models false until training ends). Vision pytest 21 passed, 2 allowlisted skips. Gate: GATE PASSED · full · 2026-10-22T15:30:45.046Z (laptop).
 - 0.1 (2026-10-21) Hooks probed live in Claude Code on the laptop. Bash: thresholds.json edit, `--no-verify` commit, playwright `--update-snapshots` all blocked by pre-tool; `it.only` flagged by post-edit + hygiene step (exit 1), reverted. FAILED before fix: the PowerShell tool bypassed pre-tool entirely (`--no-verify` reached git, `--update-snapshots` reached npx; nothing committed or written), and read-only `git config core.hooksPath` was blocked. Fixed: matcher adds PowerShell, hooksPath rule blocks only set/unset ≠ .githooks; re-probed live → blocked/allowed. New required fast gate step `hooks` (scripts/check-hooks.mjs, 19 cases; 7 fail on the old hook). Gate: GATE PASSED · full · 2026-10-21T11:58:32.859Z (laptop).
 - M0 (2026-10-21) Fresh clone of GitHub `main` (= f197ddf, upstream unmoved) → bundle fast-forwarded onto `revamp` (b7f786c), no conflicts. Stale-doc re-check fixed 16 files (vision README /health + AFCI + CLASSES, 13→19 classes, api.md recognize path, PDF legend wording, route/module lists, unbuilt scripts marked with their item). Windows fixes: hygiene path separators, `install:all` no longer adds a `file:..` self-dependency. Gate: GATE PASSED · full · 2026-10-21T09:53:28.334Z, 306 server tests.
 - 0.0 (2026-10-16) rules (CLAUDE.md, .claude/rules), hooks, gate runner, DESIGN.md v2, design-refs registry, asset manifest, REVAMP-PLAN.
@@ -43,6 +45,7 @@ Keep under 60 lines. Update at every gate result.
 - 2026-10-21: `install:all` runs `npm install` inside each folder — `npm install --prefix` adds the root package as a dependency on npm 10.9.3/Windows.
 
 ## Open questions for the user
+- Action: add `VISION_URL=http://localhost:8000` to `server/.env` (Claude can't read/write .env); keep the laptop plugged in and awake while training runs.
 - `scripts/hygiene-allowlist.json` (user-only) says the vision skips go in item 0.3; REVAMP-PLAN finding 17 and the docs say V3 — which one?
 - Domain choice (GitHub Student Pack vs DigitalPlat) — needed before Phase D.
 - Real PH plan set (with permission) for the permit-sheet reference + demo house.

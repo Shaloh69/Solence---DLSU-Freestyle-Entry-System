@@ -8,6 +8,9 @@ for smoke tests, l/x once label coverage stops being the bottleneck.
 Usage:
     python scripts/train_yolo.py --dataset cubicasa5k \
         [--model yolo26m-seg.pt] [--epochs 100] [--imgsz 1024] [--batch 8]
+    python scripts/train_yolo.py --dataset cubicasa5k --resume <run>/weights/last.pt
+
+Runs are written under <SOLENCE_VISION_DATA>/runs/yolo/ (see _common.py).
 
 Augmentation is configured for line-drawing floor plans, not photos
 (Phase 2 §7.2) — see FLOORPLAN_AUGMENTATION below and HOW-TO.md for the
@@ -22,7 +25,7 @@ import argparse
 import shutil
 from datetime import datetime
 
-from _common import DATA_YOLO, MODELS_YOLO, die, require_dataset_name
+from _common import DATA_YOLO, MODELS_YOLO, RUNS, die, require_dataset_name
 
 # Floor plans are near-monochrome line drawings — several Ultralytics
 # defaults are tuned for natural photos and are wrong here (§7.2):
@@ -61,6 +64,11 @@ def main() -> None:
         default=-1,
         help="batch size (-1 = Ultralytics auto-batch from available VRAM)",
     )
+    parser.add_argument(
+        "--resume",
+        default="",
+        help="continue an interrupted run from its weights/last.pt (keeps that run's settings)",
+    )
     args = parser.parse_args()
 
     require_dataset_name(args.dataset)
@@ -77,15 +85,21 @@ def main() -> None:
         die("ultralytics missing — pip install -r requirements.txt first.")
         return
 
-    model = YOLO(args.model)
-    results = model.train(
-        data=str(data_yaml),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        task="segment",
-        **FLOORPLAN_AUGMENTATION,
-    )
+    if args.resume:
+        model = YOLO(args.resume)
+        results = model.train(resume=True)
+    else:
+        model = YOLO(args.model)
+        results = model.train(
+            data=str(data_yaml),
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            batch=args.batch,
+            task="segment",
+            project=str(RUNS / "yolo"),
+            name=args.dataset,
+            **FLOORPLAN_AUGMENTATION,
+        )
 
     MODELS_YOLO.mkdir(parents=True, exist_ok=True)
     target = MODELS_YOLO / "best.pt"

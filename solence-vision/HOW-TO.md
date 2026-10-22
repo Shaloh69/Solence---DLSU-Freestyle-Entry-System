@@ -43,15 +43,23 @@ use Google Colab: clone the repo there, run the same scripts.
 (Provisioning paid GPU time is a team decision — don't burn budget
 without clearing it.)
 
+**Data root.** Datasets, converted copies, previews and training runs go
+under `SOLENCE_VISION_DATA` (default: `data/` in this folder). On the
+laptop it is a user env var, `C:\SolenceData\vision`, because the repo
+drive is too small. Paths below written as `data/...` mean
+`<SOLENCE_VISION_DATA>/...`. Served weights always stay in `models/`.
+
 ## 1. Download a dataset
 
 ```bash
 python scripts/download_datasets.py --dataset cubicasa5k
 ```
 
-Needs Kaggle credentials (`~/.kaggle/kaggle.json`, from your Kaggle
-account settings). Files land in `data/raw/cubicasa5k/`. Re-running
-skips if already present.
+Needs Kaggle credentials (`~/.kaggle/kaggle.json` or
+`~/.kaggle/access_token`, from your Kaggle account settings). Files land
+in `data/raw/cubicasa5k/`. Re-running skips if already present.
+CubiCasa5K is **CC BY-NC-SA 4.0**: weights trained on it are
+research/demo-only (item V5 retrains on ResPlan, CC BY 4.0).
 
 Shortcut worth taking: the COCO-converted CubiCasa5K mirror with
 pretrained weights at https://github.com/xmarva/floorplan-detection
@@ -83,10 +91,22 @@ hours on a mislabeled conversion.
 ```bash
 python scripts/train_yolo.py --dataset cubicasa5k --epochs 100   # yolo26m-seg default
 python scripts/train_unet.py --dataset cubicasa5k --epochs 40
+
+# Laptop (RTX 3050, 4 GB VRAM):
+python scripts/train_yolo.py --dataset cubicasa5k --model yolo26s-seg.pt --imgsz 640 --batch 2
+python scripts/train_unet.py --dataset cubicasa5k --imgsz 512 --batch 2
+
+# Or both, back to back, resumable — re-run the same command after a sleep/reboot:
+powershell -ExecutionPolicy Bypass -File scripts\train-laptop.ps1
+
+# Interrupted (sleep, reboot)? Pick up where it stopped:
+python scripts/train_yolo.py --dataset cubicasa5k --resume data/runs/yolo/cubicasa5k/weights/last.pt
+python scripts/train_unet.py --dataset cubicasa5k --resume data/runs/unet/cubicasa5k/last.pt --imgsz 512 --batch 2
 ```
 
 Weights land in `models/yolo/best.pt` and `models/unet/best.pt`
-(previous weights are kept timestamped, never overwritten).
+(previous weights are kept timestamped, never overwritten). Runs and
+checkpoints stay under `data/runs/`.
 
 Pick the YOLO26 scale with `--model` (`yolo26n-seg.pt` … `yolo26x-seg.pt`;
 default `yolo26m-seg.pt`) and the batch size with `--batch` (default `-1`

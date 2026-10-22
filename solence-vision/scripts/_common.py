@@ -6,15 +6,20 @@ versioning behave identically across the pipeline.
 
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_RAW = BASE_DIR / "data" / "raw"
-DATA_YOLO = BASE_DIR / "data" / "yolo"
-DATA_UNET = BASE_DIR / "data" / "unet"
-DATA_PREVIEWS = BASE_DIR / "data" / "_previews"
+# Datasets and training runs are large: SOLENCE_VISION_DATA moves them off
+# the repo drive (laptop: C:\SolenceData\vision). Served weights stay below.
+DATA_ROOT = Path(os.environ.get("SOLENCE_VISION_DATA") or BASE_DIR / "data")
+DATA_RAW = DATA_ROOT / "raw"
+DATA_YOLO = DATA_ROOT / "yolo"
+DATA_UNET = DATA_ROOT / "unet"
+DATA_PREVIEWS = DATA_ROOT / "_previews"
+RUNS = DATA_ROOT / "runs"
 MODELS_YOLO = BASE_DIR / "models" / "yolo"
 MODELS_UNET = BASE_DIR / "models" / "unet"
 
@@ -85,7 +90,7 @@ def require_raw(name: str) -> Path:
     path = DATA_RAW / name
     if not path.exists() or not any(path.iterdir()):
         die(
-            f"data/raw/{name} is empty — run "
+            f"{path} is empty — run "
             f"'python scripts/download_datasets.py --dataset {name}' first."
         )
     return path

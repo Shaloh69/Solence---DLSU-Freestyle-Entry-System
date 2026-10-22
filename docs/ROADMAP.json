@@ -94,14 +94,14 @@
       "id": "V0",
       "phase": "V",
       "weight": 2,
-      "status": "in-progress",
+      "status": "done",
       "title": "Vision on the laptop: CUDA venv, data on C: (SOLENCE_VISION_DATA), CubiCasa5K prepared + fit-tested, training started, service on localhost:8000"
     },
     {
       "id": "0.1b",
       "phase": "0",
       "weight": 2,
-      "status": "todo",
+      "status": "in-progress",
       "title": "FormLabs3B on the tailnet: OpenSSH, clone, app gate (blocked on manual setup at FormLabs3B)"
     },
     {

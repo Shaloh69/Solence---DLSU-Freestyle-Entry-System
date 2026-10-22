@@ -2,9 +2,12 @@
 
 Usage:
     python scripts/train_unet.py --dataset cubicasa5k [--epochs 40] [--encoder resnet34]
+    python scripts/train_unet.py --dataset cubicasa5k --resume <SOLENCE_VISION_DATA>/runs/unet/cubicasa5k/last.pt
 
 Saves the full model to models/unet/best.pt (previous weights kept as
-best-<timestamp>.pt). Needs a GPU for realistic training times.
+best-<timestamp>.pt). After every epoch a resumable checkpoint goes to
+<SOLENCE_VISION_DATA>/runs/unet/<dataset>/last.pt. Needs a GPU for
+realistic training times.
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from _common import DATA_UNET, MODELS_UNET, die, require_dataset_name
+from _common import DATA_UNET, MODELS_UNET, RUNS, die, require_dataset_name
 
 
 def main() -> None:
@@ -24,6 +27,7 @@ def main() -> None:
     parser.add_argument("--encoder", default="resnet34")
     parser.add_argument("--imgsz", type=int, default=512)
     parser.add_argument("--batch", type=int, default=8)
+    parser.add_argument("--resume", default="", help="continue from a run's last.pt checkpoint")
     args = parser.parse_args()
 
     require_dataset_name(args.dataset)
@@ -85,7 +89,17 @@ def main() -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     loss_fn = smp.losses.DiceLoss(mode="binary")
 
-    for epoch in range(args.epochs):
+    run_dir = RUNS / "unet" / args.dataset
+    run_dir.mkdir(parents=True, exist_ok=True)
+    start_epoch = 0
+    if args.resume:
+        checkpoint = torch.load(args.resume, map_location=device, weights_only=True)
+        model.load_state_dict(checkpoint["model"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        start_epoch = checkpoint["epoch"] + 1
+        print(f"Resuming from {args.resume} at epoch {start_epoch + 1}")
+
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total = 0.0
         for x, y in train_loader:
@@ -107,7 +121,11 @@ def main() -> None:
                     val_total += loss_fn(model(x), y).item()
             val_msg = f" val_loss {val_total / max(1, len(val_loader)):.4f}"
 
-        print(f"epoch {epoch + 1}/{args.epochs} loss {train_loss:.4f}{val_msg}")
+        print(f"epoch {epoch + 1}/{args.epochs} loss {train_loss:.4f}{val_msg}", flush=True)
+        torch.save(
+            {"epoch": epoch, "model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            run_dir / "last.pt",
+        )
 
     MODELS_UNET.mkdir(parents=True, exist_ok=True)
     target = MODELS_UNET / "best.pt"

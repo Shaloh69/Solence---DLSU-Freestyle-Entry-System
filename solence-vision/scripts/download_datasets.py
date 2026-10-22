@@ -21,7 +21,7 @@ def download(name: str) -> None:
     require_dataset_name(name)
     target = DATA_RAW / name
     if target.exists() and any(target.iterdir()):
-        print(f"data/raw/{name} already present — skipping download (delete it to re-pull).")
+        print(f"{target} already present — skipping download (delete it to re-pull).")
         return
 
     spec = DATASETS[name]
