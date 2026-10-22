@@ -4,17 +4,17 @@ Read first every session (auto-injected by the SessionStart hook).
 Keep under 60 lines. Update at every gate result.
 
 ## Now
-- Phase: **0 — Harness**
-- Item: `0.1b FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable`
-- Status: in-progress (manual part first: docs/MACHINES.md §1, §2, §4 at FormLabs3B)
+- Phase: **V — Vision (laptop)**
+- Item: `V0 vision on the laptop: CUDA venv, data on C:, CubiCasa5K fit-tested, training started, service on localhost:8000`
+- Status: in-progress (re-plan committed; build next)
 - Last gate: GATE PASSED · full · 2026-10-21T11:58:32.859Z (laptop)
 - Progress: `npm run progress` (docs/ROADMAP.json is the source; never estimate by hand)
 
 ## Next (in order, one at a time — prompts in docs/PROMPTS.md)
-1. 0.1b FormLabs3B on the tailnet (now, docs/MACHINES.md)
+1. V0 vision on the laptop (now) · 2. 0.1b FormLabs3B on the tailnet (needs your manual steps there first)
 3. W3 circuit topology · 4. W4 layer views + Playwright · 5. 0.3 real assets · 6. 0.5 refs capture · 7. 0.6 checks
-8. V3 vision tests + finish YOLO run (FormLabs3B) · 9. W5 switches · 10. W6 derating · 11. W8 load calc · 12. W7 service + one-line · 13. W9 permit sheets
-14. A auth · 15. V2 WS catch-up · 16. V1 scale calibration · 17. W10 editing I · 18. W11 editing II · 19. C1–C4 design · 20. W12 DXF · 21. B · 22. D hosting · 23. E pitch · (V4 blocked on dataset licenses)
+8. V3 vision tests + finish the laptop training runs · 9. W5 switches · 10. W6 derating · 11. W8 load calc · 12. W7 service + one-line · 13. W9 permit sheets
+14. A auth · 15. V2 WS catch-up · 16. V1 scale calibration · 17. W10 editing I · 18. W11 editing II · 19. C1–C4 design · 20. W12 DXF · 21. B · 21b. V5 ResPlan vision weights · 22. D hosting · 23. E pitch · (V4 blocked on dataset licenses)
 
 ## Passed
 - 0.1 (2026-10-21) Hooks probed live in Claude Code on the laptop. Bash: thresholds.json edit, `--no-verify` commit, playwright `--update-snapshots` all blocked by pre-tool; `it.only` flagged by post-edit + hygiene step (exit 1), reverted. FAILED before fix: the PowerShell tool bypassed pre-tool entirely (`--no-verify` reached git, `--update-snapshots` reached npx; nothing committed or written), and read-only `git config core.hooksPath` was blocked. Fixed: matcher adds PowerShell, hooksPath rule blocks only set/unset ≠ .githooks; re-probed live → blocked/allowed. New required fast gate step `hooks` (scripts/check-hooks.mjs, 19 cases; 7 fail on the old hook). Gate: GATE PASSED · full · 2026-10-21T11:58:32.859Z (laptop).
@@ -38,12 +38,13 @@ Keep under 60 lines. Update at every gate result.
 
 - 2026-10-21: Laptop working copy = D:\Projects-Shem\Websites\2026-2027\Solence (real path, not the C:\Projects junction); kickoff files kept in ..\_kickoff\.
 - 2026-10-21: User: a passed item doesn't end the session — continue with the next item while context is fresh (`CONTINUING WITH <id>`, accepted by the Stop hook); hand off only when context runs long, blocked, or told to stop.
+- 2026-10-22: User: vision service + training move to the laptop (RTX 3050 Laptop, 4 GB): yolo26s-seg 640/batch 2, U-Net 512/2, data under SOLENCE_VISION_DATA on C:, serve on 127.0.0.1:8000. FormLabs3B keeps app hosting (D) + GPU perf checks. New V0 (now), 0.1b back to todo.
+- 2026-10-22: CubiCasa5K (CC BY-NC-SA) weights = research/demo-only; V5 retrains on ResPlan (CC BY 4.0) before the hosted app serves vision.
 - 2026-10-21: `install:all` runs `npm install` inside each folder — `npm install --prefix` adds the root package as a dependency on npm 10.9.3/Windows.
 
 ## Open questions for the user
 - `scripts/hygiene-allowlist.json` (user-only) says the vision skips go in item 0.3; REVAMP-PLAN finding 17 and the docs say V3 — which one?
 - Domain choice (GitHub Student Pack vs DigitalPlat) — needed before Phase D.
-- Machines: laptop = Claude Code + dev; FormLabs3B = hosting, vision service, training, GPU perf checks (docs/MACHINES.md).
 - Real PH plan set (with permission) for the permit-sheet reference + demo house.
 - Official PEC 2017 text: values so far come from an unofficial transcription (filipinoengineer wiki); a licensed EE must confirm.
 - Dataset licenses for furniture detection (FloorPlanCAD terms, Kaggle CC BY-NC) — blocks V4.

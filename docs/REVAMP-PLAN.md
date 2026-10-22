@@ -23,7 +23,7 @@ rules from 9 to 13 — see docs/RECONCILE.md (b).
 | Engine (`server/src/engine`) | **Strong.** Routing (A* on raster grid), PEC load calc + demand factors, breaker/conductor sizing, 9 compliance rules, lumen-method lighting + photometrics, vision import, PDF export | 95/95 vitest tests pass, `tsc` clean |
 | API (`server/src/routes`) | Full project CRUD, floorplan/panel/loads, auto-lighting, simulate, results, export, AI recognize; WebSocket push on `/ws` | Live run: 3 circuits sized, 1 warning, PDF 200 |
 | Client (`client/`) | Next 15 + HeroUI + R3F. Landing, About, Projects, Editor (2D plan / 3D wiring / Showcase w/ first-person walk), compliance + schedules + lighting tabs | Builds; 0 console errors on any page, both widths |
-| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — live only on FormLabs3B |
+| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — the old ones live only on FormLabs3B; retrained on the laptop from V0 |
 | Design system | `DESIGN.md` is unusually good (tokens, banned list, rejection clause), plus `.claude/` design-review agent + avoid-ai-design skill | Landing largely follows it |
 | Hosting | Doc covers Tailscale SSH + Cloudflare **Quick** Tunnel (random URL, one service, demo-only) | `docs/HOSTING.md` |
 
@@ -137,8 +137,8 @@ Enforcement that already exists and was tested (see §7):
 Each item = one gate pass (one at a time). Flip its gate step to
 `required: true` the moment it exists.
 - 0.1 Verify gate + hooks on the laptop (where Claude Code runs).
-- 0.1b FormLabs3B on the tailnet, OpenSSH, repo + gate, vision service
-  reachable at http://formlabs3b:8000 (docs/MACHINES.md).
+- 0.1b FormLabs3B on the tailnet, OpenSSH, repo + gate (docs/MACHINES.md).
+  Vision moved to the laptop (V0).
 - 0.2 ✅ Self-host the current fonts (next/font/local + @fontsource; no
   visual change — Archivo arrives with Phase C); `.githooks/pre-commit`
   runs the full gate for every commit.
@@ -230,10 +230,13 @@ follow the template rule (registry → spec → gallery → review).
 - W12 DXF import/export (walls/rooms/devices on named layers that match
   the Solence layer presets).
 
-### Phase V — Vision service on FormLabs3B
+### Phase V — Vision service on the laptop
 From the July AUDIT.md, now gated like everything else. Runs and trains
-on FormLabs3B (docs/MACHINES.md); the laptop calls it at
-`http://formlabs3b:8000`.
+on the laptop (RTX 3050, 4 GB; docs/MACHINES.md §6); the API calls it at
+`http://localhost:8000`.
+- V0 Laptop setup: CUDA venv, data under `SOLENCE_VISION_DATA` (C:),
+  CubiCasa5K prepared + fit-tested (yolo26s-seg 640/2, U-Net 512/2),
+  full runs started detached, service on 127.0.0.1:8000.
 - V1 Scale calibration for AI-imported plans: user clicks two points and
   enters the real distance; replaces `ASSUMED_PX_PER_METER`. Test: a
   ResPlan house rendered to an image at a known scale, recognized,
@@ -242,9 +245,11 @@ on FormLabs3B (docs/MACHINES.md); the laptop calls it at
   project). Test: drop the socket mid-job in E2E, result still appears.
 - V3 Vision regression tests on real fixtures (remove the allowlisted
   `pytest.skip`s; missing weights/fixtures fail loudly), pin `best.pt`
-  sha256 (finding 10), finish the interrupted YOLO run on FormLabs3B.
+  sha256 (finding 10), finish the V0 yolo26s-seg/U-Net runs on the laptop.
 - V4 Furniture-detection training — blocked until you decide the dataset
   licenses (AUDIT.md needs-input #2).
+- V5 ResPlan (CC BY 4.0) → vision converter + retrain, so the weights the
+  hosted app serves carry no CubiCasa5K NC restriction. Before Phase D.
 
 ### Phase A — Production foundation (unchanged scope, now gated)
 Auth (Supabase) + `owner_id` + owner-scoped REST and WS; tier from
@@ -299,7 +304,8 @@ pitch slide.
 ```
 Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (Windows service on FormLabs3B)
                                                    └─► solence.<domain> → localhost:3000 (Next, proxies /api + /ws → :4000)
-Tailscale (private) ──► FormLabs3B: SSH, :8000 vision, Supabase/Postgres admin  (never public)
+Tailscale (private) ──► FormLabs3B: SSH, Supabase/Postgres admin  (never public)
+                    ──► laptop: :8000 vision (V5 weights; binding decided in D)
 ```
 Steps for Claude Code to script (`ops/` folder, PowerShell):
 1. `cloudflared tunnel login` → `tunnel create solence` →

@@ -159,12 +159,11 @@ openings, rooms).
 ## 7. Serve
 
 ```bash
-uvicorn app.main:app --port 8000                  # local only
-uvicorn app.main:app --host 0.0.0.0 --port 8000   # FormLabs3B: reachable from the laptop over the tailnet
+uvicorn app.main:app --host 127.0.0.1 --port 8000   # laptop, local only
 ```
 
-On FormLabs3B start it detached (docs/HOSTING.md §3) so closing SSH
-doesn't stop it; Phase D turns it into a Windows service.
+Start it detached (docs/HOSTING.md §3) so closing the terminal doesn't
+stop it; Phase D decides how the hosted API reaches it.
 
 - `GET /health` — model-weight status
 - `POST /recognize` (multipart `image`) — returns `{jobId}`; 503 with

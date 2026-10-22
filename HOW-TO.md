@@ -7,7 +7,7 @@ whole core product.
 ## Prerequisites
 
 - Node.js 20+ and npm
-- Python 3.11+ (only for `solence-vision`; normally on FormLabs3B)
+- Python 3.11+ (only for `solence-vision`, which runs and trains on the laptop)
 - A Supabase project (optional — the API falls back to in-memory
   storage when unconfigured; data then resets on API restart)
 
@@ -48,13 +48,12 @@ http://localhost:4000 (ws on /ws)`; the client logs `Ready` and serves
 cd solence-vision
 python -m venv .venv && .venv\Scripts\activate    # Windows
 pip install -r requirements.txt
-uvicorn app.main:app --port 8000          # local only
-uvicorn app.main:app --host 0.0.0.0 --port 8000   # on FormLabs3B, reachable over the tailnet
+uvicorn app.main:app --host 127.0.0.1 --port 8000   # laptop, local only
 ```
 
-Normally the vision service runs on **FormLabs3B** (GPU) and the laptop
-points at it: `VISION_URL=http://formlabs3b:8000` in `server/.env`
-(docs/MACHINES.md §5). Recognition endpoints return 503 until models are trained — see
+The vision service runs and trains on the **laptop** (RTX 3050, 4 GB):
+`VISION_URL=http://localhost:8000` in `server/.env`
+(docs/MACHINES.md §6). Recognition endpoints return 503 until models are trained — see
 [solence-vision/HOW-TO.md](solence-vision/HOW-TO.md) for the full
 dataset → training → serving walkthrough.
 
@@ -71,8 +70,8 @@ runs the full gate. Summary: `.artifacts/gate-summary.md`.
 
 ## 6. Hosting / remote access
 
-FormLabs3B is the host (Tailscale + Windows OpenSSH; vision service
-and training live there): [docs/MACHINES.md](docs/MACHINES.md).
+FormLabs3B is the app host (Tailscale + Windows OpenSSH); the vision
+service and training live on the laptop: [docs/MACHINES.md](docs/MACHINES.md).
 Public exposure via Cloudflare: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Common failure modes
@@ -87,8 +86,8 @@ Public exposure via Cloudflare: [docs/HOSTING.md](docs/HOSTING.md).
   least one load; simulation requires floor plan + panel + loads.
 - **A commit is refused**: the pre-commit gate failed — read
   `.artifacts/gate-summary.md`; fix the cause, never the check.
-- **Vision calls time out from the laptop**: the service on FormLabs3B
-  must run with `--host 0.0.0.0`, and Windows Firewall must allow 8000
-  from 100.64.0.0/10 (docs/MACHINES.md §4).
+- **Vision calls fail**: the service must be running on the laptop at
+  `127.0.0.1:8000` and `server/.env` must have
+  `VISION_URL=http://localhost:8000` (docs/MACHINES.md §6).
 - **Export returns 403**: tier gating — set `DEFAULT_TIER=pro` in
   `server/.env` (dev default) or send `x-solence-tier: pro`.

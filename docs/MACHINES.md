@@ -2,8 +2,8 @@
 
 | Machine | Role | Reached as |
 |---|---|---|
-| **Laptop** | Claude Code, development, commits, pushes | — |
-| **FormLabs3B** | Hosts web + API + vision service, trains models, GPU perf checks (`check:motion`, `check:render`), Cloudflare tunnel (Phase D) | `formlabs3b` on the tailnet (MagicDNS) |
+| **Laptop** | Claude Code, development, commits, pushes; vision service + model training (RTX 3050 Laptop, 4 GB VRAM; §6) | `localhost` |
+| **FormLabs3B** | Hosts web + API, GPU perf checks (`check:motion`, `check:render`), Cloudflare tunnel (Phase D) | `formlabs3b` on the tailnet (MagicDNS) |
 
 Code only moves laptop → GitHub → FormLabs3B (`git pull`). Nothing is
 edited directly on FormLabs3B.
@@ -67,7 +67,7 @@ New-NetFirewallRule -DisplayName "Solence via Tailscale" -Direction Inbound -Pro
 
 From the laptop: `ssh <your-windows-username>@formlabs3b`.
 
-## 5. Repo + vision service on FormLabs3B
+## 5. Repo on FormLabs3B
 
 ```powershell
 cd C:\Projects
@@ -76,21 +76,25 @@ cd Solence
 git checkout revamp
 npm install; npm run install:all; npm run gate
 nvidia-smi                                   # confirm the GPU
-cd solence-vision                            # venv + weights per solence-vision/HOW-TO.md
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-`--host 0.0.0.0` matters: the default (127.0.0.1) can't be reached
-from the laptop. Check from the laptop:
+Long jobs are started detached and logged — see `docs/HOSTING.md` §3 —
+so closing SSH doesn't kill them. Phase D turns web and API into Windows
+services and adds the Cloudflare tunnel.
 
-```powershell
-curl http://formlabs3b:8000/health
-```
+## 6. Vision service + training on the laptop
 
-Then on the laptop set `VISION_URL=http://formlabs3b:8000` in
-`server/.env`, so local dev uses FormLabs3B's GPU for AI recognition.
+The vision service and model training run on the laptop (item V0):
 
-Long jobs (training, the vision service) are started detached and
-logged — see `docs/HOSTING.md` §3 — so closing SSH doesn't kill them.
-Phase D turns web, API and vision into Windows services and adds the
-Cloudflare tunnel.
+- venv with the CUDA torch build: `solence-vision/requirements.txt` header.
+- Datasets and training runs live under `SOLENCE_VISION_DATA`
+  (default `C:\SolenceData\vision` — D: is too small); final weights in
+  `solence-vision/models/` (gitignored).
+- 4 GB VRAM limits: `yolo26s-seg --imgsz 640 --batch 2`, U-Net
+  `--imgsz 512 --batch 2` (`m`-seg does not fit). Keep the laptop plugged
+  in and awake during a run; resume from `last.pt` if it stops.
+- Serve on `127.0.0.1:8000`; `server/.env` has
+  `VISION_URL=http://localhost:8000`.
+- CubiCasa5K is CC BY-NC-SA: weights trained on it are research/demo-only.
+  V5 retrains on ResPlan (CC BY 4.0) before the hosted app may serve them;
+  Phase D decides how FormLabs3B's API reaches the laptop over Tailscale.

@@ -1,7 +1,8 @@
 # Remote access to Solence — $0, no domain required
 
-> The host is **FormLabs3B**; joining it to the tailnet, SSH and the
-> vision service are in `docs/MACHINES.md`. Read `your-pc-name` below as
+> The host is **FormLabs3B**; joining it to the tailnet and SSH are in
+> `docs/MACHINES.md`. The vision service and training run on the laptop
+> (`docs/MACHINES.md` §6). Read `your-pc-name` below as
 > `formlabs3b`. Tailscale SSH (`tailscale up --ssh`) does not run as a
 > server on Windows — use the OpenSSH steps.
 
@@ -141,7 +142,7 @@ cd solence-vision
 .\.venv\Scripts\python.exe scripts\train_yolo.py --dataset cubicasa5k --epochs 100
 .\.venv\Scripts\python.exe scripts\train_unet.py --dataset cubicasa5k --epochs 40 --imgsz 512 --batch 2
 .\.venv\Scripts\python.exe scripts\run_inference.py --image path\to\plan.png
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000   # reachable from the laptop over the tailnet
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000   # laptop, local only
 ```
 
 **Monitoring a detached/background process**

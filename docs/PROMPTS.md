@@ -12,8 +12,8 @@ it's blocked on you, or you say stop. Everything Claude must obey is already in 
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 → W8 →
-W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → D → E
+M0 → 0.1 → V0 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
+W8 → W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → V5 → D → E
 (V4 waits for your dataset-license decision.)
 
 ---
@@ -145,6 +145,24 @@ Run `npm run gate`. Record results in STATE.md, mark 0.1 done, set 0.1b
 in-progress, commit, show progress.
 ```
 
+### V0 — Vision on the laptop
+```
+Item V0. The vision service runs and trains on this laptop (RTX 3050
+Laptop, 4 GB VRAM). Create solence-vision/.venv with the CUDA torch build
+(requirements.txt header) and prove torch.cuda.is_available(). Make
+scripts/_common.py put data and training runs under SOLENCE_VISION_DATA
+(default C:\SolenceData\vision; weights stay in solence-vision/models/),
+with a pytest that fails on the current hardcoded paths. Download
+CubiCasa5K there, convert to YOLO + U-Net, run verify_dataset.py for
+both and look at the previews. Fit-test one epoch each: yolo26s-seg
+--imgsz 640 --batch 2, U-Net --imgsz 512 --batch 2; log peak VRAM and
+epoch time to .artifacts/. Start the full runs detached and logged. Serve
+the app with uvicorn on 127.0.0.1:8000 and confirm /health answers; tell
+me the exact VISION_URL line for server/.env. CubiCasa5K is CC BY-NC-SA:
+these weights are research/demo-only until V5. Record in STATE.md, mark
+V0 done, set 0.1b in-progress, commit, show progress.
+```
+
 ### 0.1b — FormLabs3B on the tailnet
 Do the manual part of docs/MACHINES.md first (§1 join the tailnet, §2
 keep it connected, §4 OpenSSH as Administrator on FormLabs3B — these need
@@ -154,14 +172,11 @@ Item 0.1b. FormLabs3B is on the tailnet as `formlabs3b` with OpenSSH.
 Over `ssh <my-windows-user>@formlabs3b`: check `tailscale status`,
 `nvidia-smi`, node/npm/python/git versions; clone the repo to
 C:\Projects\Solence (or pull if it exists), checkout `revamp`, run
-`npm install`, `npm run install:all`, `npm run gate`. Set up the vision
-venv per solence-vision/HOW-TO.md, start the vision service detached
-(docs/HOSTING.md §3) with `--host 0.0.0.0 --port 8000`, and confirm from
-this laptop that `curl http://formlabs3b:8000/health` answers. You can't
-read .env files: tell me the exact line to add to server/.env on the
-laptop (VISION_URL=http://formlabs3b:8000). Record versions, GPU, paths in CLAUDE.local.md and the
-result in STATE.md; mark 0.1b done, set W3 in-progress, commit, show
-progress. Ask me before changing any firewall rule or Windows service.
+`npm install`, `npm run install:all`, `npm run gate`. Vision is not part
+of this item — it runs on the laptop (V0). Record versions, GPU, paths in
+CLAUDE.local.md and the result in STATE.md; mark 0.1b done, set W3
+in-progress, commit, show progress. Ask me before changing any firewall
+rule or Windows service.
 ```
 
 ### W3 — Circuit topology (device to device)
@@ -227,7 +242,7 @@ per .claude/rules/three-d.md, check:pdf (text extraction). Flip each to
 required as it lands. Perf assertions run headed on this PC's GPU.
 ```
 
-### V3 — Vision tests on real fixtures (FormLabs3B)
+### V3 — Vision tests on real fixtures (laptop)
 ```
 Item V3. Replace the three allowlisted pytest.skip tests in
 solence-vision/tests with tests that fail loudly when weights or fixtures
@@ -235,8 +250,9 @@ are missing; fixtures = ResPlan houses rendered to PNG at a known scale
 (script in solence-vision/scripts, output pinned by sha256) plus their
 ground-truth walls/rooms; assert wall IoU and room count within limits
 in a protected thresholds file. Pin best.pt sha256 and check it before
-torch.load. Over SSH on FormLabs3B: resume the interrupted YOLO run from
-its checkpoint, detached and logged; run the vision tests there. Remove
+torch.load. On the laptop: let the V0 yolo26s-seg and U-Net runs finish
+(resume from their last.pt if interrupted), install best.pt, run the
+vision tests here. Remove
 the three entries from scripts/hygiene-allowlist.json only after the new
 tests pass (ask me — that file is protected).
 ```
@@ -252,7 +268,7 @@ recognition, drop the socket mid-job, the recognized plan still appears.
 ```
 Item V4 — only after I've decided the dataset licenses (STATE.md open
 questions). Record the licenses in test-assets/manifest.json, convert
-the datasets, train on FormLabs3B detached and logged, add regression
+the datasets, train on the laptop detached and logged, add regression
 tests on held-out real plans, then enable detected furniture in imports.
 ```
 
@@ -398,12 +414,25 @@ conflict-safe autosave, multi-storey, short-circuit analysis. Add each
 as its own ROADMAP item before starting it.
 ```
 
+### V5 — ResPlan vision converter + shippable weights
+```
+Item V5. CubiCasa5K weights are CC BY-NC-SA (research/demo only). Write
+a ResPlan → YOLO + U-Net converter in solence-vision/scripts (ResPlan is
+CC BY 4.0; render plans at a known scale, labels from the vector
+geometry), register it in _common.py DATASETS, verify previews, retrain
+on the laptop (yolo26s-seg 640/2, U-Net 512/2) detached, and compare on
+the V3 fixtures against the CubiCasa weights. Only weights without an NC
+source may be served by the hosted app; record their sources and sha256.
+```
+
 ### D — Hosting
 ```
-Phase D (REVAMP-PLAN §5). Script ops/ for this PC: cloudflared named
+Phase D (REVAMP-PLAN §5). Script ops/ for FormLabs3B: cloudflared named
 tunnel as a Windows service for one hostname, PM2 or NSSM services for
-web/api/vision, deploy.ps1 (pull → install → gate → restart),
-health.ps1. Stop and ask me before any DNS change.
+web/api, deploy.ps1 (pull → install → gate → restart), health.ps1. The
+vision service runs on the laptop (V0) with V5 weights; the API reaches
+it over Tailscale — ask me before binding it beyond 127.0.0.1. Stop and
+ask me before any DNS change.
 ```
 
 ### E — Pitch hardening

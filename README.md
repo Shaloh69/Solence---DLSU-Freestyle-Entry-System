@@ -62,10 +62,10 @@ Tests: `npm test` (server engine + API suites, incl. 12 real ResPlan houses in `
 
 ## Machines and hosting
 
-- **Laptop** — development and Claude Code.
-- **FormLabs3B** — hosts the app, runs and trains the vision service, GPU
-  checks; reached over Tailscale as `formlabs3b` (Windows OpenSSH for
-  remote commands). Setup: [docs/MACHINES.md](docs/MACHINES.md).
+- **Laptop** — development, Claude Code, and the vision service +
+  model training (RTX 3050, 4 GB).
+- **FormLabs3B** — hosts the app, GPU perf checks; reached over Tailscale
+  as `formlabs3b` (Windows OpenSSH for remote commands). Setup: [docs/MACHINES.md](docs/MACHINES.md).
 - Public URL: Cloudflare named tunnel from FormLabs3B once a domain is
   chosen (Phase D); a Quick Tunnel (`cloudflared tunnel --url
   http://localhost:3000`) remains the zero-setup fallback for a short

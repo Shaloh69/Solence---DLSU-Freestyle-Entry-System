@@ -17,7 +17,7 @@
     },
     {
       "id": "V",
-      "name": "Vision (FormLabs3B)"
+      "name": "Vision (laptop)"
     },
     {
       "id": "A",
@@ -91,11 +91,18 @@
       "title": "Prove gate + hooks on the laptop (Claude Code machine)"
     },
     {
+      "id": "V0",
+      "phase": "V",
+      "weight": 2,
+      "status": "in-progress",
+      "title": "Vision on the laptop: CUDA venv, data on C: (SOLENCE_VISION_DATA), CubiCasa5K prepared + fit-tested, training started, service on localhost:8000"
+    },
+    {
       "id": "0.1b",
       "phase": "0",
       "weight": 2,
-      "status": "in-progress",
-      "title": "FormLabs3B on the tailnet: OpenSSH, clone, gate, vision service reachable"
+      "status": "todo",
+      "title": "FormLabs3B on the tailnet: OpenSSH, clone, app gate (blocked on manual setup at FormLabs3B)"
     },
     {
       "id": "W3",
@@ -137,7 +144,7 @@
       "phase": "V",
       "weight": 2,
       "status": "todo",
-      "title": "Vision regression tests on real fixtures (replaces the pytest skips) + YOLO run finished on FormLabs3B"
+      "title": "Vision regression tests on real fixtures (replaces the pytest skips) + yolo26s-seg/U-Net runs finished on the laptop"
     },
     {
       "id": "W5",
@@ -250,6 +257,13 @@
       "weight": 3,
       "status": "todo",
       "title": "Sample projects, onboarding, palette, multi-storey, short-circuit"
+    },
+    {
+      "id": "V5",
+      "phase": "V",
+      "weight": 2,
+      "status": "todo",
+      "title": "ResPlan (CC BY 4.0) → vision converter + retrain, so the hosted weights carry no NC restriction"
     },
     {
       "id": "D",

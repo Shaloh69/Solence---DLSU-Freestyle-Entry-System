@@ -8,7 +8,9 @@ routing/compliance engine never knows the plan came from a model.
 
 **Status: both models trained.** U-Net (wall segmentation) and YOLO26-seg
 (door/window/room detection) are trained; the weights are gitignored and
-live on FormLabs3B, where `/health` reports
+were trained on FormLabs3B (`yolo26m-seg` run interrupted, AUDIT.md);
+training and serving now move to the laptop (item V0), where `/health`
+reports, once weights are installed,
 `{"status":"ok","service":"solence-vision","models":{"unet":true,"yolo":true}}`.
 A fresh clone has no weights: `models` is all `false` and `/recognize`
 returns 503. The core simulator does not depend on this
@@ -40,9 +42,9 @@ engine (GFCI locations, required 20 A branch circuits).
 
 ## Hosting (Cloudflare Tunnel)
 
-> Runs and trains on **FormLabs3B** (GPU). The laptop's API reaches it
-> over Tailscale at `http://formlabs3b:8000` — start it with
-> `--host 0.0.0.0` (docs/MACHINES.md §5). It never needs a public hostname.
+> Runs and trains on the **laptop** (RTX 3050, 4 GB). The local API
+> reaches it at `http://localhost:8000`; it binds to 127.0.0.1
+> (docs/MACHINES.md §6). It never needs a public hostname.
 
 Full guide: [docs/HOSTING.md](../docs/HOSTING.md). This service is
 normally called only by the Express API on the same host, so it
