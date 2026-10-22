@@ -20,7 +20,7 @@ Solence is an automatic electrical wiring simulator for the Philippine market. I
 
 The project is being taken to production in gated phases. Start here:
 
-- **Getting started (laptop + FormLabs3B):** [docs/SETUP.md](docs/SETUP.md)
+- **Getting started (the pitch laptop):** [docs/SETUP.md](docs/SETUP.md)
 - **What to paste into Claude Code:** [docs/PROMPTS.md](docs/PROMPTS.md)
 - **Where we are:** `npm run progress` (computed from [docs/ROADMAP.json](docs/ROADMAP.json)) and [docs/STATE.md](docs/STATE.md)
 - **Plan and phases:** [docs/REVAMP-PLAN.md](docs/REVAMP-PLAN.md) · wiring/PEC findings: [docs/WIRING-AUDIT.md](docs/WIRING-AUDIT.md)
@@ -62,11 +62,10 @@ Tests: `npm test` (server engine + API suites, incl. 12 real ResPlan houses in `
 
 ## Machines and hosting
 
-- **Laptop** — development, Claude Code, and the vision service +
-  model training (RTX 3050, 4 GB).
-- **FormLabs3B** — hosts the app, GPU perf checks; reached over Tailscale
-  as `formlabs3b` (Windows OpenSSH for remote commands). Setup: [docs/MACHINES.md](docs/MACHINES.md).
-- Public URL: Cloudflare named tunnel from FormLabs3B once a domain is
+- **One laptop runs everything** — development, Claude Code, web + API,
+  the vision service, model training (RTX 3050, 4 GB) and GPU perf
+  checks. Setup: [docs/MACHINES.md](docs/MACHINES.md).
+- Public URL: Cloudflare named tunnel from the laptop once a domain is
   chosen (Phase D); a Quick Tunnel (`cloudflared tunnel --url
   http://localhost:3000`) remains the zero-setup fallback for a short
   demo. Details: [docs/HOSTING.md](docs/HOSTING.md).

@@ -1,6 +1,6 @@
 {
   "$comment": "Single source of truth for progress. Weights: S=1, M=2, L=3 points. status: todo | in-progress | done. Exactly one item is in-progress. A done item must have a '- <id> (' line under '## Passed' in docs/STATE.md, and the in-progress id must appear on STATE.md's '- Item:' line — `node scripts/progress.mjs --check` (a required gate step) enforces both. Percent = done points / total points. Legacy build is shown as a baseline and not counted. Items are listed in execution order: when an item passes, the next item set in-progress is the first todo item below it that isn't 'blocked'.",
-  "goal": "Production-ready Solence for the pitching contest: PEC-correct wiring on real houses, CAD-grade editing, permit sheet set, DESIGN.md v2 UI, hosted on FormLabs3B behind Cloudflare.",
+  "goal": "Production-ready Solence for the pitching contest: PEC-correct wiring on real houses, CAD-grade editing, permit sheet set, DESIGN.md v2 UI, running on the pitch laptop with a public Cloudflare tunnel.",
   "baseline": "Original build (brief phases 1–4: engine, editor, 3D, showcase, vision v2) — done before the revamp, not counted.",
   "phases": [
     {
@@ -33,7 +33,7 @@
     },
     {
       "id": "D",
-      "name": "Hosting (FormLabs3B)"
+      "name": "Hosting (laptop + Cloudflare)"
     },
     {
       "id": "E",
@@ -98,17 +98,10 @@
       "title": "Vision on the laptop: CUDA venv, data on C: (SOLENCE_VISION_DATA), CubiCasa5K prepared + fit-tested, training started, service on localhost:8000"
     },
     {
-      "id": "0.1b",
-      "phase": "0",
-      "weight": 2,
-      "status": "in-progress",
-      "title": "FormLabs3B on the tailnet: OpenSSH, clone, app gate (blocked on manual setup at FormLabs3B)"
-    },
-    {
       "id": "W3",
       "phase": "W",
       "weight": 3,
-      "status": "todo",
+      "status": "in-progress",
       "title": "Device-to-device circuit topology, L/N/G, BOM"
     },
     {
@@ -270,7 +263,7 @@
       "phase": "D",
       "weight": 2,
       "status": "todo",
-      "title": "FormLabs3B services + Cloudflare tunnel + deploy scripts"
+      "title": "Laptop services (web, API, vision) + one-command start/stop/health + Cloudflare tunnel for a public pitch link"
     },
     {
       "id": "E",

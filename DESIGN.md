@@ -188,7 +188,7 @@ Patterns (the only ones allowed):
   ambientCG CC0 materials; HDRI lighting from Poly Haven.
 - Budgets: scene ≤ 500k triangles, ≤ 150 draw calls, textures ≤ 2048px
   (KTX2/WebP), total GPU texture memory ≤ 256 MB, first meaningful 3D
-  frame ≤ 3 s on FormLabs3B.
+  frame ≤ 3 s on the pitch laptop (RTX 3050).
 - Color management: sRGB output, ACES or AgX tone mapping, exposure set
   per HDRI and recorded in the scene config.
 - Wires in 3D use the conductor palette with a copper end cap at every

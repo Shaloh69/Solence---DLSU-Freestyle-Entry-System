@@ -1,10 +1,9 @@
 # Remote access to Solence — $0, no domain required
 
-> The host is **FormLabs3B**; joining it to the tailnet and SSH are in
-> `docs/MACHINES.md`. The vision service and training run on the laptop
-> (`docs/MACHINES.md` §6). Read `your-pc-name` below as
-> `formlabs3b`. Tailscale SSH (`tailscale up --ssh`) does not run as a
-> server on Windows — use the OpenSSH steps.
+> The host is **the pitch laptop** (docs/MACHINES.md) — web, API, vision
+> and the Cloudflare tunnel all run there. The FormLabs3B server and its
+> tailnet were dropped (2026-10-22); §1 (Tailscale) is optional, only for
+> reaching the laptop from another device.
 
 Two different needs, two different free tools. Don't reach for a
 Cloudflare named Tunnel + real domain unless you actually get one later
@@ -179,6 +178,6 @@ this later:
 - Already have a domain sitting unused elsewhere — point its
   nameservers at Cloudflare's Free plan, same result, $0.
 
-The named-tunnel setup on FormLabs3B (one hostname, Windows service,
-deploy/health scripts) is Phase D in docs/REVAMP-PLAN.md §5; its prompt
+The tunnel setup on the laptop (one hostname, start/stop/health
+scripts) is Phase D in docs/REVAMP-PLAN.md §5; its prompt
 is in docs/PROMPTS.md.

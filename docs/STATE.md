@@ -4,16 +4,15 @@ Read first every session (auto-injected by the SessionStart hook).
 Keep under 60 lines. Update at every gate result.
 
 ## Now
-- Phase: **0 — Harness**
-- Item: `0.1b FormLabs3B on the tailnet: OpenSSH, clone, app gate`
-- Status: in-progress — blocked on your manual steps at FormLabs3B (docs/MACHINES.md §1, §2, §4); not on the tailnet as of 2026-10-21
+- Phase: **W — Wiring & PEC**
+- Item: `W3 device-to-device circuit topology, L/N/G, BOM`
+- Status: in-progress (pre-build list next, wait for the user's OK)
 - Training (V0 → V3): `solence-vision/scripts/train-laptop.ps1` running detached since 2026-10-22 23:26 (YOLO 100 ep ≈ 14 h, then U-Net 40 ep ≈ 7 h); logs `C:\SolenceData\vision\logs\train-*.log`; after a sleep/reboot re-run the script (resumes).
 - Last gate: GATE PASSED · full · 2026-10-22T15:30:45.046Z (laptop)
 - Progress: `npm run progress` (docs/ROADMAP.json is the source; never estimate by hand)
 
 ## Next (in order, one at a time — prompts in docs/PROMPTS.md)
-2. 0.1b FormLabs3B on the tailnet (now; needs your manual steps there first)
-3. W3 circuit topology · 4. W4 layer views + Playwright · 5. 0.3 real assets · 6. 0.5 refs capture · 7. 0.6 checks
+3. W3 circuit topology (now) · 4. W4 layer views + Playwright · 5. 0.3 real assets · 6. 0.5 refs capture · 7. 0.6 checks
 8. V3 vision tests + finish the laptop training runs · 9. W5 switches · 10. W6 derating · 11. W8 load calc · 12. W7 service + one-line · 13. W9 permit sheets
 14. A auth · 15. V2 WS catch-up · 16. V1 scale calibration · 17. W10 editing I · 18. W11 editing II · 19. C1–C4 design · 20. W12 DXF · 21. B · 21b. V5 ResPlan vision weights · 22. D hosting · 23. E pitch · (V4 blocked on dataset licenses)
 
@@ -30,7 +29,7 @@ Keep under 60 lines. Update at every gate result.
 ## Decisions
 - 2026-10-16: DESIGN.md v2 "Conductor" replaces v1 entirely.
 - 2026-10-16: CubiCasa5K is CC BY-NC-SA 4.0 → test-only, never shipped.
-- 2026-10-16: Perf/motion budgets measured on the FormLabs3B GPU only.
+- 2026-10-16: Perf/motion budgets measured on the FormLabs3B GPU only. → superseded 2026-10-22: measured on the pitch laptop's RTX 3050 (no training running).
 - 2026-10-21: 0.2 self-hosts the v1 fonts, not Archivo — a typeface swap is a visual change and belongs to Phase C.
 - 2026-10-21: Real-plan corpus = ResPlan (17k residential plans, data CC BY 4.0, GitHub-hosted). Converted JSON for pinned test plans is committed with attribution; source zip pinned by sha256.
 - 2026-10-21: ResPlan pickle loaded only through an allowlist unpickler (shapely from_wkb + numpy scalar/dtype).
@@ -41,6 +40,7 @@ Keep under 60 lines. Update at every gate result.
 - 2026-10-21: Laptop working copy = D:\Projects-Shem\Websites\2026-2027\Solence (real path, not the C:\Projects junction); kickoff files kept in ..\_kickoff\.
 - 2026-10-21: User: a passed item doesn't end the session — continue with the next item while context is fresh (`CONTINUING WITH <id>`, accepted by the Stop hook); hand off only when context runs long, blocked, or told to stop.
 - 2026-10-22: User: vision service + training move to the laptop (RTX 3050 Laptop, 4 GB): yolo26s-seg 640/batch 2, U-Net 512/2, data under SOLENCE_VISION_DATA on C:, serve on 127.0.0.1:8000. FormLabs3B keeps app hosting (D) + GPU perf checks. New V0 (now), 0.1b back to todo.
+- 2026-10-22: User dropped FormLabs3B + its tailnet: the full system runs on the laptop for the pitch. 0.1b removed from ROADMAP; Phase D = laptop services + Cloudflare tunnel (public link); perf budgets on the laptop.
 - 2026-10-22: CubiCasa5K (CC BY-NC-SA) weights = research/demo-only; V5 retrains on ResPlan (CC BY 4.0) before the hosted app serves vision.
 - 2026-10-21: `install:all` runs `npm install` inside each folder — `npm install --prefix` adds the root package as a dependency on npm 10.9.3/Windows.
 

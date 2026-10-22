@@ -36,9 +36,9 @@ Every model, texture, HDRI and animation is checked by tools, not by eye.
   `e2e/render/thresholds.json` and is never raised without the user.
 
 ## Animation (`npm run check:motion`)
-- Correctness runs headless; **performance runs on FormLabs3B's real
-  GPU** (headed Chromium over Tailscale), because SwiftShader numbers are
-  meaningless for frame budgets.
+- Correctness runs headless; **performance runs on the pitch laptop's real
+  GPU** (headed Chromium, RTX 3050, no training job running), because
+  SwiftShader numbers are meaningless for frame budgets.
 - Frame time from `requestAnimationFrame` over the animation: p95 ≤ 20 ms,
   no frame > 50 ms, during Showcase reveal, walk mode, and wire draw-in.
 - UI animations: 0 layout shift, only `transform`/`opacity` animated,

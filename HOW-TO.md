@@ -70,9 +70,9 @@ runs the full gate. Summary: `.artifacts/gate-summary.md`.
 
 ## 6. Hosting / remote access
 
-FormLabs3B is the app host (Tailscale + Windows OpenSSH); the vision
-service and training live on the laptop: [docs/MACHINES.md](docs/MACHINES.md).
-Public exposure via Cloudflare: [docs/HOSTING.md](docs/HOSTING.md).
+The laptop runs everything, including the vision service and training:
+[docs/MACHINES.md](docs/MACHINES.md). The public pitch link is a
+Cloudflare tunnel from the laptop: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Common failure modes
 

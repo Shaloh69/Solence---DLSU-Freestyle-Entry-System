@@ -1,4 +1,4 @@
-# Getting started — laptop + FormLabs3B
+# Getting started — the pitch laptop
 
 ## What you have
 
@@ -21,12 +21,9 @@ read all the existing docs, write `docs/RECONCILE.md`, fix outdated docs,
 add anything missing to the roadmap, run the gate, commit, push, and
 show the progress block. It stops for your OK at each step.
 
-## On FormLabs3B (once, at that PC)
-
-Follow `docs/MACHINES.md` §1, §2 and §4: join the tailnet as
-`formlabs3b`, disable key expiry, run unattended, install OpenSSH. Then
-item **0.1b** has Claude Code (on the laptop, over SSH) clone the repo
-there, run the gate, and start the vision service.
+Everything — including the vision service, training and the public
+pitch link — runs on this laptop (`docs/MACHINES.md`). The FormLabs3B
+server was dropped on 2026-10-22.
 
 ## Every session after that
 
@@ -41,7 +38,7 @@ there, run the gate, and start the vision service.
 
 | File | Role | Who edits |
 |---|---|---|
-| `CLAUDE.md` | the rules (incl. §7 progress, §8 two machines), loaded every session | you |
+| `CLAUDE.md` | the rules (incl. §7 progress, §8 one machine), loaded every session | you |
 | `.claude/rules/*.md` | area rules (frontend, 3D, tests, engine), load only for matching files | you |
 | `.claude/settings.json`, `.claude/hooks/*.mjs` | enforcement: progress + state at start, commit gate, protected files, post-edit checks, stop gate | you |
 | `.claude/agents/design-review.md` | grades UI against its real reference | you |
@@ -50,7 +47,7 @@ there, run the gate, and start the vision service.
 | `docs/STATE.md` | now / next / passed / decisions / open questions | Claude per item |
 | `docs/REVAMP-PLAN.md` | audit + phases 0, W, A–E | Claude per item |
 | `docs/WIRING-AUDIT.md` | wiring/PEC/CAD/layer findings + feature research | Claude per W-item |
-| `docs/MACHINES.md` | laptop vs FormLabs3B, Tailscale, SSH, vision service | you |
+| `docs/MACHINES.md` | the pitch laptop: hardware, vision service + training, perf checks | you |
 | `docs/PROMPTS.md` | what you paste | you |
 | `docs/RECONCILE.md` | written by the kickoff: old docs vs revamp | Claude (M0) |
 | `scripts/gate.mjs`, `gate.config.json`, `progress.mjs` | the gate and the % | Claude may only tighten |

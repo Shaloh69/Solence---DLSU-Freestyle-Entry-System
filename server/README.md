@@ -29,7 +29,7 @@ Run/test/deploy instructions: [HOW-TO.md](HOW-TO.md). API contract:
 
 ## Hosting (Cloudflare Tunnel)
 
-> Runs on **FormLabs3B** (docs/MACHINES.md). Until Phase D picks a
+> Runs on **the pitch laptop** (docs/MACHINES.md). Until Phase D picks a
 > domain, the public demo path is a Quick Tunnel to the client only; the
 > config below is the Phase D named-tunnel setup.
 

@@ -12,7 +12,7 @@ it's blocked on you, or you say stop. Everything Claude must obey is already in 
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → V0 → 0.1b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
+M0 → 0.1 → V0 → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
 W8 → W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → V5 → D → E
 (V4 waits for your dataset-license decision.)
 
@@ -160,23 +160,7 @@ epoch time to .artifacts/. Start the full runs detached and logged. Serve
 the app with uvicorn on 127.0.0.1:8000 and confirm /health answers; tell
 me the exact VISION_URL line for server/.env. CubiCasa5K is CC BY-NC-SA:
 these weights are research/demo-only until V5. Record in STATE.md, mark
-V0 done, set 0.1b in-progress, commit, show progress.
-```
-
-### 0.1b — FormLabs3B on the tailnet
-Do the manual part of docs/MACHINES.md first (§1 join the tailnet, §2
-keep it connected, §4 OpenSSH as Administrator on FormLabs3B — these need
-you at that PC once). Then:
-```
-Item 0.1b. FormLabs3B is on the tailnet as `formlabs3b` with OpenSSH.
-Over `ssh <my-windows-user>@formlabs3b`: check `tailscale status`,
-`nvidia-smi`, node/npm/python/git versions; clone the repo to
-C:\Projects\Solence (or pull if it exists), checkout `revamp`, run
-`npm install`, `npm run install:all`, `npm run gate`. Vision is not part
-of this item — it runs on the laptop (V0). Record versions, GPU, paths in
-CLAUDE.local.md and the result in STATE.md; mark 0.1b done, set W3
-in-progress, commit, show progress. Ask me before changing any firewall
-rule or Windows service.
+V0 done, set W3 in-progress, commit, show progress.
 ```
 
 ### W3 — Circuit topology (device to device)
@@ -385,7 +369,7 @@ sonner imports. C2 is done when every listed primitive is approved.
 Item C3. Build the DESIGN.md §6 animations as registry items, one at a
 time: wire draw-in, violation flash, figure tick, hero sequence,
 showcase reveal (real PBR textures + HDRI from the asset manifest).
-Each passes check:motion on FormLabs3B's GPU and the reduced-motion
+Each passes check:motion on the laptop's RTX 3050 and the reduced-motion
 screenshot.
 ```
 
@@ -427,12 +411,11 @@ source may be served by the hosted app; record their sources and sha256.
 
 ### D — Hosting
 ```
-Phase D (REVAMP-PLAN §5). Script ops/ for FormLabs3B: cloudflared named
-tunnel as a Windows service for one hostname, PM2 or NSSM services for
-web/api, deploy.ps1 (pull → install → gate → restart), health.ps1. The
-vision service runs on the laptop (V0) with V5 weights; the API reaches
-it over Tailscale — ask me before binding it beyond 127.0.0.1. Stop and
-ask me before any DNS change.
+Phase D (REVAMP-PLAN §5). Everything runs on this laptop. Script ops/:
+start.ps1 / stop.ps1 (build → web, API, vision on 127.0.0.1 → cloudflared
+tunnel for one hostname, all detached and logged), health.ps1 (curl
+every health endpoint). Vision serves V5 weights only. Ask me before any
+DNS change, Windows service install or power-setting change.
 ```
 
 ### E — Pitch hardening

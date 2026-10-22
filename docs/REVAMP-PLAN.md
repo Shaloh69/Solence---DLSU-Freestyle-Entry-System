@@ -23,7 +23,7 @@ rules from 9 to 13 — see docs/RECONCILE.md (b).
 | Engine (`server/src/engine`) | **Strong.** Routing (A* on raster grid), PEC load calc + demand factors, breaker/conductor sizing, 9 compliance rules, lumen-method lighting + photometrics, vision import, PDF export | 95/95 vitest tests pass, `tsc` clean |
 | API (`server/src/routes`) | Full project CRUD, floorplan/panel/loads, auto-lighting, simulate, results, export, AI recognize; WebSocket push on `/ws` | Live run: 3 circuits sized, 1 warning, PDF 200 |
 | Client (`client/`) | Next 15 + HeroUI + R3F. Landing, About, Projects, Editor (2D plan / 3D wiring / Showcase w/ first-person walk), compliance + schedules + lighting tabs | Builds; 0 console errors on any page, both widths |
-| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — the old ones live only on FormLabs3B; retrained on the laptop from V0 |
+| Vision (`solence-vision/`) | FastAPI, U-Net + YOLO fusion, CubiCasa5K + FloorPlanCAD converters, 19-class corpus | Weights are gitignored — the old ones were on FormLabs3B (dropped); retrained on the laptop from V0 |
 | Design system | `DESIGN.md` is unusually good (tokens, banned list, rejection clause), plus `.claude/` design-review agent + avoid-ai-design skill | Landing largely follows it |
 | Hosting | Doc covers Tailscale SSH + Cloudflare **Quick** Tunnel (random URL, one service, demo-only) | `docs/HOSTING.md` |
 
@@ -59,7 +59,7 @@ Status (2026-10-21) → the roadmap item that owns each finding; ✅ = fixed.
 8. 🟠 → **B** · **Empty editor is a blank grid.** No sample project, no first-run
    guide. A pitch demo needs "Open sample house" → wired + checked in 1 click.
 9. ✅ **0.2** · Fonts load from Google at build time (`next/font/google`); the build
-   fails offline. Self-host via `@fontsource` so FormLabs3B builds
+   fails offline. Self-host via `@fontsource` so the host builds
    without internet. *(Verified: swapping to @fontsource builds clean.)*
 10. 🟡 → **V3** · `torch.load(..., weights_only=False)` — unpickles arbitrary code;
     fine for own weights, but pin hashes of `best.pt`.
@@ -137,8 +137,8 @@ Enforcement that already exists and was tested (see §7):
 Each item = one gate pass (one at a time). Flip its gate step to
 `required: true` the moment it exists.
 - 0.1 Verify gate + hooks on the laptop (where Claude Code runs).
-- 0.1b FormLabs3B on the tailnet, OpenSSH, repo + gate (docs/MACHINES.md).
-  Vision moved to the laptop (V0).
+- ~~0.1b FormLabs3B on the tailnet~~ — dropped 2026-10-22: the pitch
+  runs entirely on the laptop (docs/MACHINES.md).
 - 0.2 ✅ Self-host the current fonts (next/font/local + @fontsource; no
   visual change — Archivo arrives with Phase C); `.githooks/pre-commit`
   runs the full gate for every commit.
@@ -168,8 +168,8 @@ Each item = one gate pass (one at a time). Flip its gate step to
   luminance range, missing-texture detection, `renderer.info` budgets,
   pixelmatch vs baseline) and `check:motion` (rAF frame-time p95 ≤ 20 ms,
   max ≤ 50 ms, CLS 0, reduced-motion screenshot, hidden-tab pause).
-  Perf assertions run headed on the FormLabs3B GPU over Tailscale; CI
-  headless runs correctness only.
+  Perf assertions run headed on the pitch laptop's RTX 3050 (no training
+  job running); CI headless runs correctness only.
 - Exit criterion: every gate step in `gate.config.json` is `required`.
 
 ### Phase W — Wiring realism & PEC (findings in docs/WIRING-AUDIT.md)
@@ -288,7 +288,10 @@ Seeded demo accounts + reset script, offline fallback via Tailscale URL,
 Lighthouse ≥ 90 (perf/a11y/SEO), OG image, backup video recorded from
 Showcase, real cited market figures only.
 
-## 5. Self-hosting — FormLabs3B + Tailscale + Cloudflare
+## 5. Self-hosting — the pitch laptop + Cloudflare
+
+(Decided 2026-10-22: FormLabs3B and its tailnet are dropped; the laptop
+runs web, API, vision and the tunnel. It is production while it's on.)
 
 **Domain reality:** Cloudflare doesn't give away domains — the Tunnel and
 the DNS zone are free, the domain is not. Two $0 routes that work with a
@@ -302,10 +305,9 @@ pitch slide.
 
 **Target topology**
 ```
-Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (Windows service on FormLabs3B)
+Internet ──► Cloudflare (DNS, TLS, WAF, cache) ──► cloudflared (on the laptop)
                                                    └─► solence.<domain> → localhost:3000 (Next, proxies /api + /ws → :4000)
-Tailscale (private) ──► FormLabs3B: SSH, Supabase/Postgres admin  (never public)
-                    ──► laptop: :8000 vision (V5 weights; binding decided in D)
+API (:4000) ──► vision 127.0.0.1:8000 (V5 weights before the public link serves vision)
 ```
 Steps for Claude Code to script (`ops/` folder, PowerShell):
 1. `cloudflared tunnel login` → `tunnel create solence` →
@@ -316,11 +318,11 @@ Steps for Claude Code to script (`ops/` folder, PowerShell):
 3. Cloudflare dashboard: SSL Full, Always HTTPS, a WAF rate rule on
    `/api/projects/*/recognize`, Bot Fight Mode on.
 4. Optional: Cloudflare Access (free ≤50 users) in front of a
-   `admin.<domain>` path; Tailscale stays the admin path.
-5. `ops/deploy.ps1`: `git pull` → install → build → test → restart services
-   (run over Tailscale SSH). `ops/health.ps1`: curl health endpoints, alert.
-6. Power plan: disable sleep, auto-login-free service startup, UPS if
-   available; this one PC *is* production.
+   `admin.<domain>` path.
+5. `ops/start.ps1` / `ops/stop.ps1`: build → start web, API, vision and
+   the tunnel detached; `ops/health.ps1`: curl health endpoints.
+6. Power plan during the pitch: plugged in, no sleep (ask the user before
+   changing it); this laptop *is* production while it's on.
 Rewrite `docs/HOSTING.md` around this; keep Quick Tunnel as the
 emergency fallback.
 
@@ -343,7 +345,7 @@ emergency fallback.
 - Subagents: `Explore` for broad searches; `design-review` for grading
   (fresh context, never the builder); a fresh subagent to triage a large
   failure report and return the root cause in a paragraph.
-- Personal machine-specific notes (paths on FormLabs3B, GPU name) go
+- Personal machine-specific notes (laptop paths, GPU name) go
   in `CLAUDE.local.md` (gitignored).
 - Progress is computed, never estimated: `npm run progress` reads
   `docs/ROADMAP.json`; the SessionStart hook prints it, every gate
@@ -377,5 +379,5 @@ The first-ever session is **Kickoff (M0)** in `docs/PROMPTS.md`: Claude
 Code merges the revamp bundle onto a `revamp` branch, reads the repo's
 latest docs, writes `docs/RECONCILE.md`, folds anything uncovered into
 `docs/ROADMAP.json`, runs the gate, commits and pushes. Every later
-session: "Session start" + the item prompt. Laptop first (0.1), then
-FormLabs3B (0.1b).
+session: "Session start" + the item prompt. Everything runs on the
+laptop (0.1, V0).

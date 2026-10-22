@@ -3,10 +3,9 @@
 Monorepo: `client/` (Next.js 15 editor + 3D), `server/` (Express engine
 API), `solence-vision/` (FastAPI floor-plan AI). Run locally: `HOW-TO.md`.
 API contract: `server/docs/api.md`. Revamp plan: `docs/REVAMP-PLAN.md`.
-Machines (`docs/MACHINES.md`): this laptop runs Claude Code, dev, the
-vision service and model training (RTX 3050 Laptop, 4 GB VRAM);
-**FormLabs3B** (reached over Tailscale as `formlabs3b`) hosts the app
-and runs GPU perf checks.
+Machine (`docs/MACHINES.md`): this laptop (RTX 3050 Laptop, 4 GB VRAM)
+runs everything — Claude Code, dev, the vision service, model training,
+GPU perf checks, and the pitch itself behind a Cloudflare tunnel.
 
 Start of EVERY session, in this order:
 0. Show the progress block (`npm run progress`, also printed by the
@@ -134,21 +133,25 @@ Start of EVERY session, in this order:
 - New work discovered mid-item becomes a new ROADMAP item (with weight
   and phase), not part of the current one.
 
-## 8. Two machines
+## 8. One machine — the pitch laptop
 
-- Code changes happen on the laptop. FormLabs3B gets them only by
-  `git pull` over SSH (`ssh <user>@formlabs3b`) — never edit files there.
-- Vision service and training run on the laptop: data and runs under
+- Everything runs on this laptop: dev, Claude Code, web + API, vision
+  service, training, perf checks, and (Phase D) the public tunnel.
+  FormLabs3B was dropped on 2026-10-22.
+- Vision service and training: data and runs under
   `SOLENCE_VISION_DATA` (C:), `yolo26s-seg --imgsz 640 --batch 2` and
   U-Net `--imgsz 512 --batch 2` (4 GB VRAM). CubiCasa5K-trained weights
   are research/demo-only (CC BY-NC-SA) until V5.
-- GPU benchmarks and `check:motion` perf assertions run on FormLabs3B.
+- GPU benchmarks and `check:motion` perf budgets are measured on this
+  laptop's RTX 3050 — the machine the pitch runs on. Don't run them
+  while a training job holds the GPU.
 - Start long jobs (training, services) detached (docs/HOSTING.md §3) and
   read their logs; don't hold the session open on them.
 - Dev uses the laptop's vision service: `VISION_URL=http://localhost:8000`
   in `server/.env`; it binds to 127.0.0.1 unless the user says otherwise.
-- Never expose FormLabs3B ports publicly except through the Cloudflare
-  tunnel in Phase D. Ask before changing its firewall, services or DNS.
+- Never expose laptop ports publicly except through the Cloudflare
+  tunnel in Phase D. Ask before changing the firewall, Windows services,
+  power settings or DNS.
 
 ## 9. Every session ends with the handoff
 

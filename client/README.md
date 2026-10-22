@@ -32,7 +32,7 @@ the script's header.
 
 ## Hosting (Cloudflare Tunnel)
 
-> Served from **FormLabs3B** (docs/MACHINES.md). Until Phase D picks a
+> Served from **the pitch laptop** (docs/MACHINES.md). Until Phase D picks a
 > domain, the public demo path is a Quick Tunnel; the config below is the
 > Phase D named-tunnel setup.
 
