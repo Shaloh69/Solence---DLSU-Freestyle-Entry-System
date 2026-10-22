@@ -182,7 +182,10 @@ export interface Circuit {
   conductor: ConductorSpec;
   /** Equipment grounding conductor per PEC Table 2.50.6.13 (PEC-VERIFY). */
   groundingConductor: { awg: string; mm2: number };
-  /** One-way routed wire length from panel to farthest load, meters. */
+  /**
+   * One-way wire length from the panel to the farthest device, meters —
+   * along the circuit's device-to-device chain once wiring is built (W3).
+   */
   lengthM: number;
   /**
    * Branch voltage drop as a fraction (0.02 = 2%), for every circuit —
@@ -191,6 +194,12 @@ export interface Circuit {
    * internally to decide whether to raise a violation.
    */
   voltageDropPercent: number;
+  /**
+   * Segments from the panel to the device with the worst voltage drop,
+   * each with the current it carries. When present, voltage drop sums
+   * along this chain instead of assuming all current at the far end.
+   */
+  dropChain?: { lengthM: number; amps: number }[];
 }
 
 export interface Panel {
@@ -241,6 +250,67 @@ export interface Violation {
 }
 
 // ---------- Routing ----------
+
+/** A conductor's job in a run: hot (L, and L2/L3 for multi-wire), neutral, ground. */
+export type ConductorRole = "L" | "L2" | "L3" | "N" | "G";
+
+export interface SegmentConductor {
+  role: ConductorRole;
+  awg: string;
+  mm2: number;
+  /** Insulation color per the PEC color code (PEC-VERIFY, sizing/conductor-colors.ts). */
+  color: string;
+}
+
+/**
+ * One conduit run of a circuit: the home run (from "panel" to the first
+ * device) or a device-to-device link. Together a circuit's segments form
+ * a tree rooted at the panel.
+ */
+export interface WireSegment {
+  id: string;
+  circuitId: string;
+  /** "panel" or the load id at the upstream end. */
+  from: string;
+  /** Load id at the downstream end. */
+  to: string;
+  points: Point[];
+  lengthM: number;
+  penetrations: number;
+  conductors: SegmentConductor[];
+  /** Connected VA of every device at or below `to`. */
+  downstreamVa: number;
+  downstreamAmps: number;
+}
+
+/** A device box where three or more conduits meet (splices inside). */
+export interface JunctionBox {
+  id: string;
+  circuitId: string;
+  loadId: string;
+  position: Point;
+  conduits: number;
+}
+
+export interface WireBomLine {
+  role: ConductorRole;
+  awg: string;
+  mm2: number;
+  color: string;
+  lengthM: number;
+}
+
+export interface WireBom {
+  wire: WireBomLine[];
+  conduitLengthM: number;
+  junctionBoxes: number;
+}
+
+export interface CircuitWiring {
+  segments: WireSegment[];
+  junctions: JunctionBox[];
+  bom: WireBom;
+}
 
 export interface RoutedPath {
   loadId: string;

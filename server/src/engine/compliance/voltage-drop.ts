@@ -4,6 +4,8 @@
  *
  * Single-phase: VD = 2 × I × R × L (out-and-back).
  * Three-phase:  VD = √3 × I × R × L.
+ * With a device chain (W3) the I × L term is summed segment by segment,
+ * each segment carrying only the current of the devices it feeds.
  *
  * PEC-VERIFY: the 3%/5% limits follow the usual PEC/NEC recommended
  * practice; conductor resistance values are placeholders (see
@@ -27,12 +29,14 @@ export function voltageDropPercent(
     );
   }
 
-  const amps = circuit.connectedVa / circuit.voltage;
-  const resistance = (resistancePerKm / 1000) * circuit.lengthM;
+  const ohmPerM = resistancePerKm / 1000;
   const multiplier = threePhase ? Math.sqrt(3) : 2;
-  const dropVolts = multiplier * amps * resistance;
+  // W3: with a device chain, each segment drops only the current it carries.
+  const ampMeters = circuit.dropChain
+    ? circuit.dropChain.reduce((sum, s) => sum + s.amps * s.lengthM, 0)
+    : (circuit.connectedVa / circuit.voltage) * circuit.lengthM;
 
-  return dropVolts / circuit.voltage;
+  return (multiplier * ohmPerM * ampMeters) / circuit.voltage;
 }
 
 export function checkVoltageDrop(

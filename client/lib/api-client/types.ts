@@ -140,9 +140,12 @@ export interface Circuit {
   conductor: ConductorSpec;
   /** Equipment grounding conductor per PEC Table 2.50.6.13 (PEC-VERIFY). */
   groundingConductor: { awg: string; mm2: number };
+  /** One-way wire length from the panel to the farthest device, along the device chain. */
   lengthM: number;
   /** Branch voltage drop as a fraction (0.02 = 2%) — every circuit, not just violations. */
   voltageDropPercent: number;
+  /** Panel → worst-drop device, each segment with the current it carries. */
+  dropChain?: { lengthM: number; amps: number }[];
 }
 
 export interface Panel {
@@ -184,6 +187,58 @@ export interface Violation {
   message: string;
   circuitId?: string;
   pecReference: string;
+}
+
+export type ConductorRole = "L" | "L2" | "L3" | "N" | "G";
+
+export interface SegmentConductor {
+  role: ConductorRole;
+  awg: string;
+  mm2: number;
+  /** Insulation color per the PEC color code (PEC-VERIFY). */
+  color: string;
+}
+
+/** One conduit run: home run (from "panel") or device-to-device; a circuit's segments form a tree. */
+export interface WireSegment {
+  id: string;
+  circuitId: string;
+  from: string;
+  to: string;
+  points: Point[];
+  lengthM: number;
+  penetrations: number;
+  conductors: SegmentConductor[];
+  downstreamVa: number;
+  downstreamAmps: number;
+}
+
+export interface JunctionBox {
+  id: string;
+  circuitId: string;
+  loadId: string;
+  position: Point;
+  conduits: number;
+}
+
+export interface WireBomLine {
+  role: ConductorRole;
+  awg: string;
+  mm2: number;
+  color: string;
+  lengthM: number;
+}
+
+export interface WireBom {
+  wire: WireBomLine[];
+  conduitLengthM: number;
+  junctionBoxes: number;
+}
+
+export interface CircuitWiring {
+  segments: WireSegment[];
+  junctions: JunctionBox[];
+  bom: WireBom;
 }
 
 export interface RoutedPath {
@@ -235,6 +290,8 @@ export interface SimulationResult {
   routingErrors: { loadId: string; message: string }[];
   roomLighting: RoomLightingAnalysis[];
   luxHeatmap: LuxSample[];
+  /** Device-to-device circuit wiring: conduit segments, junction boxes, bill of materials (W3). */
+  wiring: CircuitWiring;
 }
 
 export interface AutoLightingOptions {

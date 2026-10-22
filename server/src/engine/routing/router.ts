@@ -371,6 +371,36 @@ export function routeAll(
   return { routes, errors };
 }
 
+/**
+ * Routes from one device to each of `targets` with the same cost model —
+ * the device-to-device links of a circuit (W3). One search, stopped as
+ * soon as every target is settled. Unreachable targets are left out.
+ */
+export function routeFromDevice(
+  source: RouteTarget,
+  targets: RouteTarget[],
+  grid: WalkabilityGrid
+): Map<string, RoutedPath> {
+  const paths = new Map<string, RoutedPath>();
+  const start = snap(source.position, grid, source.room);
+
+  if (!start) return paths;
+  const goals = targets
+    .map((t) => ({ target: t, cell: snap(t.position, grid, t.room) }))
+    .filter((g): g is { target: RouteTarget; cell: Cell } => g.cell !== null);
+  const tree = search(grid, start, new Set(goals.map((g) => g.cell.row * grid.cols + g.cell.col)));
+
+  for (const { target, cell } of goals) {
+    const end = bestState(tree, cell.row * grid.cols + cell.col);
+
+    if (end !== -1) {
+      paths.set(target.id, toRoutedPath(cellsTo(tree, end), grid, source.position, target.position, target.id));
+    }
+  }
+
+  return paths;
+}
+
 function polylineLength(points: Point[]): number {
   let length = 0;
 

@@ -108,15 +108,22 @@
       "id": "W3",
       "phase": "W",
       "weight": 3,
-      "status": "in-progress",
+      "status": "done",
       "title": "Device-to-device circuit topology, L/N/G, BOM"
     },
     {
       "id": "W4",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "in-progress",
       "title": "Layer views (presets, lock) + Playwright project"
+    },
+    {
+      "id": "W3b",
+      "phase": "W",
+      "weight": 2,
+      "status": "todo",
+      "title": "Draw circuit wiring in 2D/3D: conduit segments, L/N/G tick marks, home-run arrows, junction boxes, BOM panel (design rule)"
     },
     {
       "id": "0.3",

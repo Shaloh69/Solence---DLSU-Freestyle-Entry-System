@@ -98,15 +98,36 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                   "conductor": { "awg", "mm2", "ampacity", "insulation",
                                  "terminationTempC" },   // ampacity = usable at 60/75 °C terminals
                   "groundingConductor": { "awg", "mm2" }, // PEC Table 2.50.6.13
-                  "lengthM", "voltageDropPercent" } ],
+                  "lengthM",            // panel → farthest device along the device chain
+                  "voltageDropPercent", // summed segment by segment along dropChain
+                  "dropChain": [ { "lengthM", "amps" } ] } ],  // panel → worst-drop device
   "schedule": { "panelId", "system", "rows": [PanelScheduleRow…],
                 "totalConnectedVa", "totalDemandVa",
                 "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps" },
   "directory": [ { "circuitNumber", "circuitId", "description" } ],
   "violations": [ { "ruleId", "severity", "message", "circuitId?", "pecReference" } ],
-  "routingErrors": [ { "loadId", "message" } ]
+  "routingErrors": [ { "loadId", "message" } ],
+  "wiring": {                                  // W3: real circuits, device to device
+    "segments": [ { "id", "circuitId",
+                    "from",                    // "panel" or upstream load id
+                    "to",                      // downstream load id
+                    "points": [{x,y},…], "lengthM", "penetrations",
+                    "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G"
+                                      "awg", "mm2", "color" } ],  // colors PEC-VERIFY
+                    "downstreamVa", "downstreamAmps" } ],
+    "junctions": [ { "id", "circuitId", "loadId", "position": {x,y}, "conduits" } ],
+    "bom": { "wire": [ { "role", "awg", "mm2", "color", "lengthM" } ],
+             "conduitLengthM", "junctionBoxes" }
+  }
 }
 ```
+
+`routes` are still one path per device from the panel (kept for the
+current 2D/3D layers). `wiring` is how the circuit is actually pulled:
+per circuit one home run to the first device, then device to device;
+each circuit's segments form a tree rooted at `"panel"`. A device where
+three or more conduits meet is a junction box. 240 V circuits on a
+120/240 V panel carry L + L2 + G (no neutral); everything else L + N + G.
 
 `SimulationResult` also carries `roomLighting` (per-room average lux vs
 target, fixture count) and `luxHeatmap` (workplane illuminance samples

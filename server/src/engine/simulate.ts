@@ -3,6 +3,7 @@
  *
  *   floor plan + panel + loads
  *     -> rasterize -> route every load -> group into circuits -> size
+ *     -> device-to-device wiring per circuit (topology.ts)
  *     -> compliance checks -> panel schedule + directory
  */
 import {
@@ -13,7 +14,9 @@ import {
   RoutedPath,
   Violation,
   Circuit,
+  CircuitWiring,
 } from "./types.js";
+import { buildWiring } from "./topology.js";
 import { rasterizeFloorPlan, routeAll } from "./routing/index.js";
 import { pointInPolygon } from "./geometry.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
@@ -58,6 +61,8 @@ export interface SimulationResult {
   roomLighting: RoomLightingAnalysis[];
   /** Workplane illuminance samples for the lux heatmap layer. */
   luxHeatmap: LuxSample[];
+  /** Device-to-device circuit wiring: conduit segments, junction boxes, bill of materials (W3). */
+  wiring: CircuitWiring;
 }
 
 export function simulate(input: SimulationInput): SimulationResult {
@@ -72,13 +77,14 @@ export function simulate(input: SimulationInput): SimulationResult {
   const panelRoom = floorPlan.rooms.find((room) =>
     pointInPolygon(panel.position, room.boundary)
   );
+  const targets = loads.map((load) => ({
+    id: load.id,
+    position: load.position,
+    room: load.roomId ? roomById.get(load.roomId)?.boundary : undefined,
+  }));
   const { routes, errors: routingErrors } = routeAll(
     panel.position,
-    loads.map((load) => ({
-      id: load.id,
-      position: load.position,
-      room: load.roomId ? roomById.get(load.roomId)?.boundary : undefined,
-    })),
+    targets,
     grid,
     panelRoom?.boundary
   );
@@ -99,6 +105,10 @@ export function simulate(input: SimulationInput): SimulationResult {
   for (const route of routes) {
     route.circuitId = circuitByLoad.get(route.loadId);
   }
+
+  // Home runs become real circuits: panel → first device → device to device.
+  // Sets each circuit's lengthM (farthest device along the chain) and dropChain.
+  const wiring = buildWiring(grid, panel, loads, circuits, routes, targets);
 
   const threePhase = panel.system === "3P4W-230/400";
 
@@ -136,5 +146,6 @@ export function simulate(input: SimulationInput): SimulationResult {
       openings: floorPlan.openings,
     }),
     luxHeatmap: luxHeatmap(floorPlan, loads),
+    wiring,
   };
 }

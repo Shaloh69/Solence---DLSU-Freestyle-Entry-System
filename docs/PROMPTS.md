@@ -12,7 +12,7 @@ it's blocked on you, or you say stop. Everything Claude must obey is already in 
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → V0 → V0b → W3 → W4 (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
+M0 → 0.1 → V0 → V0b → W3 → W4 → W3b (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
 W8 → W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → V5 → D → E
 (V4 waits for your dataset-license decision.)
 
@@ -208,6 +208,22 @@ in client/e2e/thresholds.json; each preset equals the same manual
 toggles; a locked layer can't be selected; no console errors. The
 preset picker UI is a design item: registry entry referencing AutoCAD's
 Layer States Manager, spec, gallery — before it ships.
+```
+
+### W3b — Draw circuit wiring in 2D/3D
+```
+Item W3b (WIRING-AUDIT F-9, F-11). The engine already returns
+SimulationResult.wiring (W3): conduit segments per circuit, L/N/L2/G per
+segment, junction boxes, wire + conduit BOM. Draw it, through the design
+rule (CLAUDE.md §2): registry entries with real references for standard
+electrical plan notation (home-run arrow with circuit number, conductor
+tick marks, junction-box symbol — e.g. a published electrical symbol
+legend) and for the BOM table; spec; /dev/gallery in both themes. Then:
+2D draws one line per segment on the Wiring layer (replacing the
+per-device home runs), ticks for the conductor count, a home-run arrow
+per circuit; 3D draws segments as conduit; a BOM panel lists wire per
+size/color and conduit length. E2E on a ResPlan house: segment and
+junction counts in the DOM match the API result; no console errors.
 ```
 
 ### 0.3 — Real 3D assets and textures
