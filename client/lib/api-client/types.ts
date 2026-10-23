@@ -191,12 +191,19 @@ export interface Violation {
 
 export type ConductorRole = "L" | "L2" | "L3" | "N" | "G";
 
+/** W5: S = switched hot back from a switch, T = traveler between a 2-way pair. */
+export type SwitchLegRole = "S" | "T";
+
+export type WireRole = ConductorRole | SwitchLegRole;
+
 export interface SegmentConductor {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
-  /** Insulation color per the PEC color code (PEC-VERIFY). */
+  /** Insulation color (PEC-VERIFY). */
   color: string;
+  /** Lighting group an S/T conductor belongs to. */
+  groupId?: string;
 }
 
 /** One conduit run: home run (from "panel") or device-to-device; a circuit's segments form a tree. */
@@ -222,7 +229,7 @@ export interface JunctionBox {
 }
 
 export interface WireBomLine {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
   color: string;
@@ -231,14 +238,61 @@ export interface WireBomLine {
 
 export interface WireBom {
   wire: WireBomLine[];
+  /** Feed segments plus switch legs, meters. */
   conduitLengthM: number;
   junctionBoxes: number;
+  /** Wall switches by type (a 2-way pair counts two). */
+  switches: { oneWay: number; twoWay: number };
+}
+
+/** W5: wall switch placed by the engine at the latch side of a door of its room. */
+export interface SwitchDevice {
+  id: string;
+  groupId: string;
+  circuitId: string;
+  roomId?: string;
+  kind: "1-way" | "2-way";
+  position: Point;
+  /** Center height above finished floor (DESIGN-VERIFY). */
+  mountingHeightM: number;
+  doorId?: string;
+  pairedSwitchId?: string;
+}
+
+/** Lighting fixtures of one room on one circuit, switched together. */
+export interface LightingGroup {
+  id: string;
+  circuitId: string;
+  roomId?: string;
+  loadIds: string[];
+  switchIds: string[];
+  /** Fixture box the switch leg drops from. */
+  boxLoadId: string;
+}
+
+/** Conduit run box → switch (L + S + G) or between a 2-way pair (S + T + T + G). */
+export interface SwitchLeg {
+  id: string;
+  circuitId: string;
+  groupId: string;
+  from: string;
+  to: string;
+  points: Point[];
+  /** Plan length of `points` plus `verticalM`. */
+  lengthM: number;
+  verticalM: number;
+  penetrations: number;
+  conductors: SegmentConductor[];
+  amps: number;
 }
 
 export interface CircuitWiring {
   segments: WireSegment[];
   junctions: JunctionBox[];
   bom: WireBom;
+  lightingGroups: LightingGroup[];
+  switches: SwitchDevice[];
+  switchLegs: SwitchLeg[];
 }
 
 export interface RoutedPath {

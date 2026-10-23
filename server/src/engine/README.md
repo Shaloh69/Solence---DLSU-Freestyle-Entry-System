@@ -28,6 +28,12 @@ relies on.
 - `circuits.ts` — groups loads into branch circuits and sizes them
   (each load is still its own home run from the panel; device-to-device
   circuit topology is item W3, docs/WIRING-AUDIT.md F-9).
+- `switching/` — W5: which doors are a room's entrances, lighting groups
+  (switched fixtures per room per circuit), switch auto-placement at the
+  latch side of the entrance door (1-way, or a 2-way pair for two
+  entrances). Data: `switch-data.ts` (DESIGN-VERIFY); switch-leg
+  conductors in `sizing/switch-leg-conductors.ts` (PEC-VERIFY).
+  `topology.ts` wires the switch legs and the switched leg S.
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).

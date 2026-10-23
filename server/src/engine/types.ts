@@ -254,12 +254,22 @@ export interface Violation {
 /** A conductor's job in a run: hot (L, and L2/L3 for multi-wire), neutral, ground. */
 export type ConductorRole = "L" | "L2" | "L3" | "N" | "G";
 
+/**
+ * Switch-leg conductors (W5): S = switched hot from a switch back to its
+ * lighting group, T = a traveler between the two switches of a 2-way pair.
+ */
+export type SwitchLegRole = "S" | "T";
+
+export type WireRole = ConductorRole | SwitchLegRole;
+
 export interface SegmentConductor {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
-  /** Insulation color per the PEC color code (PEC-VERIFY, sizing/conductor-colors.ts). */
+  /** Insulation color (PEC-VERIFY: sizing/conductor-colors.ts, sizing/switch-leg-conductors.ts). */
   color: string;
+  /** Lighting group an S/T conductor belongs to. */
+  groupId?: string;
 }
 
 /**
@@ -293,7 +303,7 @@ export interface JunctionBox {
 }
 
 export interface WireBomLine {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
   color: string;
@@ -302,14 +312,76 @@ export interface WireBomLine {
 
 export interface WireBom {
   wire: WireBomLine[];
+  /** Feed segments plus switch legs, meters. */
   conduitLengthM: number;
   junctionBoxes: number;
+  /** Wall switches by type (a 2-way pair counts two). */
+  switches: { oneWay: number; twoWay: number };
+}
+
+/**
+ * A wall switch (W5), placed by the engine at the latch side of a door of
+ * the room it serves. "1-way" = single-pole; "2-way" = one of a pair
+ * switching the same group from two doors (US "3-way").
+ */
+export interface SwitchDevice {
+  id: string;
+  groupId: string;
+  circuitId: string;
+  roomId?: string;
+  kind: "1-way" | "2-way";
+  position: Point;
+  /** Center height above finished floor (DESIGN-VERIFY, switching/switch-data.ts). */
+  mountingHeightM: number;
+  /** Door the switch sits beside; absent when the room has no door. */
+  doorId?: string;
+  /** The other switch of a 2-way pair. */
+  pairedSwitchId?: string;
+}
+
+/** Lighting fixtures of one room on one circuit, switched together. */
+export interface LightingGroup {
+  id: string;
+  circuitId: string;
+  roomId?: string;
+  loadIds: string[];
+  /** One 1-way switch, or a 2-way pair. */
+  switchIds: string[];
+  /** Fixture box the switch leg drops from (the group fixture nearest the panel). */
+  boxLoadId: string;
+}
+
+/**
+ * Conduit run from a group's fixture box down to its switch (L + S + G),
+ * or between a 2-way pair (S + T + T + G).
+ */
+export interface SwitchLeg {
+  id: string;
+  circuitId: string;
+  groupId: string;
+  /** Fixture load id (box) or switch id at the upstream end. */
+  from: string;
+  /** Switch id. */
+  to: string;
+  points: Point[];
+  /** Plan length of `points` plus `verticalM`. */
+  lengthM: number;
+  /** Drops between ceiling and switch height included in lengthM. */
+  verticalM: number;
+  penetrations: number;
+  conductors: SegmentConductor[];
+  /** Current of the switched group. */
+  amps: number;
 }
 
 export interface CircuitWiring {
   segments: WireSegment[];
   junctions: JunctionBox[];
   bom: WireBom;
+  /** W5: switched lighting groups, their wall switches and switch legs. */
+  lightingGroups: LightingGroup[];
+  switches: SwitchDevice[];
+  switchLegs: SwitchLeg[];
 }
 
 export interface RoutedPath {

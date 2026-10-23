@@ -157,8 +157,15 @@
       "id": "W5",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "done",
       "title": "Switches + switch legs"
+    },
+    {
+      "id": "W5b",
+      "phase": "W",
+      "weight": 1,
+      "status": "todo",
+      "title": "Draw switches + switch legs in 2D/3D, PH legend symbols in the PDF (design rule)"
     },
     {
       "id": "W6",

@@ -12,7 +12,7 @@ it's blocked on you, or you say stop. Everything Claude must obey is already in 
 point at the work.
 
 Order (also in `docs/STATE.md`, progress from `docs/ROADMAP.json`):
-M0 → 0.1 → V0 → V0b → W3 → W4 → W3b (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W6 →
+M0 → 0.1 → V0 → V0b → W3 → W4 → W3b (+0.4) → 0.3 → 0.5 → 0.6 → V3 → W5 → W5b → W6 →
 W8 → W7 → W9 → A → V2 → V1 → W10 → W11 → C1…C4 → W12 → B → V5 → D → E
 (V4 waits for your dataset-license decision.)
 
@@ -301,6 +301,23 @@ groups controlled by switches, switch legs in the W3 topology, 2-way
 switching for rooms with two doors. Tests on all 12 houses: every
 lighting fixture is controlled by exactly one switch in its room or at
 its door; switch legs appear in the BOM.
+```
+
+### W5b — Draw switches and switch legs (PH legend symbols)
+```
+Item W5b (WIRING-AUDIT F-12 follow-up). The engine already returns
+SimulationResult.wiring.switches / lightingGroups / switchLegs (W5):
+1-way and 2-way switches at the latch side of each room's entrance door,
+switch legs (L+S+G, S+T+T+G) and the switched leg S on the circuit
+tree. Draw them, through the design rule (CLAUDE.md §2): registry
+entries with real references for the PH electrical plan legend symbols
+(single-pole / 2-way switch, switch leg, lighting outlet — e.g. a
+published PH plan legend), spec, /dev/gallery in both themes. Then: 2D
+shows switch symbols at their positions and switch legs on the
+Lighting/Wiring layers, with S/T tick marks; 3D places switch plates at
+mountingHeightM; the permit PDF legend lists the switch symbols. E2E on
+a ResPlan house: switch and leg counts in the DOM match the API result;
+no console errors.
 ```
 
 ### W6 — Derating and conduit fill

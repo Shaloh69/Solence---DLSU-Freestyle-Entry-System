@@ -112,12 +112,25 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                     "from",                    // "panel" or upstream load id
                     "to",                      // downstream load id
                     "points": [{x,y},…], "lengthM", "penetrations",
-                    "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G"
-                                      "awg", "mm2", "color" } ],  // colors PEC-VERIFY
+                    "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G" | "S" | "T"
+                                      "awg", "mm2", "color",  // colors PEC-VERIFY
+                                      "groupId?" } ],  // S/T: the lighting group
                     "downstreamVa", "downstreamAmps" } ],
     "junctions": [ { "id", "circuitId", "loadId", "position": {x,y}, "conduits" } ],
+    "lightingGroups": [ { "id", "circuitId", "roomId?", "loadIds",   // W5
+                          "switchIds",        // one 1-way, or a 2-way pair
+                          "boxLoadId" } ],    // fixture the switch leg drops from
+    "switches": [ { "id", "groupId", "circuitId", "roomId?",
+                    "kind",                  // "1-way" | "2-way"
+                    "position": {x,y}, "mountingHeightM",  // DESIGN-VERIFY
+                    "doorId?", "pairedSwitchId?" } ],
+    "switchLegs": [ { "id", "circuitId", "groupId",
+                      "from", "to",          // box load id or switch id → switch id
+                      "points": [{x,y},…], "lengthM", "verticalM", "penetrations",
+                      "conductors": [ … ], "amps" } ],
     "bom": { "wire": [ { "role", "awg", "mm2", "color", "lengthM" } ],
-             "conduitLengthM", "junctionBoxes" }
+             "conduitLengthM", "junctionBoxes",   // conduit incl. switch legs
+             "switches": { "oneWay", "twoWay" } }
   }
 }
 ```
@@ -128,6 +141,18 @@ per circuit one home run to the first device, then device to device;
 each circuit's segments form a tree rooted at `"panel"`. A device where
 three or more conduits meet is a junction box. 240 V circuits on a
 120/240 V panel carry L + L2 + G (no neutral); everything else L + N + G.
+
+Switching (W5): the engine places the switches — they are not loads in
+the project. Switched fixtures (lighting, not egress) of one room on one
+circuit form a lighting group. Its switch sits inside the room beside the
+latch side of the room's entrance door (1-way); a room with two or more
+entrance doors gets a 2-way pair at two of them. The switch leg drops from
+the group's box (its fixture nearest the panel) to the first switch with
+L + S + G, and runs S + T + T + G between a 2-way pair; `lengthM`
+includes the vertical drops (`verticalM`, ceiling to switch height). On
+the circuit tree, S runs where it joins a group's fixtures and L only
+where an unswitched device or a group box is downstream. A switched
+fixture's voltage drop includes its switch leg (down and back).
 
 `SimulationResult` also carries `roomLighting` (per-room average lux vs
 target, fixture count) and `luxHeatmap` (workplane illuminance samples
