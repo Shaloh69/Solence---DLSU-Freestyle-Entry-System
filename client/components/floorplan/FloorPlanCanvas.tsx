@@ -400,6 +400,7 @@ export default function FloorPlanCanvas() {
         result?.luxHeatmap.map((sample, index) => (
           <rect
             key={index}
+            data-layer="heatmap"
             fill={luxColor(sample.lux)}
             height={0.5}
             opacity={0.4}
@@ -426,7 +427,7 @@ export default function FloorPlanCanvas() {
           );
 
           return (
-            <g key={room.id}>
+            <g key={room.id} data-layer="rooms" data-selected={selected}>
               <polygon
                 className="cursor-pointer"
                 fill="#14B8A6"
@@ -481,6 +482,7 @@ export default function FloorPlanCanvas() {
           return (
             <polyline
               key={route.loadId}
+              data-layer="wiring"
               fill="none"
               opacity={0.9}
               pointerEvents="none"
@@ -504,6 +506,8 @@ export default function FloorPlanCanvas() {
             <line
               key={wall.id}
               className="cursor-pointer"
+              data-layer="walls"
+              data-selected={selected}
               stroke={selected ? "#14B8A6" : "currentColor"}
               strokeLinecap="square"
               strokeOpacity={selected ? 1 : 0.85}
@@ -538,6 +542,8 @@ export default function FloorPlanCanvas() {
             <g
               key={opening.id}
               className="cursor-pointer"
+              data-layer="walls"
+              data-selected={selected}
               onClick={(event) => {
                 if (tool !== "select") return;
                 event.stopPropagation();
@@ -602,6 +608,8 @@ export default function FloorPlanCanvas() {
       {panel && (
         <g
           className="cursor-move"
+          data-layer="panel"
+          data-selected={selection?.kind === "panel"}
           onClick={(event) => {
             if (tool !== "select") return;
             event.stopPropagation();
@@ -610,8 +618,7 @@ export default function FloorPlanCanvas() {
           onPointerDown={(event) => {
             if (tool !== "select") return;
             event.stopPropagation();
-            store.setSelection({ kind: "panel" });
-            setDraggingSelection(true);
+            if (store.setSelection({ kind: "panel" })) setDraggingSelection(true);
           }}
         >
           <rect
@@ -652,6 +659,8 @@ export default function FloorPlanCanvas() {
           <g
             key={load.id}
             className="cursor-move"
+            data-layer={load.type === "lighting" ? "lighting" : "loads"}
+            data-selected={selected}
             onClick={(event) => {
               if (tool !== "select") return;
               event.stopPropagation();
@@ -660,8 +669,7 @@ export default function FloorPlanCanvas() {
             onPointerDown={(event) => {
               if (tool !== "select") return;
               event.stopPropagation();
-              store.setSelection({ kind: "load", id: load.id });
-              setDraggingSelection(true);
+              if (store.setSelection({ kind: "load", id: load.id })) setDraggingSelection(true);
             }}
           >
             <circle
@@ -707,6 +715,8 @@ export default function FloorPlanCanvas() {
             <g
               key={piece.id}
               className="cursor-move"
+              data-layer="furniture"
+              data-selected={selected}
               transform={`rotate(${(piece.rotation * 180) / Math.PI} ${piece.position.x} ${piece.position.y})`}
               onClick={(event) => {
                 if (tool !== "select") return;
@@ -716,8 +726,7 @@ export default function FloorPlanCanvas() {
               onPointerDown={(event) => {
                 if (tool !== "select") return;
                 event.stopPropagation();
-                store.setSelection({ kind: "furniture", id: piece.id });
-                setDraggingSelection(true);
+                if (store.setSelection({ kind: "furniture", id: piece.id })) setDraggingSelection(true);
               }}
             >
               <rect

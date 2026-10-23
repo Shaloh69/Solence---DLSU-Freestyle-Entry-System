@@ -17,6 +17,7 @@ import { ArrowLeft, X, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { useEditorStore } from "@/lib/editor-store";
+import { parseLocks } from "@/lib/layers";
 import { api } from "@/lib/api-client";
 import EditorToolbar from "@/components/floorplan/EditorToolbar";
 import FloorPlanCanvas from "@/components/floorplan/FloorPlanCanvas";
@@ -42,7 +43,18 @@ export default function EditorPage() {
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    if (params.id) void store.openProject(params.id);
+    if (!params.id) return;
+    // Deep links: ?view=<layer preset>&lock=<layer,layer> override the saved layer state.
+    const query = new URLSearchParams(window.location.search);
+
+    void store
+      .openProject(params.id)
+      .then(() =>
+        store.applyViewParams(
+          query.get("view"),
+          query.has("lock") ? parseLocks(query.get("lock")) : null,
+        ),
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 

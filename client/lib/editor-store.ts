@@ -29,6 +29,16 @@ import {
   LibraryItem,
 } from "./component-library";
 import { FurnitureItem } from "./furniture-library";
+import {
+  DEFAULT_LAYERS,
+  LayerKey,
+  LayerPresetId,
+  LayerState,
+  loadLayerState,
+  NO_LOCKS,
+  presetById,
+  saveLayerState,
+} from "./layers";
 
 export type EditorView = "2d" | "3d" | "showcase";
 
@@ -50,26 +60,7 @@ export type Selection =
   | { kind: "panel" }
   | null;
 
-export type LayerKey =
-  | "walls"
-  | "rooms"
-  | "loads"
-  | "lighting"
-  | "furniture"
-  | "wiring"
-  | "heatmap"
-  | "violations";
-
-const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
-  walls: true,
-  rooms: true,
-  loads: true,
-  lighting: true,
-  furniture: true,
-  wiring: true,
-  heatmap: false,
-  violations: true,
-};
+export type { LayerKey } from "./layers";
 
 const DEFAULT_PLAN_WIDTH = 12;
 const DEFAULT_PLAN_HEIGHT = 9;
@@ -178,7 +169,9 @@ interface EditorState {
   timeOfDay: "day" | "night";
   /** 0..1 wind strength driving grass sway + rain drift (§8.2). */
   windIntensity: number;
-  layers: Record<LayerKey, boolean>;
+  layers: LayerState;
+  /** Locked layers stay visible but their elements can't be selected (CAD lock). */
+  lockedLayers: LayerState;
   cursor: Point | null;
   snappedToWall: boolean;
   autoCheck: boolean;
@@ -207,8 +200,17 @@ interface EditorState {
   setWindIntensity(intensity: number): void;
   setTimeOfDay(timeOfDay: "day" | "night"): void;
   setLayer(layer: LayerKey, visible: boolean): void;
+  /** Switch to a layer-state preset (lib/layers.ts). Locks are kept. */
+  applyPreset(id: LayerPresetId): void;
+  setLayerLock(layer: LayerKey, locked: boolean): void;
+  /**
+   * Apply `?view=<preset>&lock=a,b` from the editor URL over the saved
+   * state (deep links for reviews and the pitch).
+   */
+  applyViewParams(view: string | null, lock: LayerState | null): void;
   setAutoCheck(on: boolean): void;
-  setSelection(selection: Selection): void;
+  /** Returns false (and keeps the old selection) when the item's layer is locked. */
+  setSelection(selection: Selection): boolean;
   setCursor(point: Point | null, snapped?: boolean): void;
   setPlanSize(width: number, height: number): void;
   setCeilingHeight(ceilingHeight: number): void;
@@ -230,6 +232,28 @@ interface EditorState {
   clearError(): void;
 }
 
+/** The layer a selectable item lives on (the panel is always selectable). */
+export function selectionLayer(
+  selection: NonNullable<Selection>,
+  loads: ElectricalLoad[],
+): LayerKey | null {
+  switch (selection.kind) {
+    case "wall":
+    case "opening":
+      return "walls";
+    case "room":
+      return "rooms";
+    case "furniture":
+      return "furniture";
+    case "load":
+      return loads.find((load) => load.id === selection.id)?.type === "lighting"
+        ? "lighting"
+        : "loads";
+    case "panel":
+      return null;
+  }
+}
+
 export const useEditorStore = create<EditorState>((set, get) => {
   function touched() {
     set({ dirty: true });
@@ -241,6 +265,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
         void get().saveAndSimulate({ silent: true });
       }, 800);
     }
+  }
+
+  /** Remember this project's layer visibility + locks (this browser only). */
+  function persistLayers() {
+    const { projectId, layers, lockedLayers } = get();
+
+    if (projectId) saveLayerState(projectId, { layers, locked: lockedLayers });
   }
 
   function roomAt(position: Point): Room | undefined {
@@ -413,6 +444,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     windIntensity: 0.35,
     timeOfDay: "day" as const,
     layers: { ...DEFAULT_LAYERS },
+    lockedLayers: { ...NO_LOCKS },
     cursor: null,
     snappedToWall: false,
     autoCheck: true,
@@ -427,8 +459,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set({ isLoading: true, error: null, result: null, selection: null });
       try {
         const project = await api.projects.get(id);
+        const saved = loadLayerState(project.id);
 
         set({
+          layers: saved?.layers ?? { ...DEFAULT_LAYERS },
+          lockedLayers: saved?.locked ?? { ...NO_LOCKS },
           projectId: project.id,
           projectName: project.name,
           floorPlan: project.floorPlan ?? emptyFloorPlan(),
@@ -550,10 +585,44 @@ export const useEditorStore = create<EditorState>((set, get) => {
     setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
     setWindIntensity: (windIntensity) =>
       set({ windIntensity: Math.min(1, Math.max(0, windIntensity)) }),
-    setLayer: (layer, visible) =>
-      set((state) => ({ layers: { ...state.layers, [layer]: visible } })),
+    setLayer(layer, visible) {
+      set((state) => ({ layers: { ...state.layers, [layer]: visible } }));
+      persistLayers();
+    },
+    applyPreset(id) {
+      const preset = presetById(id);
+
+      if (!preset) return;
+      set({ layers: { ...preset.layers } });
+      persistLayers();
+    },
+    setLayerLock(layer, locked) {
+      set((state) => {
+        const lockedLayers = { ...state.lockedLayers, [layer]: locked };
+        const unselect =
+          locked && state.selection && selectionLayer(state.selection, state.loads) === layer;
+
+        return unselect ? { lockedLayers, selection: null } : { lockedLayers };
+      });
+      persistLayers();
+    },
+    applyViewParams(view, lock) {
+      const preset = view ? presetById(view) : undefined;
+
+      if (preset) set({ layers: { ...preset.layers } });
+      if (lock) set({ lockedLayers: { ...lock } });
+      if (preset || lock) persistLayers();
+    },
     setAutoCheck: (autoCheck) => set({ autoCheck }),
-    setSelection: (selection) => set({ selection }),
+    setSelection(selection) {
+      const { lockedLayers, loads } = get();
+      const layer = selection && selectionLayer(selection, loads);
+
+      if (layer && lockedLayers[layer]) return false;
+      set({ selection });
+
+      return true;
+    },
     setCursor: (cursor, snapped = false) =>
       set({ cursor, snappedToWall: snapped }),
     clearError: () => set({ error: null }),

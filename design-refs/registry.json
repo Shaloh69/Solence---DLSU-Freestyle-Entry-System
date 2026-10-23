@@ -1,6 +1,9 @@
 {
   "$comment": "Template rule registry (DESIGN.md §10). status: planned -> in-review -> approved. 'planned' items list candidate references; at capture time each URL is verified live and given a 'capture' path under design-refs/. Never add a reference that wasn't captured from a real, live source.",
   "items": [
+    { "id": "layer-presets", "kind": "component", "status": "planned",
+      "references": [ { "url": "https://help.autodesk.com/view/ACD/2025/ENU/?guid=GUID-3E0F662B-226F-4A27-B5BB-D15252CC994C", "take": "Layer States Manager: named states, restore, which properties a state restores" },
+                      { "url": "https://help.autodesk.com/cloudhelp/2021/ENU/AutoCAD-DidYouKnow/files/GUID-5312A8BD-DD94-47D6-B1BA-5E0AF5E0CED8.htm", "take": "layer states as one-click saved views; lock vs off" } ] },
     { "id": "button", "kind": "component", "status": "planned",
       "references": [ { "url": "https://www.radix-ui.com/themes/docs/components/button", "take": "state set, sizes" },
                       { "url": "https://linear.app", "take": "density, pressed state" } ] },

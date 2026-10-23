@@ -29,7 +29,11 @@ The vision service and model training run here (item V0):
 - 4 GB VRAM limits: `yolo26s-seg --imgsz 640 --batch 2`, U-Net
   `--imgsz 512 --batch 2` (`m`-seg does not fit).
   `solence-vision/scripts/train-laptop.ps1` runs both and resumes after a
-  sleep/reboot — just run it again.
+  sleep/reboot — just run it again. Run it in a normal or minimized
+  window, never a hidden one: Windows power-throttles windowless
+  processes and the single-threaded data loading drops from ~4.9 to
+  ~1.1 it/s. Don't run GPU work (Playwright 3D tests, perf checks) while
+  it trains — the 4 GB of VRAM spills into shared memory.
 - Serve on `127.0.0.1:8000`; `server/.env` has
   `VISION_URL=http://localhost:8000`.
 - CubiCasa5K is CC BY-NC-SA: weights trained on it are research/demo-only.

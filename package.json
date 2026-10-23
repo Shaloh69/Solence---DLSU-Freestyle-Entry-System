@@ -2,7 +2,7 @@
   "name": "solence-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Solence \u2014 automatic electrical wiring simulator (client + server + vision)",
+  "description": "Solence — automatic electrical wiring simulator (client + server + vision)",
   "scripts": {
     "dev": "concurrently -n client,server -c cyan,magenta \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "dev:client": "npm run dev --prefix client",
@@ -17,7 +17,8 @@
     "progress": "node scripts/progress.mjs",
     "check:refs": "node scripts/check-design-refs.mjs",
     "check:hygiene": "node scripts/check-test-hygiene.mjs",
-    "handoff": "node scripts/handoff.mjs"
+    "handoff": "node scripts/handoff.mjs",
+    "test:e2e": "npm run test:e2e --prefix client"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -115,14 +115,14 @@
       "id": "W4",
       "phase": "W",
       "weight": 2,
-      "status": "in-progress",
+      "status": "done",
       "title": "Layer views (presets, lock) + Playwright project"
     },
     {
       "id": "W3b",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "in-progress",
       "title": "Draw circuit wiring in 2D/3D: conduit segments, L/N/G tick marks, home-run arrows, junction boxes, BOM panel (design rule)"
     },
     {

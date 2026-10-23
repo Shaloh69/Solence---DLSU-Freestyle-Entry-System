@@ -6,7 +6,8 @@
     "dev": "node scripts/next-real.js dev --turbopack -p 3000",
     "build": "node scripts/next-real.js build",
     "start": "node scripts/next-real.js start",
-    "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
+    "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.2.8",
@@ -49,8 +50,10 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.0.4",
+    "@playwright/test": "^1.64.1",
     "@react-types/shared": "3.25.0",
     "@types/node": "20.5.7",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "8.11.0",
@@ -66,6 +69,7 @@
     "eslint-plugin-react": "^7.23.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-unused-imports": "4.1.4",
+    "pngjs": "^7.0.0",
     "postcss": "8.4.49",
     "prettier": "3.3.3",
     "tailwind-variants": "0.3.0",
