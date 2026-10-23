@@ -354,6 +354,20 @@ schedule of loads shows each step. Tests: hand-computed example + all
 warning).
 ```
 
+### W8b — Dwelling calc: largest motor +25%, heating/A-C non-coincidence
+```
+Item W8b (F-14 follow-up, user-requested). Extend the W8 dwelling
+calculation (load-calc/dwelling.ts, values PEC-VERIFY in
+load-calc/pec-dwelling-calc.ts): add 25% of the largest motor load
+(A/C compressor, motor/pump; load types defined in the data file) as
+its own step (NEC 220.50 / 430.24 pattern), and when a dwelling has both
+space heating and A/C count only the larger (NEC 220.60 pattern; add a
+"heating" load type, mirrored client/server + api.md). Both appear as
+steps in schedule.dwellingCalc and on the PDF schedule of loads. Tests
+first: hand-computed cases for each rule + all 12 houses (main breaker
+≥ new computed demand).
+```
+
 ### W7 — Service, feeder, one-line diagram
 ```
 Item W7 (F-15). Service entrance (kWh meter, main breaker, service

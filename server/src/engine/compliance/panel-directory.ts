@@ -56,6 +56,8 @@ function labelForType(type: ElectricalLoad["type"]): string {
       return "Laundry";
     case "hvac":
       return "HVAC";
+    case "heating":
+      return "Space heating";
     case "motor":
       return "Motor";
     case "equipment":

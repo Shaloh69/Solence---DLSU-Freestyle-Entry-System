@@ -39,6 +39,7 @@ export interface CircuitBuilderOptions {
 const DEDICATED_TYPES: ElectricalLoad["type"][] = [
   "appliance",
   "hvac",
+  "heating",
   "motor",
   "equipment",
 ];

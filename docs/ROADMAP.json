@@ -189,6 +189,13 @@
       "title": "PEC 2.20 dwelling load computation"
     },
     {
+      "id": "W8b",
+      "phase": "W",
+      "weight": 1,
+      "status": "done",
+      "title": "Dwelling calc: largest motor +25% and heating/A-C non-coincidence"
+    },
+    {
       "id": "W7",
       "phase": "W",
       "weight": 2,

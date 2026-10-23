@@ -90,6 +90,7 @@ export const loadSchema = z.object({
     "appliance",
     "laundry",
     "hvac",
+    "heating",
     "motor",
     "equipment",
   ]),
