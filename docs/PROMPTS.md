@@ -210,6 +210,20 @@ preset picker UI is a design item: registry entry referencing AutoCAD's
 Layer States Manager, spec, gallery — before it ships.
 ```
 
+### V0c — Resume training on Kaggle GPU
+```
+Item V0c. Move the laptop YOLO run (yolo26s-seg 640, paused after epoch
+23) to a Kaggle GPU: upload its last.pt as a private Kaggle dataset,
+push a private script kernel (solence-vision/kaggle/) that clones
+`revamp`, converts CubiCasa5K from the Kaggle-hosted dataset with our
+scripts, patches the checkpoint's paths, resumes to 100 epochs, then
+trains the U-Net, and saves best.pt/last.pt as outputs. Poll the run,
+download the weights into solence-vision/models/, run the vision tests
+and /health here. CubiCasa5K weights stay research/demo-only (V5).
+Record in STATE.md, mark V0c done, set the next item in-progress,
+commit, show progress.
+```
+
 ### W3b — Draw circuit wiring in 2D/3D
 ```
 Item W3b (WIRING-AUDIT F-9, F-11). The engine already returns

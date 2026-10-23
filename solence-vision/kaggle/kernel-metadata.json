@@ -1,0 +1,14 @@
+{
+  "id": "shemjoshuadumpor/solence-vision-train",
+  "title": "solence-vision-train",
+  "code_file": "train_kaggle.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": ["qmarva/cubicasa5k", "shemjoshuadumpor/solence-yolo-resume"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

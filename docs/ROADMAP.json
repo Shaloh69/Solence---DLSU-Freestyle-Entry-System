@@ -119,10 +119,17 @@
       "title": "Layer views (presets, lock) + Playwright project"
     },
     {
+      "id": "V0c",
+      "phase": "V",
+      "weight": 1,
+      "status": "in-progress",
+      "title": "Resume the YOLO run on Kaggle GPU (from laptop epoch 23), then U-Net there; pull best.pt back and verify here"
+    },
+    {
       "id": "W3b",
       "phase": "W",
       "weight": 2,
-      "status": "in-progress",
+      "status": "todo",
       "title": "Draw circuit wiring in 2D/3D: conduit segments, L/N/G tick marks, home-run arrows, junction boxes, BOM panel (design rule)"
     },
     {
