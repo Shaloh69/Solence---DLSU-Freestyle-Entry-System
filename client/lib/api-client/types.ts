@@ -70,6 +70,8 @@ export interface FloorPlan {
   height: number;
   /** Ceiling height (m, §9.1a) — photometric input, default 2.7. */
   ceilingHeight?: number;
+  /** W6: conduit-run (ceiling) ambient, °C — project setting, default 35 (0–55). */
+  ambientTempC?: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
@@ -118,6 +120,7 @@ export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";
 export interface ConductorSpec {
   awg: string;
   mm2: number;
+  /** Usable ampacity (termination-capped; after W6 also derated — see Circuit.derating). */
   ampacity: number;
   insulation: InsulationType;
   /**
@@ -146,6 +149,21 @@ export interface Circuit {
   voltageDropPercent: number;
   /** Panel → worst-drop device, each segment with the current it carries. */
   dropChain?: { lengthM: number; amps: number }[];
+  /** W6: ambient correction + conductor-count adjustment applied to `conductor`. */
+  derating?: CircuitDerating;
+}
+
+/** W6: ampacity correction/adjustment of a circuit's conductor (PEC-VERIFY). */
+export interface CircuitDerating {
+  ambientTempC: number;
+  ambientFactor: number;
+  /** Most current-carrying conductors in any raceway the circuit runs through. */
+  maxCurrentCarrying: number;
+  adjustmentFactor: number;
+  /** Usable ampacity: insulation column × both factors, capped by the termination column. */
+  ampacity: number;
+  /** Size before derating forced a larger conductor. */
+  resizedFrom?: { awg: string; mm2: number };
 }
 
 export interface Panel {
@@ -218,6 +236,21 @@ export interface WireSegment {
   conductors: SegmentConductor[];
   downstreamVa: number;
   downstreamAmps: number;
+  /** W6: conduit size and fill of this run (each segment is its own raceway). */
+  raceway?: Raceway;
+}
+
+/** W6: one conduit run's raceway — PVC Schedule 40 trade size by Chapter 9 fill (PEC-VERIFY). */
+export interface Raceway {
+  currentCarrying: number;
+  adjustmentFactor: number;
+  tradeSize: string;
+  /** Metric designator, mm (16 = 1/2"). */
+  metricMm: number;
+  conductorAreaMm2: number;
+  fillPercent: number;
+  /** 53 (1 conductor), 31 (2), 40 (more than 2). */
+  fillLimitPercent: number;
 }
 
 export interface JunctionBox {
@@ -240,6 +273,8 @@ export interface WireBom {
   wire: WireBomLine[];
   /** Feed segments plus switch legs, meters. */
   conduitLengthM: number;
+  /** W6: conduit by trade size (sums to conduitLengthM). */
+  conduits?: { tradeSize: string; metricMm: number; lengthM: number }[];
   junctionBoxes: number;
   /** Wall switches by type (a 2-way pair counts two). */
   switches: { oneWay: number; twoWay: number };
@@ -284,6 +319,8 @@ export interface SwitchLeg {
   penetrations: number;
   conductors: SegmentConductor[];
   amps: number;
+  /** W6: conduit size and fill of this leg. */
+  raceway?: Raceway;
 }
 
 export interface CircuitWiring {

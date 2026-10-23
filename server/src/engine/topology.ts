@@ -411,7 +411,7 @@ function dist(a: { x: number; y: number }, b: { x: number; y: number }): number 
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function billOfMaterials(
+export function billOfMaterials(
   runs: { lengthM: number; conductors: SegmentConductor[] }[],
   junctionBoxes: number,
   switches: SwitchDevice[]

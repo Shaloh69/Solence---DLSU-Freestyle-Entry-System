@@ -34,6 +34,11 @@ relies on.
   entrances). Data: `switch-data.ts` (DESIGN-VERIFY); switch-leg
   conductors in `sizing/switch-leg-conductors.ts` (PEC-VERIFY).
   `topology.ts` wires the switch legs and the switched leg S.
+- `raceways.ts` — W6: per conduit run (each segment / switch leg is its
+  own raceway) counts current-carrying conductors, derates for the
+  project ambient (`floorPlan.ambientTempC`, default 35 °C) and for >3
+  conductors, upsizes the circuit conductor, sizes PVC conduit by
+  Chapter 9 fill. Data: `sizing/pec-derating.ts` (PEC-VERIFY).
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).

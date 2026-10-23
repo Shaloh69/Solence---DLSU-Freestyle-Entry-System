@@ -83,6 +83,12 @@ export interface FloorPlan {
    * absent, never assumed silently inside the solver.
    */
   ceilingHeight?: number;
+  /**
+   * Design ambient temperature of the conduit runs (ceiling space), °C —
+   * a project setting for the ampacity correction (W6). Default 35 °C
+   * (sizing/pec-derating.ts, PEC-VERIFY).
+   */
+  ambientTempC?: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
@@ -155,7 +161,11 @@ export interface ConductorSpec {
   awg: string;
   /** Cross-section in mm². */
   mm2: number;
-  /** Rated ampacity for the chosen insulation, from PEC Table 3.10.1. */
+  /**
+   * Usable ampacity from PEC Table 3.10.1: the insulation rating capped by
+   * the termination rating; once wiring is sized (W6) also corrected for
+   * ambient and adjusted for the conductor count — see `Circuit.derating`.
+   */
   ampacity: number;
   insulation: InsulationType;
   /**
@@ -200,6 +210,26 @@ export interface Circuit {
    * along this chain instead of assuming all current at the far end.
    */
   dropChain?: { lengthM: number; amps: number }[];
+  /** W6: ambient correction + conductor-count adjustment applied to `conductor`. */
+  derating?: CircuitDerating;
+}
+
+/**
+ * Ampacity correction and adjustment of a circuit's conductor (W6,
+ * PEC-VERIFY factors in sizing/pec-derating.ts).
+ */
+export interface CircuitDerating {
+  ambientTempC: number;
+  /** Ambient correction factor for the insulation's temperature column. */
+  ambientFactor: number;
+  /** Most current-carrying conductors in any raceway the circuit runs through. */
+  maxCurrentCarrying: number;
+  /** Adjustment factor for that count (1 for three or fewer). */
+  adjustmentFactor: number;
+  /** Usable ampacity: insulation column × both factors, capped by the termination column. */
+  ampacity: number;
+  /** Size before derating forced a larger conductor (absent when unchanged). */
+  resizedFrom?: { awg: string; mm2: number };
 }
 
 export interface Panel {
@@ -291,6 +321,27 @@ export interface WireSegment {
   /** Connected VA of every device at or below `to`. */
   downstreamVa: number;
   downstreamAmps: number;
+  /** W6: conduit size and fill of this run (each segment is its own raceway). */
+  raceway?: Raceway;
+}
+
+/**
+ * One conduit run's raceway (W6): current-carrying count, its adjustment
+ * factor, and the smallest PVC Schedule 40 trade size within the
+ * Chapter 9 Table 1 fill limit (PEC-VERIFY, sizing/pec-derating.ts).
+ */
+export interface Raceway {
+  currentCarrying: number;
+  adjustmentFactor: number;
+  /** e.g. `1/2"`. */
+  tradeSize: string;
+  /** Metric designator, mm (16 = 1/2"). */
+  metricMm: number;
+  /** Sum of the conductors' insulated areas (EGC included), mm². */
+  conductorAreaMm2: number;
+  fillPercent: number;
+  /** 53 (1 conductor), 31 (2), 40 (more than 2). */
+  fillLimitPercent: number;
 }
 
 /** A device box where three or more conduits meet (splices inside). */
@@ -314,6 +365,8 @@ export interface WireBom {
   wire: WireBomLine[];
   /** Feed segments plus switch legs, meters. */
   conduitLengthM: number;
+  /** W6: conduit by trade size (sums to conduitLengthM). */
+  conduits?: { tradeSize: string; metricMm: number; lengthM: number }[];
   junctionBoxes: number;
   /** Wall switches by type (a 2-way pair counts two). */
   switches: { oneWay: number; twoWay: number };
@@ -372,6 +425,8 @@ export interface SwitchLeg {
   conductors: SegmentConductor[];
   /** Current of the switched group. */
   amps: number;
+  /** W6: conduit size and fill of this leg. */
+  raceway?: Raceway;
 }
 
 export interface CircuitWiring {

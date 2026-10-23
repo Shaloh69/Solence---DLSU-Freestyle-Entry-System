@@ -22,4 +22,12 @@ balancing.
   rule, multi-outlet ratings, EGC table, required circuits, receptacle
   spacing (section references from the unofficial PEC 2017 transcription).
 
-Tests: `tests/sizing.test.ts`, `tests/pec-alignment.test.ts`.
+- `raceway.ts` (W6) — `ambientCorrectionFactor`, `adjustmentFactor`,
+  `currentCarryingCount`, `deratedAmpacity`, `sizeConductorForConditions`,
+  `sizeConduit`; applied to the wiring by `engine/raceways.ts`.
+- `pec-derating.ts` (W6) — PEC-VERIFY ambient correction (3.10.1.15(B)(2)(a)),
+  >3 current-carrying adjustment (3.10.1.15(B)(3)(a)), Chapter 9 fill
+  limits, PVC Schedule 40 areas, conductor areas; default 35 °C ambient;
+  the one-raceway-per-segment assumption.
+
+Tests: `tests/sizing.test.ts`, `tests/pec-alignment.test.ts`, `tests/derating.test.ts`.

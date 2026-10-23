@@ -3,6 +3,7 @@
  * docs/api.md. Shapes mirror src/engine/types.ts.
  */
 import { z } from "zod";
+import { AMBIENT_TEMP_MAX_C, AMBIENT_TEMP_MIN_C } from "./engine/sizing/pec-derating.js";
 
 export const pointSchema = z.object({
   x: z.number().finite(),
@@ -59,6 +60,8 @@ export const floorPlanSchema = z.object({
   width: z.number().positive().max(1000),
   height: z.number().positive().max(1000),
   ceilingHeight: z.number().min(2).max(10).optional(),
+  /** W6: conduit-run ambient, °C (default 35; range = sizing/pec-derating.ts). */
+  ambientTempC: z.number().min(AMBIENT_TEMP_MIN_C).max(AMBIENT_TEMP_MAX_C).optional(),
   walls: z.array(wallSchema),
   rooms: z.array(roomSchema),
   openings: z.array(openingSchema).optional(),

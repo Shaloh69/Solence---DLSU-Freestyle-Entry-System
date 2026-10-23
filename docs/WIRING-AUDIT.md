@@ -53,7 +53,7 @@ vertical drop to the device. Wires are not selectable or editable.
 | F-10 | Circuit length = longest single route; voltage drop assumes all current at the farthest point. Conservative but not the real chain. | `circuits.ts` | ✅ W3: VD summed per segment along `dropChain` (max 1.6% on the 12 plans) |
 | F-11 | Conductors are a single abstract wire: no L / N (or L2) / G set, no conduit, no junction or utility boxes, no switch legs. Plans can't show tick marks or home-run arrows (standard plan notation). | types | 🟡 W3: L/N/L2/G per segment, junction boxes, wire + conduit BOM. W5: switch legs (L+S+G, S+T+T+G) + switched leg S on the tree, in the BOM. Tick marks / home-run arrows → UI follow-up |
 | F-12 | No switches at all; lighting fixtures connect straight to the panel. Permit layouts must show switches. | `LoadType` | ✅ W5 (2026-10-23): engine-placed `SwitchDevice`s (not loads) — lighting group per room per circuit, 1-way at the latch side of the entrance door (1.3 m, DESIGN-VERIFY), 2-way pair for ≥2 entrances; switch legs routed in `wiring.switchLegs`, S/L on the tree only where needed, in the BOM; VD includes the leg. 12 plans: 107 1-way + 10 2-way switches, 117 legs, 438 m of leg conduit. Drawing switches/legs + PH legend symbols → W5b (UI) |
-| F-13 | No derating: >3 current-carrying conductors in a raceway (0.80/0.70/0.50) or ambient >30 °C (PH ceilings run 35–40 °C: ×0.91/0.82 at 60 °C). No conduit size / fill (40% for >2 conductors). | sizing | 🔜 W6 |
+| F-13 | No derating: >3 current-carrying conductors in a raceway (0.80/0.70/0.50) or ambient >30 °C (PH ceilings run 35–40 °C: ×0.91/0.82 at 60 °C). No conduit size / fill (40% for >2 conductors). | sizing | ✅ W6 (2026-10-23): engine/raceways.ts + sizing/pec-derating.ts (PEC-VERIFY): ambient correction 3.10.1.15(B)(2)(a) on the insulation column (project setting `floorPlan.ambientTempC`, default 35 °C), adjustment 3.10.1.15(B)(3)(a) 0.80/0.70/0.50/0.45/0.40/0.35 for >3 current-carrying (L/L2/L3/N/S/T, not G), capped by the termination column; circuit conductor upsized for its worst run, EGC unchanged; PVC Sch 40 trade size per run by Chapter 9 Table 1 fill (53/31/40%), conduit BOM by size; `ampacity` rule derates. Assumption: each segment/switch leg is its own conduit — 310 of 1065 segments on the 12 plans share a path with another circuit's run (parallel conduits, not bundled). 12 plans: max 3 current-carrying per run, all 1/2" conduit, max fill 14% (THHN) / 24% (TW); TW at 35–40 °C upsizes all 295 circuits, no violations |
 | F-14 | `general-lighting-basis` fires on every real plan: the engine *warns* that LED load is below 24 VA/m² instead of *using* the unit load in the feeder calc, as the code requires. | real-plan run | 🔜 W8 |
 | F-15 | Feeder/service: no service entrance, kWh meter, grounding electrode conductor, one-line/riser diagram. Permit needs a one-line diagram + schedule of loads + design analysis (>70 A main). | OCBO permit list | 🔜 W7, W9 |
 | F-16 | PDF: A4 (not A3), built-in Helvetica (can't print `²`/`⚠`), no title block, no PH symbol legend/notes/one-line (circuit legend only). | audit 2026-10-16 | 🔜 W9 |
@@ -75,8 +75,8 @@ vertical drop to the device. Wires are not selectable or editable.
 | Required dwelling circuits 2.10.1.11(C) | ✅ W2 (kitchen/dining/laundry/bath) — garage 🔜 | pec-alignment |
 | Receptacle spacing 2.10.3.3(A)(1) | ✅ W2 (conservative) — countertop 600 mm rule 🔜 | pec-alignment |
 | Voltage drop 3%/5% (FPN, recommendation) | ✅ (worst-case length) | compliance |
-| Ampacity adjustment / ambient (3.10) | 🔜 W6 | — |
-| Conduit fill (Ch. 9 Table 1) | 🔜 W6 | — |
+| Ampacity adjustment / ambient (3.10) | ✅ W6 (one raceway per segment) | derating ×12 plans |
+| Conduit fill (Ch. 9 Table 1) | ✅ W6 (PVC Sch 40) | derating ×12 plans |
 | Dwelling load calculation (2.20) | ⚠ placeholder tiers | load-calc |
 | Grounding electrode conductor (2.50) | 🔜 W7 | — |
 

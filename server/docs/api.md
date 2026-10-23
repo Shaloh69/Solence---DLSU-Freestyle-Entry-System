@@ -42,9 +42,11 @@ Gated endpoints return 403 with an upgrade message.
 | PUT | `/projects/:id/floorplan` | `FloorPlan` | Replace the floor plan |
 | PUT | `/projects/:id/panel` | `Panel` | Place/replace the distribution panel |
 
-`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
+`FloorPlan`: `{ width, height, ceilingHeight?, ambientTempC?, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
 — meters, origin top-left; `backgroundImage` is an optional image data URL
-used as a trace layer. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
+used as a trace layer. `ambientTempC` (W6, project setting, 0–55 °C,
+default 35) is the design ambient of the conduit runs (ceiling space) used
+for the ampacity correction; out-of-range values return 400. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
 (offset = meters from the wall's start). Doors are free passages for
 routing; walls and windows can be crossed by a run only as a counted
 penetration (concealed conduit — see `RoutedPath.penetrations`); windows
@@ -96,11 +98,14 @@ Preconditions (422): floor plan set, panel placed, at least one load.
   "circuits": [ { "id", "description", "loadIds", "connectedVa", "continuousVa",
                   "voltage", "phase", "breakerAmps",
                   "conductor": { "awg", "mm2", "ampacity", "insulation",
-                                 "terminationTempC" },   // ampacity = usable at 60/75 °C terminals
+                                 "terminationTempC" },   // ampacity = usable: termination-capped, derated (W6)
                   "groundingConductor": { "awg", "mm2" }, // PEC Table 2.50.6.13
                   "lengthM",            // panel → farthest device along the device chain
                   "voltageDropPercent", // summed segment by segment along dropChain
-                  "dropChain": [ { "lengthM", "amps" } ] } ],  // panel → worst-drop device
+                  "dropChain": [ { "lengthM", "amps" } ],  // panel → worst-drop device
+                  "derating": { "ambientTempC", "ambientFactor",       // W6, PEC-VERIFY
+                                "maxCurrentCarrying", "adjustmentFactor",
+                                "ampacity", "resizedFrom?": { "awg", "mm2" } } } ],
   "schedule": { "panelId", "system", "rows": [PanelScheduleRow…],
                 "totalConnectedVa", "totalDemandVa",
                 "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps" },
@@ -115,7 +120,10 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                     "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G" | "S" | "T"
                                       "awg", "mm2", "color",  // colors PEC-VERIFY
                                       "groupId?" } ],  // S/T: the lighting group
-                    "downstreamVa", "downstreamAmps" } ],
+                    "downstreamVa", "downstreamAmps",
+                    "raceway": { "currentCarrying", "adjustmentFactor",   // W6
+                                 "tradeSize", "metricMm",   // PVC Sch 40, e.g. 1/2" = 16
+                                 "conductorAreaMm2", "fillPercent", "fillLimitPercent" } } ],
     "junctions": [ { "id", "circuitId", "loadId", "position": {x,y}, "conduits" } ],
     "lightingGroups": [ { "id", "circuitId", "roomId?", "loadIds",   // W5
                           "switchIds",        // one 1-way, or a 2-way pair
@@ -127,9 +135,10 @@ Preconditions (422): floor plan set, panel placed, at least one load.
     "switchLegs": [ { "id", "circuitId", "groupId",
                       "from", "to",          // box load id or switch id → switch id
                       "points": [{x,y},…], "lengthM", "verticalM", "penetrations",
-                      "conductors": [ … ], "amps" } ],
+                      "conductors": [ … ], "amps", "raceway": { … } } ],
     "bom": { "wire": [ { "role", "awg", "mm2", "color", "lengthM" } ],
              "conduitLengthM", "junctionBoxes",   // conduit incl. switch legs
+             "conduits": [ { "tradeSize", "metricMm", "lengthM" } ],  // W6: by trade size
              "switches": { "oneWay", "twoWay" } }
   }
 }
@@ -153,6 +162,20 @@ includes the vertical drops (`verticalM`, ceiling to switch height). On
 the circuit tree, S runs where it joins a group's fixtures and L only
 where an unswitched device or a group box is downstream. A switched
 fixture's voltage drop includes its switch leg (down and back).
+
+Raceways (W6, all factors PEC-VERIFY in `sizing/pec-derating.ts`): each
+segment and each switch leg is its own conduit (circuits whose routes run
+side by side are separate, parallel conduits — not one shared raceway).
+Current-carrying conductors per run: L, L2, L3, N, S and both travelers T,
+never G. A circuit's conductor is sized for its worst run: insulation
+column × ambient correction (PEC 3.10.1.15(B)(2)(a), 30 °C basis) ×
+adjustment for more than three current-carrying conductors
+(3.10.1.15(B)(3)(a): 0.80 / 0.70 / 0.50 …), capped by the termination
+column, must cover the breaker; it is upsized if not (`resizedFrom`),
+while the equipment ground stays sized by the breaker. Each run gets the
+smallest PVC Schedule 40 trade size (from 16 mm / 1/2") whose fill, EGC
+included, is within Chapter 9 Table 1 (53% / 31% / 40% for 1 / 2 / more
+conductors). The `ampacity` violation applies the same derating.
 
 `SimulationResult` also carries `roomLighting` (per-room average lux vs
 target, fixture count) and `luxHeatmap` (workplane illuminance samples

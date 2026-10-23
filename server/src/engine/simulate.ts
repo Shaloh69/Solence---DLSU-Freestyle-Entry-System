@@ -4,6 +4,7 @@
  *   floor plan + panel + loads
  *     -> rasterize -> route every load -> group into circuits -> size
  *     -> device-to-device wiring per circuit (topology.ts)
+ *     -> raceways: derate, resize, conduit fill (raceways.ts)
  *     -> compliance checks -> panel schedule + directory
  */
 import {
@@ -17,6 +18,8 @@ import {
   CircuitWiring,
 } from "./types.js";
 import { buildWiring } from "./topology.js";
+import { applyRaceways } from "./raceways.js";
+import { DEFAULT_AMBIENT_TEMP_C } from "./sizing/pec-derating.js";
 import { placeSwitches } from "./switching/index.js";
 import { DEFAULT_CEILING_HEIGHT_M } from "./lighting/lighting-data.js";
 import { rasterizeFloorPlan, routeAll } from "./routing/index.js";
@@ -116,6 +119,13 @@ export function simulate(input: SimulationInput): SimulationResult {
     plan: placeSwitches(floorPlan, loads, circuits, panel.position),
     rooms: floorPlan.rooms,
     ceilingHeight: floorPlan.ceilingHeight ?? DEFAULT_CEILING_HEIGHT_M,
+  });
+
+  // W6: ambient correction + conductor-count adjustment per raceway,
+  // resize conductors, conduit trade size by fill (before voltage drop,
+  // which reads the final conductor size).
+  applyRaceways(circuits, wiring, {
+    ambientTempC: floorPlan.ambientTempC ?? DEFAULT_AMBIENT_TEMP_C,
   });
 
   const threePhase = panel.system === "3P4W-230/400";
