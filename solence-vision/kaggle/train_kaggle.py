@@ -6,9 +6,9 @@ Runs as a private Kaggle script kernel (kernel-metadata.json, pushed with
 1. clones the `revamp` branch of the public repo,
 2. converts CubiCasa5K (attached Kaggle dataset qmarva/cubicasa5k) with
    the repo's own scripts — same capped images and labels as the laptop,
-3. resumes the laptop YOLO run from its last.pt (attached private dataset
-   solence-yolo-resume), rewriting the checkpoint's Windows paths and
-   using a Linux-sized batch and dataloader workers,
+3. continues the laptop YOLO run from its last.pt weights (attached private dataset
+   solence-yolo-resume) for the remaining epochs with a fresh optimizer,
+   a Linux-sized batch and dataloader workers,
 4. trains the U-Net walls model,
 5. writes best.pt / last.pt to /kaggle/working/out (the kernel's output),
    mirroring checkpoints there every few minutes so a session timeout
@@ -33,6 +33,7 @@ INPUT = Path("/kaggle/input")
 OUT = Path("/kaggle/working/out")
 DATA = Path("/tmp/solence-data")  # big intermediate data stays out of the saved output
 SRC = Path("/tmp/Solence")
+YOLO_REMAINING_EPOCHS = 77  # laptop run stopped after 23 of 100
 YOLO_BATCH = 16
 YOLO_WORKERS = 4  # Linux forks workers cheaply; the laptop's 0 was a Windows commit-limit workaround
 UNET_BATCH = 16
@@ -84,34 +85,17 @@ def main() -> None:
     run([py, "scripts/convert_to_unet_masks.py", "--dataset", "cubicasa5k"], cwd=vision, env=env)
     run([py, "scripts/verify_dataset.py", "--dataset", "cubicasa5k", "--format", "yolo"], cwd=vision, env=env)
 
-    # Resume the laptop run: same checkpoint, Kaggle paths, Linux batch/workers.
-    import torch
-
-    run_dir = DATA / "runs" / "yolo" / "cubicasa5k"
-    (run_dir / "weights").mkdir(parents=True, exist_ok=True)
-    ckpt = torch.load(find("last.pt"), map_location="cpu", weights_only=False)  # our own checkpoint
-    ckpt["train_args"].update(
-        data=str(DATA / "yolo" / "cubicasa5k" / "data.yaml"),
-        project=str(DATA / "runs" / "yolo"),
-        name="cubicasa5k",
-        save_dir=str(run_dir),
-        model=str(run_dir / "weights" / "last.pt"),
-        exist_ok=True,
-        batch=YOLO_BATCH,
-        workers=YOLO_WORKERS,
-        device=0,
-    )
-    torch.save(ckpt, run_dir / "weights" / "last.pt")
-    resumed_csv = next(INPUT.rglob("results.csv"), None)
-    if resumed_csv:
-        shutil.copy2(resumed_csv, run_dir / "results.csv")
-    print(f"Resuming after epoch {ckpt.get('epoch')} (0-based)", flush=True)
-
+    # Continue from the laptop run's weights (epoch 23) for the remaining
+    # epochs with a fresh optimizer. A true `resume` failed in v2: the
+    # saved optimizer state didn't match Kaggle's torch/GPU ("params,
+    # grads, exp_avgs, and exp_avg_sqs must have same dtype, device").
     stop = threading.Event()
     threading.Thread(target=mirror, args=(stop,), daemon=True).start()
     try:
         run([py, "scripts/train_yolo.py", "--dataset", "cubicasa5k",
-             "--resume", str(run_dir / "weights" / "last.pt")], cwd=vision, env=env)
+             "--model", str(find("last.pt")), "--epochs", str(YOLO_REMAINING_EPOCHS),
+             "--imgsz", "640", "--batch", str(YOLO_BATCH), "--workers", str(YOLO_WORKERS)],
+            cwd=vision, env=env)
         (OUT / "yolo").mkdir(parents=True, exist_ok=True)
         shutil.copy2(vision / "models" / "yolo" / "best.pt", OUT / "yolo" / "best.pt")
 
