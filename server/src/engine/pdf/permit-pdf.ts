@@ -309,7 +309,52 @@ function drawSchedulePage(doc: PDFKit.PDFDocument, input: PermitPdfInput) {
 
   doc.fontSize(9).fillColor("#333333").text(phaseText, 40, y);
 
+  if (schedule.dwellingCalc) drawDwellingCalc(doc, input, y + 24);
+
   disclaimer(doc);
+}
+
+/**
+ * W8: the PEC 2.20 dwelling calculation behind the feeder/main, one line
+ * per step (label | how it was computed | VA). Each cell is a single
+ * unwrapped line so the text stays extractable as written.
+ */
+function drawDwellingCalc(doc: PDFKit.PDFDocument, input: PermitPdfInput, startY: number) {
+  const calc = input.result.schedule.dwellingCalc;
+
+  if (!calc) return;
+  const rowHeight = 14;
+  let y = startY;
+
+  if (y + (calc.steps.length + 2) * rowHeight > 740) {
+    disclaimer(doc);
+    doc.addPage();
+    header(doc, input, "Panel Schedule (continued)");
+    y = doc.y + 10;
+  }
+
+  doc
+    .fontSize(10)
+    .fillColor("#111111")
+    .text("Schedule of Loads: PEC 2.20 dwelling calculation (PEC-VERIFY)", 40, y, {
+      lineBreak: false,
+    });
+  y += rowHeight + 4;
+  doc.moveTo(40, y - 3).lineTo(555, y - 3).lineWidth(0.5).strokeColor("#999999").stroke();
+
+  for (const step of calc.steps) {
+    const total = step.id === "total-demand";
+
+    doc.fontSize(8).fillColor(total ? "#111111" : "#333333");
+    doc.text(step.label, 40, y, { lineBreak: false });
+    doc.text(step.basis, 200, y, { lineBreak: false });
+    doc.text(`${Math.round(step.va).toLocaleString("en-US")} VA`, 480, y, {
+      width: 75,
+      align: "right",
+      lineBreak: false,
+    });
+    y += rowHeight;
+  }
 }
 
 // ---------- Page 3: conductor schedule + directory ----------

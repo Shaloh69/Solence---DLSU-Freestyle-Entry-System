@@ -108,7 +108,19 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                                 "ampacity", "resizedFrom?": { "awg", "mm2" } } } ],
   "schedule": { "panelId", "system", "rows": [PanelScheduleRow…],
                 "totalConnectedVa", "totalDemandVa",
-                "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps" },
+                "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps",
+                "dwellingCalc?": {                  // W8: PEC 2.20 dwelling calc, PEC-VERIFY
+                  "floorAreaM2", "unitLoadVaPerM2", "generalLightingBasisVa",
+                  "connectedGeneralVa", "generalLightingVa",
+                  "generalLightingSource",          // "unit-load" | "connected"
+                  "smallApplianceCircuits", "smallApplianceVa",
+                  "laundryCircuits", "laundryVa",
+                  "generalSubtotalVa", "generalDemandVa",
+                  "fixedApplianceCount", "fixedApplianceConnectedVa",
+                  "fixedApplianceFactor", "fixedApplianceDemandVa",
+                  "airConditioningVa", "airConditioningFactor", "airConditioningDemandVa",
+                  "otherVa", "demandVa", "systemVoltage", "demandAmps",
+                  "steps": [ { "id", "label", "basis", "va", "pecReference" } ] } },
   "directory": [ { "circuitNumber", "circuitId", "description" } ],
   "violations": [ { "ruleId", "severity", "message", "circuitId?", "pecReference" } ],
   "routingErrors": [ { "loadId", "message" } ],
@@ -177,6 +189,19 @@ smallest PVC Schedule 40 trade size (from 16 mm / 1/2") whose fill, EGC
 included, is within Chapter 9 Table 1 (53% / 31% / 40% for 1 / 2 / more
 conductors). The `ampacity` violation applies the same derating.
 
+Feeder/main demand (W8) is the PEC 2.20 standard dwelling calculation
+(`load-calc/dwelling.ts`, values PEC-VERIFY in `pec-demand-factors.ts`
+and `pec-dwelling-calc.ts`): general lighting = the larger of floor area
+(garage/outdoor excluded) × 24 VA/m² and the connected lighting +
+general-purpose receptacles; small-appliance circuits (kitchen/dining
+receptacles, min. 2) and laundry circuits (min. 1 with a laundry room)
+each at not less than 1500 VA; lighting demand tiers (3000 VA at 100%,
+next at 35%, over 120 kVA at 25%) on that subtotal; fixed appliances at
+75% when four or more; A/C, motors and other equipment at 100%.
+`schedule.totalDemandVa` and `feederAmps` come from it, an auto-sized
+main breaker is the next standard rating ≥ `demandAmps`, and `steps`
+(also printed on the PDF's panel-schedule page) shows each line.
+
 `SimulationResult` also carries `roomLighting` (per-room average lux vs
 target, fixture count) and `luxHeatmap` (workplane illuminance samples
 for the heatmap layer).
@@ -185,7 +210,8 @@ Violation `ruleId`s so far: `ampacity`, `small-conductor`,
 `continuous-80`, `voltage-drop-branch`, `voltage-drop-total`,
 `gfci-required`, `required-branch-circuit`, `receptacle-spacing`,
 `illuminance-none`, `illuminance-low`, `illuminance-high`,
-`general-lighting-basis`, `egress-dedicated-circuit`.
+`egress-dedicated-circuit`. (`general-lighting-basis` was retired in W8:
+the unit load is used in `schedule.dwellingCalc`, not warned.)
 
 ## Realtime (WebSocket)
 

@@ -24,7 +24,7 @@ Project-level (rooms + loads + circuits, via `runProjectChecks`):
   2.10.3.3(A)(1)
 - `lighting-illuminance.ts` — simulated under-/over-lit rooms (uses the
   photometric engine, not wattage counting)
-- `general-lighting-load.ts` — connected lighting below the VA/m² basis
+- (retired in W8: the general-lighting unit load is used in `load-calc/dwelling.ts`, not warned)
 
 Plus `panel-directory.ts` (not a rule): generates circuit descriptions.
 

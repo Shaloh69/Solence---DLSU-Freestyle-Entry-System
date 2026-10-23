@@ -40,7 +40,7 @@ import {
   generatePanelDirectory,
   PanelDirectoryEntry,
 } from "./compliance/panel-directory.js";
-import { buildPanelSchedule, feederDemandVa, feederAmps, panelVoltage } from "./load-calc/index.js";
+import { buildPanelSchedule, dwellingLoadCalc } from "./load-calc/index.js";
 import { sizeBreaker } from "./sizing/index.js";
 
 export interface SimulationInput {
@@ -141,14 +141,21 @@ export function simulate(input: SimulationInput): SimulationResult {
     ...runProjectChecks(floorPlan.rooms, loads, circuits),
   ];
 
-  // Size the main breaker from feeder demand if not set manually.
-  const demandVa = feederDemandVa(circuits, loads);
+  // W8: feeder/main demand from the PEC 2.20 dwelling calculation (general
+  // lighting at the unit load, small-appliance/laundry circuits, fixed
+  // appliances, A/C). Size the main breaker from it if not set manually.
+  const dwellingCalc = dwellingLoadCalc({
+    rooms: floorPlan.rooms,
+    circuits,
+    loads,
+    system: panel.system,
+  });
   const mainAmps =
     panel.mainBreakerAmps > 0
       ? panel.mainBreakerAmps
-      : sizeBreaker(feederAmps(demandVa, panelVoltage(panel), threePhase));
+      : sizeBreaker(dwellingCalc.demandAmps);
 
-  const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps);
+  const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps, dwellingCalc);
   const directory = generatePanelDirectory(circuits, loads, floorPlan.rooms);
 
   return {

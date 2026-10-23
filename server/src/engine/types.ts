@@ -265,6 +265,62 @@ export interface PanelSchedule {
   phaseVa: Record<Phase, number>;
   feederAmps: number;
   mainBreakerAmps: number;
+  /** PEC 2.20 dwelling calculation behind totalDemandVa/feederAmps (W8); absent when built without a floor plan. */
+  dwellingCalc?: DwellingLoadCalc;
+}
+
+/** One line of the PEC 2.20 dwelling calculation (schedule of loads). */
+export interface DwellingCalcStep {
+  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "other" | "total-demand" */
+  id: string;
+  label: string;
+  /** How the value was computed, e.g. "66.0 m² × 24 VA/m²". */
+  basis: string;
+  /** VA of this step (connected for inputs, demand for demand lines). */
+  va: number;
+  /** PEC section the step stands for (PEC-VERIFY). */
+  pecReference: string;
+}
+
+/**
+ * PEC 2.20 standard dwelling load computation for the feeder/main (W8).
+ * Code values PEC-VERIFY: load-calc/pec-demand-factors.ts, pec-dwelling-calc.ts.
+ */
+export interface DwellingLoadCalc {
+  /** Floor area the unit load applies to (garage/outdoor excluded), m². */
+  floorAreaM2: number;
+  unitLoadVaPerM2: number;
+  /** floorAreaM2 × unitLoadVaPerM2. */
+  generalLightingBasisVa: number;
+  /** Connected lighting + general-purpose receptacles the unit load covers. */
+  connectedGeneralVa: number;
+  /** Larger of basis and connected — the value used. */
+  generalLightingVa: number;
+  generalLightingSource: "unit-load" | "connected";
+  smallApplianceCircuits: number;
+  smallApplianceVa: number;
+  laundryCircuits: number;
+  laundryVa: number;
+  /** General lighting + small appliance + laundry, before demand factors. */
+  generalSubtotalVa: number;
+  /** After the lighting demand tiers. */
+  generalDemandVa: number;
+  fixedApplianceCount: number;
+  fixedApplianceConnectedVa: number;
+  fixedApplianceFactor: number;
+  fixedApplianceDemandVa: number;
+  airConditioningVa: number;
+  airConditioningFactor: number;
+  airConditioningDemandVa: number;
+  /** Motors and other equipment at 100 %. */
+  otherVa: number;
+  /** Feeder/main demand, VA. */
+  demandVa: number;
+  /** Voltage the demand current is computed on (line-to-line for 3φ). */
+  systemVoltage: number;
+  /** demandVa / systemVoltage (÷ √3 for 3φ), A. */
+  demandAmps: number;
+  steps: DwellingCalcStep[];
 }
 
 export type ViolationSeverity = "error" | "warning";

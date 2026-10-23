@@ -195,6 +195,49 @@ export interface PanelSchedule {
   phaseVa: Record<Phase, number>;
   feederAmps: number;
   mainBreakerAmps: number;
+  /** PEC 2.20 dwelling calculation behind totalDemandVa/feederAmps (W8); absent when built without a floor plan. */
+  dwellingCalc?: DwellingLoadCalc;
+}
+
+/** One line of the PEC 2.20 dwelling calculation (schedule of loads). */
+export interface DwellingCalcStep {
+  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "other" | "total-demand" */
+  id: string;
+  label: string;
+  /** How the value was computed, e.g. "66.0 m² × 24 VA/m²". */
+  basis: string;
+  /** VA of this step (connected for inputs, demand for demand lines). */
+  va: number;
+  /** PEC section the step stands for (PEC-VERIFY). */
+  pecReference: string;
+}
+
+/** PEC 2.20 standard dwelling load computation for the feeder/main (W8). Code values PEC-VERIFY. */
+export interface DwellingLoadCalc {
+  floorAreaM2: number;
+  unitLoadVaPerM2: number;
+  generalLightingBasisVa: number;
+  connectedGeneralVa: number;
+  generalLightingVa: number;
+  generalLightingSource: "unit-load" | "connected";
+  smallApplianceCircuits: number;
+  smallApplianceVa: number;
+  laundryCircuits: number;
+  laundryVa: number;
+  generalSubtotalVa: number;
+  generalDemandVa: number;
+  fixedApplianceCount: number;
+  fixedApplianceConnectedVa: number;
+  fixedApplianceFactor: number;
+  fixedApplianceDemandVa: number;
+  airConditioningVa: number;
+  airConditioningFactor: number;
+  airConditioningDemandVa: number;
+  otherVa: number;
+  demandVa: number;
+  systemVoltage: number;
+  demandAmps: number;
+  steps: DwellingCalcStep[];
 }
 
 export type ViolationSeverity = "error" | "warning";

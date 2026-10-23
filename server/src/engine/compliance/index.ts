@@ -1,8 +1,9 @@
 /**
  * PEC compliance engine. Each rule lives in its own file, pure functions
  * in -> violations out. Circuit-level rules run per sized circuit;
- * project-level rules (GFCI, illuminance, general-lighting basis) run
- * over rooms + loads.
+ * project-level rules (GFCI, illuminance, required circuits, spacing) run
+ * over rooms + loads. The general-lighting unit load is no longer a
+ * warning: it is used in the PEC 2.20 feeder calc (load-calc/dwelling.ts, W8).
  */
 import { Circuit, ElectricalLoad, Room, Violation } from "../types.js";
 import { checkAmpacity } from "./ampacity.js";
@@ -10,7 +11,6 @@ import { checkContinuousLoad } from "./continuous-load.js";
 import { checkVoltageDrop } from "./voltage-drop.js";
 import { checkGfci } from "./gfci.js";
 import { checkRoomIlluminance } from "./lighting-illuminance.js";
-import { checkGeneralLightingLoad } from "./general-lighting-load.js";
 import { checkEgressLighting } from "./egress-lighting.js";
 import { checkSmallConductor } from "./small-conductor.js";
 import { checkRequiredBranchCircuits } from "./required-branch-circuits.js";
@@ -26,7 +26,6 @@ export {
 } from "./voltage-drop.js";
 export { checkGfci, GFCI_ROOM_TYPES } from "./gfci.js";
 export { checkRoomIlluminance } from "./lighting-illuminance.js";
-export { checkGeneralLightingLoad } from "./general-lighting-load.js";
 export { checkEgressLighting } from "./egress-lighting.js";
 export { checkSmallConductor } from "./small-conductor.js";
 export { checkRequiredBranchCircuits } from "./required-branch-circuits.js";
@@ -65,6 +64,5 @@ export function runProjectChecks(
     ...checkRequiredBranchCircuits(rooms, loads, circuits),
     ...checkReceptacleSpacing(rooms, loads),
     ...checkRoomIlluminance(rooms, loads),
-    ...checkGeneralLightingLoad(rooms, loads),
   ];
 }
