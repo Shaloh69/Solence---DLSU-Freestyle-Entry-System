@@ -39,6 +39,11 @@ relies on.
   project ambient (`floorPlan.ambientTempC`, default 35 °C) and for >3
   conductors, upsizes the circuit conductor, sizes PVC conduit by
   Chapter 9 fill. Data: `sizing/pec-derating.ts` (PEC-VERIFY).
+- `service/` — W7: service entrance (kWh meter, main breaker, service
+  conductors sized to the main with derating, grounding electrode
+  conductor) and the one-line (riser) diagram as nodes/edges + SVG
+  (the PDF draws the same primitives). Data: `service/pec-service.ts`
+  (PEC-VERIFY; meter classes UTILITY-VERIFY).
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).

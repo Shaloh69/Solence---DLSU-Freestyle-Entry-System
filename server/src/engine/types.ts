@@ -323,6 +323,108 @@ export interface DwellingLoadCalc {
   steps: DwellingCalcStep[];
 }
 
+// ---------- Service entrance + one-line diagram (W7) ----------
+
+/**
+ * Service entrance (W7, WIRING-AUDIT F-15): utility → kWh meter → main
+ * breaker → panel, with the grounding electrode conductor. Code values
+ * PEC-VERIFY: service/pec-service.ts (meter classes UTILITY-VERIFY).
+ */
+export interface ServiceEntrance {
+  system: VoltageSystem;
+  /** Line-to-line voltage (line-to-neutral for 2-wire), V. */
+  voltage: number;
+  phases: 1 | 3;
+  wires: 2 | 3 | 4;
+  /** Feeder/main demand the service carries (PEC 2.20 dwelling calc), VA / A. */
+  demandVa: number;
+  demandAmps: number;
+  meter: {
+    /** "self-contained kWh meter" or "CT-metered kWh meter". */
+    kind: string;
+    phases: 1 | 3;
+    wires: 2 | 3 | 4;
+    /** Meter class (A) for self-contained meters; the main rating when CT-metered. */
+    ratedAmps: number;
+    reference: string;
+  };
+  mainBreaker: {
+    amps: number;
+    poles: number;
+    /** "manual" = the panel's mainBreakerAmps; "computed" = sized from the demand (W8). */
+    source: "manual" | "computed";
+    pecReference: string;
+  };
+  serviceConductors: {
+    /** Every line + the neutral, copper, same size. */
+    conductors: { role: WireRole; awg: string; mm2: number }[];
+    insulation: InsulationType;
+    terminationTempC: 60 | 75;
+    ambientTempC: number;
+    ambientFactor: number;
+    currentCarrying: number;
+    adjustmentFactor: number;
+    /** Usable (derated, termination-capped) ampacity, at least the main breaker. */
+    ampacity: number;
+    raceway: {
+      tradeSize: string;
+      metricMm: number;
+      conductorAreaMm2: number;
+      fillPercent: number;
+      fillLimitPercent: number;
+    };
+    pecReference: string;
+  };
+  groundingElectrodeConductor: {
+    awg: string;
+    mm2: number;
+    /** Service conductor size the table row was looked up by, mm². */
+    serviceMm2: number;
+    pecReference: string;
+  };
+  groundingElectrode: {
+    kind: string;
+    lengthM: number;
+    diameterMm: number;
+    pecReference: string;
+  };
+}
+
+export type OneLineNodeKind = "utility" | "meter" | "main" | "panel" | "branch" | "ground";
+
+export interface OneLineNode {
+  id: string;
+  kind: OneLineNodeKind;
+  /** Text printed for the node (SVG and PDF). */
+  label: string;
+  /** Branch nodes only. */
+  circuitId?: string;
+  circuitNumber?: number;
+  breakerAmps?: number;
+  poles?: number;
+  /** Branch conductors, e.g. `2-3.5 mm² THHN + 1-3.5 mm² G in 1/2" PVC`. */
+  conductor?: string;
+}
+
+export interface OneLineEdge {
+  id: string;
+  from: string;
+  to: string;
+  kind: "service-drop" | "service-entrance" | "main-bus" | "branch" | "gec";
+  /** Conductor text printed beside the line ("" for branch edges: the node label carries it). */
+  label: string;
+}
+
+/** One-line (riser) diagram as data + the SVG drawn from it (W7). */
+export interface OneLineDiagram {
+  nodes: OneLineNode[];
+  edges: OneLineEdge[];
+  /** Drawing size, in points (1/72 in). */
+  width: number;
+  height: number;
+  svg: string;
+}
+
 export type ViolationSeverity = "error" | "warning";
 
 export interface Violation {

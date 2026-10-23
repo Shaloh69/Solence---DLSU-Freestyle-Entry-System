@@ -152,9 +152,50 @@ Preconditions (422): floor plan set, panel placed, at least one load.
              "conduitLengthM", "junctionBoxes",   // conduit incl. switch legs
              "conduits": [ { "tradeSize", "metricMm", "lengthM" } ],  // W6: by trade size
              "switches": { "oneWay", "twoWay" } }
+  },
+  "service": {                                 // W7: service entrance, PEC-VERIFY
+    "system", "voltage", "phases", "wires", "demandVa", "demandAmps",
+    "meter": { "kind", "phases", "wires", "ratedAmps", "reference" },  // classes UTILITY-VERIFY
+    "mainBreaker": { "amps", "poles", "source", "pecReference" },     // source "manual" | "computed"
+    "serviceConductors": { "conductors": [ { "role", "awg", "mm2" } ], // lines + neutral
+                           "insulation", "terminationTempC", "ambientTempC",
+                           "ambientFactor", "currentCarrying", "adjustmentFactor",
+                           "ampacity",                                // usable, >= main
+                           "raceway": { "tradeSize", "metricMm", "conductorAreaMm2",
+                                        "fillPercent", "fillLimitPercent" },
+                           "pecReference" },
+    "groundingElectrodeConductor": { "awg", "mm2", "serviceMm2", "pecReference" },  // Table 2.50.3.17
+    "groundingElectrode": { "kind", "lengthM", "diameterMm", "pecReference" }
+  },
+  "oneLine": {                                 // W7: one-line (riser) diagram
+    "nodes": [ { "id", "kind",                 // "utility" | "meter" | "main" | "panel" | "branch" | "ground"
+                 "label",                      // printed text (SVG + PDF)
+                 "circuitId?", "circuitNumber?", "breakerAmps?", "poles?",
+                 "conductor?" } ],             // branch: e.g. 2-3.5 mm² THHN + 1-3.5 mm² G in 1/2" PVC
+    "edges": [ { "id", "from", "to",
+                 "kind",                       // "service-drop" | "service-entrance" | "main-bus" | "branch" | "gec"
+                 "label" } ],
+    "width", "height",                         // points
+    "svg"                                      // standalone <svg> of the diagram
   }
 }
 ```
+
+Service entrance (W7, values PEC-VERIFY in `service/pec-service.ts`):
+the main breaker is the panel's `mainBreakerAmps` when set ("manual"),
+else the auto-sized main from the W8 demand ("computed"). Service
+conductors (every line + the neutral, same size, copper, the circuits'
+insulation) are the smallest whose usable ampacity — insulation column ×
+ambient correction (`floorPlan.ambientTempC`) × adjustment for the
+current-carrying count, capped by the termination column (60 °C for
+mains ≤ 100 A, 75 °C above) — reaches the main rating; PVC conduit by
+fill. The grounding electrode conductor comes from Table 2.50.3.17 by
+the service conductor size (the rod-electrode 14 mm² cap is not
+applied); one driven rod 15.87 mm × 2.4 m. Meter: self-contained Class
+100 / 200 A (smallest ≥ main), CT-metered above (UTILITY-VERIFY). Main
+poles: 2P single-phase (both 230 V conductors opened), 3P three-phase.
+The one-line diagram is built from the service + panel + circuits and
+printed on its own PDF page (same drawing as `oneLine.svg`).
 
 `routes` are still one path per device from the panel (kept for the
 current 2D/3D layers). `wiring` is how the circuit is actually pulled:
@@ -242,4 +283,4 @@ uses an assumed default until plan-scale calibration is implemented.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |
+| POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, one-line (riser) diagram (W7), conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |

@@ -16,7 +16,10 @@ import {
   Violation,
   Circuit,
   CircuitWiring,
+  OneLineDiagram,
+  ServiceEntrance,
 } from "./types.js";
+import { buildOneLine, buildServiceEntrance } from "./service/index.js";
 import { buildWiring } from "./topology.js";
 import { applyRaceways } from "./raceways.js";
 import { DEFAULT_AMBIENT_TEMP_C } from "./sizing/pec-derating.js";
@@ -68,6 +71,10 @@ export interface SimulationResult {
   luxHeatmap: LuxSample[];
   /** Device-to-device circuit wiring: conduit segments, junction boxes, bill of materials (W3). */
   wiring: CircuitWiring;
+  /** Service entrance: kWh meter, main breaker, service conductors, GEC (W7). */
+  service: ServiceEntrance;
+  /** One-line (riser) diagram as nodes/edges + SVG (W7). */
+  oneLine: OneLineDiagram;
 }
 
 export function simulate(input: SimulationInput): SimulationResult {
@@ -158,6 +165,19 @@ export function simulate(input: SimulationInput): SimulationResult {
   const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps, dwellingCalc);
   const directory = generatePanelDirectory(circuits, loads, floorPlan.rooms);
 
+  // W7: service entrance sized from the main breaker (computed demand or
+  // the manual rating), GEC from its table; one-line diagram from the panel.
+  const service = buildServiceEntrance({
+    system: panel.system,
+    mainBreakerAmps: mainAmps,
+    mainBreakerSource: panel.mainBreakerAmps > 0 ? "manual" : "computed",
+    demandVa: dwellingCalc.demandVa,
+    demandAmps: dwellingCalc.demandAmps,
+    insulation: circuits[0]?.conductor.insulation ?? options?.circuits?.insulation ?? "THHN",
+    ambientTempC: floorPlan.ambientTempC ?? DEFAULT_AMBIENT_TEMP_C,
+  });
+  const oneLine = buildOneLine({ panel, service, circuits, wiring });
+
   return {
     routes,
     circuits,
@@ -172,5 +192,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     }),
     luxHeatmap: luxHeatmap(floorPlan, loads),
     wiring,
+    service,
+    oneLine,
   };
 }
