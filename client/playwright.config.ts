@@ -4,13 +4,16 @@
  *   - API :4100 with empty Supabase vars → in-memory storage
  *     (dotenv never overrides a variable that is already set)
  *   - web :3100 pointed at that API
+ *   (ports overridable with E2E_API_PORT / E2E_WEB_PORT)
  * PW_CHROMIUM_PATH, if set, selects the Chromium binary.
  * Results and reports go to ../.artifacts/playwright (gitignored).
  */
 import { defineConfig } from "@playwright/test";
 
-const API_PORT = 4100;
-const WEB_PORT = 3100;
+// Override per checkout (E2E_API_PORT / E2E_WEB_PORT) so parallel worktrees
+// can run the gate at the same time without EADDRINUSE.
+const API_PORT = Number(process.env.E2E_API_PORT ?? 4100);
+const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3100);
 const chromiumPath = process.env.PW_CHROMIUM_PATH;
 
 export const API_URL = `http://localhost:${API_PORT}`;
