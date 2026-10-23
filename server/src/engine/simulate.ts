@@ -17,6 +17,8 @@ import {
   CircuitWiring,
 } from "./types.js";
 import { buildWiring } from "./topology.js";
+import { placeSwitches } from "./switching/index.js";
+import { DEFAULT_CEILING_HEIGHT_M } from "./lighting/lighting-data.js";
 import { rasterizeFloorPlan, routeAll } from "./routing/index.js";
 import { pointInPolygon } from "./geometry.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
@@ -108,7 +110,13 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   // Home runs become real circuits: panel → first device → device to device.
   // Sets each circuit's lengthM (farthest device along the chain) and dropChain.
-  const wiring = buildWiring(grid, panel, loads, circuits, routes, targets);
+  // W5: switched lighting groups get wall switches at their room's door,
+  // wired as switch legs in the same topology.
+  const wiring = buildWiring(grid, panel, loads, circuits, routes, targets, {
+    plan: placeSwitches(floorPlan, loads, circuits, panel.position),
+    rooms: floorPlan.rooms,
+    ceilingHeight: floorPlan.ceilingHeight ?? DEFAULT_CEILING_HEIGHT_M,
+  });
 
   const threePhase = panel.system === "3P4W-230/400";
 
