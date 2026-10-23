@@ -7,6 +7,7 @@
  */
 import {
   Circuit,
+  DwellingLoadCalc,
   ElectricalLoad,
   Panel,
   PanelSchedule,
@@ -19,6 +20,10 @@ import {
   FIXED_APPLIANCE_MIN_COUNT,
   LIGHTING_DEMAND_TIERS,
 } from "./pec-demand-factors.js";
+import { systemVoltageOf } from "./dwelling.js";
+
+export { dwellingLoadCalc, systemVoltageOf } from "./dwelling.js";
+export type { DwellingCalcInput } from "./dwelling.js";
 
 /** Connected and continuous VA totals for a set of loads. */
 export function branchCircuitLoad(loads: ElectricalLoad[]): {
@@ -133,12 +138,18 @@ export function feederAmps(
     : demandVa / systemVoltage;
 }
 
-/** Build the full panel schedule from sized, phase-assigned circuits. */
+/**
+ * Build the full panel schedule from sized, phase-assigned circuits.
+ * With a PEC 2.20 dwelling calculation (W8) the schedule's demand and
+ * feeder current come from it and it is carried as `dwellingCalc`;
+ * without one, the circuit-based feederDemandVa is used.
+ */
 export function buildPanelSchedule(
   panel: Panel,
   circuits: Circuit[],
   loads: ElectricalLoad[],
-  mainBreakerAmps: number
+  mainBreakerAmps: number,
+  dwellingCalc?: DwellingLoadCalc
 ): PanelSchedule {
   const rows: PanelScheduleRow[] = circuits.map((circuit, index) => ({
     circuitId: circuit.id,
@@ -162,7 +173,9 @@ export function buildPanelSchedule(
     (sum, circuit) => sum + circuit.connectedVa,
     0
   );
-  const totalDemandVa = Math.round(feederDemandVa(circuits, loads));
+  const totalDemandVa = Math.round(
+    dwellingCalc ? dwellingCalc.demandVa : feederDemandVa(circuits, loads)
+  );
   const threePhase = panel.system === "3P4W-230/400";
   const systemVoltage = threePhase ? 400 : panelVoltage(panel);
 
@@ -174,24 +187,19 @@ export function buildPanelSchedule(
     totalDemandVa,
     phaseVa,
     feederAmps:
-      Math.round(feederAmps(totalDemandVa, systemVoltage, threePhase) * 10) /
-      10,
+      Math.round(
+        (dwellingCalc
+          ? dwellingCalc.demandAmps
+          : feederAmps(totalDemandVa, systemVoltage, threePhase)) * 10
+      ) / 10,
     mainBreakerAmps,
+    ...(dwellingCalc ? { dwellingCalc } : {}),
   };
 }
 
 /** Line-to-line (or line-to-neutral for 2-wire) voltage of a panel system. */
 export function panelVoltage(panel: Panel): number {
-  switch (panel.system) {
-    case "1P2W-230":
-      return 230;
-    case "1P2W-120":
-      return 120;
-    case "1P3W-120/240":
-      return 240;
-    case "3P4W-230/400":
-      return 400;
-  }
+  return systemVoltageOf(panel.system);
 }
 
 /** Voltage of an ordinary (lighting/receptacle) branch circuit on a panel system. */

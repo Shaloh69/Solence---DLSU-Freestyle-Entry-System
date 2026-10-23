@@ -18,8 +18,9 @@ import {
 import {
   checkRoomIlluminance,
   checkGfci,
-  checkGeneralLightingLoad,
+  runProjectChecks,
 } from "../src/engine/compliance/index.js";
+import { dwellingLoadCalc } from "../src/engine/load-calc/index.js";
 import { ElectricalLoad, Room } from "../src/engine/types.js";
 
 const kitchen: Room = {
@@ -243,19 +244,50 @@ describe("checkGfci", () => {
   });
 });
 
-describe("checkGeneralLightingLoad", () => {
-  it("warns when lighting VA is below the code basis", () => {
-    // 12 m² kitchen at 24 VA/m² needs 288 VA basis; 12 VA connected.
-    const violations = checkGeneralLightingLoad([kitchen], [makeLoad({})]);
-
-    expect(violations).toHaveLength(1);
-    expect(violations[0].ruleId).toBe("general-lighting-basis");
+// W8 (F-14): the general-lighting unit load is used in the feeder calc,
+// not warned about — the old `general-lighting-basis` rule is retired.
+describe("general lighting basis (PEC 2.20 unit load)", () => {
+  const circuit = (loadId: string, va: number) => ({
+    id: "c1",
+    description: "Lighting",
+    loadIds: [loadId],
+    connectedVa: va,
+    continuousVa: va,
+    voltage: 120,
+    phase: "A" as const,
+    breakerAmps: 15,
+    conductor: { awg: "14", mm2: 2.0, ampacity: 15, insulation: "THHN" as const },
+    lengthM: 5,
   });
 
-  it("passes when connected lighting meets the basis", () => {
-    const bigLoad = makeLoad({ va: 500 });
+  it("uses the code basis when lighting VA is below it, without a warning", () => {
+    // 12 m² kitchen at 24 VA/m² = 288 VA basis; 12 VA connected.
+    const load = makeLoad({});
+    const calc = dwellingLoadCalc({
+      rooms: [kitchen],
+      circuits: [circuit(load.id, load.va)],
+      loads: [load],
+      system: "1P2W-120",
+    });
 
-    expect(checkGeneralLightingLoad([kitchen], [bigLoad])).toHaveLength(0);
+    expect(calc.generalLightingVa).toBeCloseTo(288, 6);
+    expect(calc.generalLightingSource).toBe("unit-load");
+    expect(
+      runProjectChecks([kitchen], [load]).map((v) => v.ruleId)
+    ).not.toContain("general-lighting-basis");
+  });
+
+  it("uses the connected lighting when it exceeds the basis", () => {
+    const bigLoad = makeLoad({ va: 500 });
+    const calc = dwellingLoadCalc({
+      rooms: [kitchen],
+      circuits: [circuit(bigLoad.id, bigLoad.va)],
+      loads: [bigLoad],
+      system: "1P2W-120",
+    });
+
+    expect(calc.generalLightingVa).toBe(500);
+    expect(calc.generalLightingSource).toBe("connected");
   });
 });
 

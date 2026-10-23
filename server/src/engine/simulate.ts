@@ -4,6 +4,7 @@
  *   floor plan + panel + loads
  *     -> rasterize -> route every load -> group into circuits -> size
  *     -> device-to-device wiring per circuit (topology.ts)
+ *     -> raceways: derate, resize, conduit fill (raceways.ts)
  *     -> compliance checks -> panel schedule + directory
  */
 import {
@@ -15,8 +16,15 @@ import {
   Violation,
   Circuit,
   CircuitWiring,
+  OneLineDiagram,
+  ServiceEntrance,
 } from "./types.js";
+import { buildOneLine, buildServiceEntrance } from "./service/index.js";
 import { buildWiring } from "./topology.js";
+import { applyRaceways } from "./raceways.js";
+import { DEFAULT_AMBIENT_TEMP_C } from "./sizing/pec-derating.js";
+import { placeSwitches } from "./switching/index.js";
+import { DEFAULT_CEILING_HEIGHT_M } from "./lighting/lighting-data.js";
 import { rasterizeFloorPlan, routeAll } from "./routing/index.js";
 import { pointInPolygon } from "./geometry.js";
 import { buildCircuits, CircuitBuilderOptions } from "./circuits.js";
@@ -35,7 +43,7 @@ import {
   generatePanelDirectory,
   PanelDirectoryEntry,
 } from "./compliance/panel-directory.js";
-import { buildPanelSchedule, feederDemandVa, feederAmps, panelVoltage } from "./load-calc/index.js";
+import { buildPanelSchedule, dwellingLoadCalc } from "./load-calc/index.js";
 import { sizeBreaker } from "./sizing/index.js";
 
 export interface SimulationInput {
@@ -63,6 +71,10 @@ export interface SimulationResult {
   luxHeatmap: LuxSample[];
   /** Device-to-device circuit wiring: conduit segments, junction boxes, bill of materials (W3). */
   wiring: CircuitWiring;
+  /** Service entrance: kWh meter, main breaker, service conductors, GEC (W7). */
+  service: ServiceEntrance;
+  /** One-line (riser) diagram as nodes/edges + SVG (W7). */
+  oneLine: OneLineDiagram;
 }
 
 export function simulate(input: SimulationInput): SimulationResult {
@@ -108,7 +120,20 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   // Home runs become real circuits: panel → first device → device to device.
   // Sets each circuit's lengthM (farthest device along the chain) and dropChain.
-  const wiring = buildWiring(grid, panel, loads, circuits, routes, targets);
+  // W5: switched lighting groups get wall switches at their room's door,
+  // wired as switch legs in the same topology.
+  const wiring = buildWiring(grid, panel, loads, circuits, routes, targets, {
+    plan: placeSwitches(floorPlan, loads, circuits, panel.position),
+    rooms: floorPlan.rooms,
+    ceilingHeight: floorPlan.ceilingHeight ?? DEFAULT_CEILING_HEIGHT_M,
+  });
+
+  // W6: ambient correction + conductor-count adjustment per raceway,
+  // resize conductors, conduit trade size by fill (before voltage drop,
+  // which reads the final conductor size).
+  applyRaceways(circuits, wiring, {
+    ambientTempC: floorPlan.ambientTempC ?? DEFAULT_AMBIENT_TEMP_C,
+  });
 
   const threePhase = panel.system === "3P4W-230/400";
 
@@ -123,15 +148,35 @@ export function simulate(input: SimulationInput): SimulationResult {
     ...runProjectChecks(floorPlan.rooms, loads, circuits),
   ];
 
-  // Size the main breaker from feeder demand if not set manually.
-  const demandVa = feederDemandVa(circuits, loads);
+  // W8: feeder/main demand from the PEC 2.20 dwelling calculation (general
+  // lighting at the unit load, small-appliance/laundry circuits, fixed
+  // appliances, A/C). Size the main breaker from it if not set manually.
+  const dwellingCalc = dwellingLoadCalc({
+    rooms: floorPlan.rooms,
+    circuits,
+    loads,
+    system: panel.system,
+  });
   const mainAmps =
     panel.mainBreakerAmps > 0
       ? panel.mainBreakerAmps
-      : sizeBreaker(feederAmps(demandVa, panelVoltage(panel), threePhase));
+      : sizeBreaker(dwellingCalc.demandAmps);
 
-  const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps);
+  const schedule = buildPanelSchedule(panel, circuits, loads, mainAmps, dwellingCalc);
   const directory = generatePanelDirectory(circuits, loads, floorPlan.rooms);
+
+  // W7: service entrance sized from the main breaker (computed demand or
+  // the manual rating), GEC from its table; one-line diagram from the panel.
+  const service = buildServiceEntrance({
+    system: panel.system,
+    mainBreakerAmps: mainAmps,
+    mainBreakerSource: panel.mainBreakerAmps > 0 ? "manual" : "computed",
+    demandVa: dwellingCalc.demandVa,
+    demandAmps: dwellingCalc.demandAmps,
+    insulation: circuits[0]?.conductor.insulation ?? options?.circuits?.insulation ?? "THHN",
+    ambientTempC: floorPlan.ambientTempC ?? DEFAULT_AMBIENT_TEMP_C,
+  });
+  const oneLine = buildOneLine({ panel, service, circuits, wiring });
 
   return {
     routes,
@@ -147,5 +192,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     }),
     luxHeatmap: luxHeatmap(floorPlan, loads),
     wiring,
+    service,
+    oneLine,
   };
 }

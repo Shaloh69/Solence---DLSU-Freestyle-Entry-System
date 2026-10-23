@@ -164,28 +164,35 @@
       "id": "W5",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "done",
       "title": "Switches + switch legs"
+    },
+    {
+      "id": "W5b",
+      "phase": "W",
+      "weight": 1,
+      "status": "todo",
+      "title": "Draw switches + switch legs in 2D/3D, PH legend symbols in the PDF (design rule)"
     },
     {
       "id": "W6",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "done",
       "title": "Derating + conduit fill"
     },
     {
       "id": "W8",
       "phase": "W",
       "weight": 1,
-      "status": "todo",
+      "status": "done",
       "title": "PEC 2.20 dwelling load computation"
     },
     {
       "id": "W7",
       "phase": "W",
       "weight": 2,
-      "status": "todo",
+      "status": "done",
       "title": "Service entrance + one-line diagram"
     },
     {

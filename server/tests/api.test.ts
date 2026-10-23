@@ -196,6 +196,13 @@ describe("MVP demo flow", () => {
     expect(result.roomLighting[0].fixtureCount).toBe(1);
     expect(result.luxHeatmap.length).toBeGreaterThan(0);
 
+    // W5 contract: the fixture is switched — one switch, one switch leg, in the BOM.
+    expect(result.wiring.lightingGroups).toHaveLength(1);
+    expect(result.wiring.switches).toHaveLength(1);
+    expect(result.wiring.switchLegs).toHaveLength(1);
+    expect(result.wiring.bom.switches).toEqual({ oneWay: 1, twoWay: 0 });
+    expect(result.wiring.bom.wire.some((w: { role: string }) => w.role === "S")).toBe(true);
+
     // Results are persisted.
     const stored = await request(app)
       .get(`/api/projects/${project.id}/results`)

@@ -70,6 +70,8 @@ export interface FloorPlan {
   height: number;
   /** Ceiling height (m, §9.1a) — photometric input, default 2.7. */
   ceilingHeight?: number;
+  /** W6: conduit-run (ceiling) ambient, °C — project setting, default 35 (0–55). */
+  ambientTempC?: number;
   walls: Wall[];
   rooms: Room[];
   openings?: Opening[];
@@ -118,6 +120,7 @@ export type InsulationType = "TW" | "THW" | "THHN" | "XHHW";
 export interface ConductorSpec {
   awg: string;
   mm2: number;
+  /** Usable ampacity (termination-capped; after W6 also derated — see Circuit.derating). */
   ampacity: number;
   insulation: InsulationType;
   /**
@@ -146,6 +149,21 @@ export interface Circuit {
   voltageDropPercent: number;
   /** Panel → worst-drop device, each segment with the current it carries. */
   dropChain?: { lengthM: number; amps: number }[];
+  /** W6: ambient correction + conductor-count adjustment applied to `conductor`. */
+  derating?: CircuitDerating;
+}
+
+/** W6: ampacity correction/adjustment of a circuit's conductor (PEC-VERIFY). */
+export interface CircuitDerating {
+  ambientTempC: number;
+  ambientFactor: number;
+  /** Most current-carrying conductors in any raceway the circuit runs through. */
+  maxCurrentCarrying: number;
+  adjustmentFactor: number;
+  /** Usable ampacity: insulation column × both factors, capped by the termination column. */
+  ampacity: number;
+  /** Size before derating forced a larger conductor. */
+  resizedFrom?: { awg: string; mm2: number };
 }
 
 export interface Panel {
@@ -177,6 +195,151 @@ export interface PanelSchedule {
   phaseVa: Record<Phase, number>;
   feederAmps: number;
   mainBreakerAmps: number;
+  /** PEC 2.20 dwelling calculation behind totalDemandVa/feederAmps (W8); absent when built without a floor plan. */
+  dwellingCalc?: DwellingLoadCalc;
+}
+
+/** One line of the PEC 2.20 dwelling calculation (schedule of loads). */
+export interface DwellingCalcStep {
+  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "other" | "total-demand" */
+  id: string;
+  label: string;
+  /** How the value was computed, e.g. "66.0 m² × 24 VA/m²". */
+  basis: string;
+  /** VA of this step (connected for inputs, demand for demand lines). */
+  va: number;
+  /** PEC section the step stands for (PEC-VERIFY). */
+  pecReference: string;
+}
+
+/** PEC 2.20 standard dwelling load computation for the feeder/main (W8). Code values PEC-VERIFY. */
+export interface DwellingLoadCalc {
+  floorAreaM2: number;
+  unitLoadVaPerM2: number;
+  generalLightingBasisVa: number;
+  connectedGeneralVa: number;
+  generalLightingVa: number;
+  generalLightingSource: "unit-load" | "connected";
+  smallApplianceCircuits: number;
+  smallApplianceVa: number;
+  laundryCircuits: number;
+  laundryVa: number;
+  generalSubtotalVa: number;
+  generalDemandVa: number;
+  fixedApplianceCount: number;
+  fixedApplianceConnectedVa: number;
+  fixedApplianceFactor: number;
+  fixedApplianceDemandVa: number;
+  airConditioningVa: number;
+  airConditioningFactor: number;
+  airConditioningDemandVa: number;
+  otherVa: number;
+  demandVa: number;
+  systemVoltage: number;
+  demandAmps: number;
+  steps: DwellingCalcStep[];
+}
+
+// ---------- Service entrance + one-line diagram (W7) ----------
+
+/**
+ * Service entrance (W7, WIRING-AUDIT F-15): utility → kWh meter → main
+ * breaker → panel, with the grounding electrode conductor. Code values
+ * PEC-VERIFY: service/pec-service.ts (meter classes UTILITY-VERIFY).
+ */
+export interface ServiceEntrance {
+  system: VoltageSystem;
+  /** Line-to-line voltage (line-to-neutral for 2-wire), V. */
+  voltage: number;
+  phases: 1 | 3;
+  wires: 2 | 3 | 4;
+  /** Feeder/main demand the service carries (PEC 2.20 dwelling calc), VA / A. */
+  demandVa: number;
+  demandAmps: number;
+  meter: {
+    /** "self-contained kWh meter" or "CT-metered kWh meter". */
+    kind: string;
+    phases: 1 | 3;
+    wires: 2 | 3 | 4;
+    /** Meter class (A) for self-contained meters; the main rating when CT-metered. */
+    ratedAmps: number;
+    reference: string;
+  };
+  mainBreaker: {
+    amps: number;
+    poles: number;
+    /** "manual" = the panel's mainBreakerAmps; "computed" = sized from the demand (W8). */
+    source: "manual" | "computed";
+    pecReference: string;
+  };
+  serviceConductors: {
+    /** Every line + the neutral, copper, same size. */
+    conductors: { role: WireRole; awg: string; mm2: number }[];
+    insulation: InsulationType;
+    terminationTempC: 60 | 75;
+    ambientTempC: number;
+    ambientFactor: number;
+    currentCarrying: number;
+    adjustmentFactor: number;
+    /** Usable (derated, termination-capped) ampacity, at least the main breaker. */
+    ampacity: number;
+    raceway: {
+      tradeSize: string;
+      metricMm: number;
+      conductorAreaMm2: number;
+      fillPercent: number;
+      fillLimitPercent: number;
+    };
+    pecReference: string;
+  };
+  groundingElectrodeConductor: {
+    awg: string;
+    mm2: number;
+    /** Service conductor size the table row was looked up by, mm². */
+    serviceMm2: number;
+    pecReference: string;
+  };
+  groundingElectrode: {
+    kind: string;
+    lengthM: number;
+    diameterMm: number;
+    pecReference: string;
+  };
+}
+
+export type OneLineNodeKind = "utility" | "meter" | "main" | "panel" | "branch" | "ground";
+
+export interface OneLineNode {
+  id: string;
+  kind: OneLineNodeKind;
+  /** Text printed for the node (SVG and PDF). */
+  label: string;
+  /** Branch nodes only. */
+  circuitId?: string;
+  circuitNumber?: number;
+  breakerAmps?: number;
+  poles?: number;
+  /** Branch conductors, e.g. `2-3.5 mm² THHN + 1-3.5 mm² G in 1/2" PVC`. */
+  conductor?: string;
+}
+
+export interface OneLineEdge {
+  id: string;
+  from: string;
+  to: string;
+  kind: "service-drop" | "service-entrance" | "main-bus" | "branch" | "gec";
+  /** Conductor text printed beside the line ("" for branch edges: the node label carries it). */
+  label: string;
+}
+
+/** One-line (riser) diagram as data + the SVG drawn from it (W7). */
+export interface OneLineDiagram {
+  nodes: OneLineNode[];
+  edges: OneLineEdge[];
+  /** Drawing size, in points (1/72 in). */
+  width: number;
+  height: number;
+  svg: string;
 }
 
 export type ViolationSeverity = "error" | "warning";
@@ -191,12 +354,19 @@ export interface Violation {
 
 export type ConductorRole = "L" | "L2" | "L3" | "N" | "G";
 
+/** W5: S = switched hot back from a switch, T = traveler between a 2-way pair. */
+export type SwitchLegRole = "S" | "T";
+
+export type WireRole = ConductorRole | SwitchLegRole;
+
 export interface SegmentConductor {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
-  /** Insulation color per the PEC color code (PEC-VERIFY). */
+  /** Insulation color (PEC-VERIFY). */
   color: string;
+  /** Lighting group an S/T conductor belongs to. */
+  groupId?: string;
 }
 
 /** One conduit run: home run (from "panel") or device-to-device; a circuit's segments form a tree. */
@@ -211,6 +381,21 @@ export interface WireSegment {
   conductors: SegmentConductor[];
   downstreamVa: number;
   downstreamAmps: number;
+  /** W6: conduit size and fill of this run (each segment is its own raceway). */
+  raceway?: Raceway;
+}
+
+/** W6: one conduit run's raceway — PVC Schedule 40 trade size by Chapter 9 fill (PEC-VERIFY). */
+export interface Raceway {
+  currentCarrying: number;
+  adjustmentFactor: number;
+  tradeSize: string;
+  /** Metric designator, mm (16 = 1/2"). */
+  metricMm: number;
+  conductorAreaMm2: number;
+  fillPercent: number;
+  /** 53 (1 conductor), 31 (2), 40 (more than 2). */
+  fillLimitPercent: number;
 }
 
 export interface JunctionBox {
@@ -222,7 +407,7 @@ export interface JunctionBox {
 }
 
 export interface WireBomLine {
-  role: ConductorRole;
+  role: WireRole;
   awg: string;
   mm2: number;
   color: string;
@@ -231,14 +416,65 @@ export interface WireBomLine {
 
 export interface WireBom {
   wire: WireBomLine[];
+  /** Feed segments plus switch legs, meters. */
   conduitLengthM: number;
+  /** W6: conduit by trade size (sums to conduitLengthM). */
+  conduits?: { tradeSize: string; metricMm: number; lengthM: number }[];
   junctionBoxes: number;
+  /** Wall switches by type (a 2-way pair counts two). */
+  switches: { oneWay: number; twoWay: number };
+}
+
+/** W5: wall switch placed by the engine at the latch side of a door of its room. */
+export interface SwitchDevice {
+  id: string;
+  groupId: string;
+  circuitId: string;
+  roomId?: string;
+  kind: "1-way" | "2-way";
+  position: Point;
+  /** Center height above finished floor (DESIGN-VERIFY). */
+  mountingHeightM: number;
+  doorId?: string;
+  pairedSwitchId?: string;
+}
+
+/** Lighting fixtures of one room on one circuit, switched together. */
+export interface LightingGroup {
+  id: string;
+  circuitId: string;
+  roomId?: string;
+  loadIds: string[];
+  switchIds: string[];
+  /** Fixture box the switch leg drops from. */
+  boxLoadId: string;
+}
+
+/** Conduit run box → switch (L + S + G) or between a 2-way pair (S + T + T + G). */
+export interface SwitchLeg {
+  id: string;
+  circuitId: string;
+  groupId: string;
+  from: string;
+  to: string;
+  points: Point[];
+  /** Plan length of `points` plus `verticalM`. */
+  lengthM: number;
+  verticalM: number;
+  penetrations: number;
+  conductors: SegmentConductor[];
+  amps: number;
+  /** W6: conduit size and fill of this leg. */
+  raceway?: Raceway;
 }
 
 export interface CircuitWiring {
   segments: WireSegment[];
   junctions: JunctionBox[];
   bom: WireBom;
+  lightingGroups: LightingGroup[];
+  switches: SwitchDevice[];
+  switchLegs: SwitchLeg[];
 }
 
 export interface RoutedPath {
@@ -292,6 +528,10 @@ export interface SimulationResult {
   luxHeatmap: LuxSample[];
   /** Device-to-device circuit wiring: conduit segments, junction boxes, bill of materials (W3). */
   wiring: CircuitWiring;
+  /** Service entrance: kWh meter, main breaker, service conductors, GEC (W7). */
+  service: ServiceEntrance;
+  /** One-line (riser) diagram as nodes/edges + SVG (W7). */
+  oneLine: OneLineDiagram;
 }
 
 export interface AutoLightingOptions {

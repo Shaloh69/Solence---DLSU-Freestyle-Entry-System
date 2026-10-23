@@ -11,6 +11,13 @@
  * assuming the whole circuit current at the farthest point (WIRING-AUDIT
  * F-9, F-10, F-11). A device where three or more conduits meet is a
  * junction box.
+ *
+ * W5 switching: each lighting group (switched fixtures of one room on one
+ * circuit) gets a box — its fixture nearest the panel — and a switch leg
+ * from that box to its switch (L down, S back, G), plus S + T + T + G
+ * between a 2-way pair. Along the circuit tree the switched leg S runs
+ * only where it joins a group's fixtures to each other, and L only where
+ * an unswitched device or a group box is downstream (WIRING-AUDIT F-12).
  */
 import {
   Circuit,
@@ -18,13 +25,22 @@ import {
   ConductorRole,
   ElectricalLoad,
   JunctionBox,
+  LightingGroup,
   Panel,
+  Point,
+  Room,
   RoutedPath,
+  SegmentConductor,
+  SwitchDevice,
+  SwitchLeg,
   WireBomLine,
+  WireRole,
   WireSegment,
 } from "./types.js";
 import { routeFromDevice, RouteTarget, WalkabilityGrid } from "./routing/index.js";
 import { CONDUCTOR_COLORS } from "./sizing/conductor-colors.js";
+import { SWITCH_DROP_ROLES, SWITCH_LEG_COLORS, TRAVELER_RUN_ROLES } from "./sizing/switch-leg-conductors.js";
+import type { SwitchPlan } from "./switching/index.js";
 
 const PANEL = "panel";
 
@@ -36,18 +52,29 @@ export function conductorRoles(panel: Panel, voltage: number): ConductorRole[] {
   return ["L", "N", "G"];
 }
 
+export interface SwitchingInput {
+  plan: SwitchPlan;
+  rooms: Room[];
+  /** Ceiling height, meters: switch legs drop from the ceiling to the switch. */
+  ceilingHeight: number;
+}
+
 export function buildWiring(
   grid: WalkabilityGrid,
   panel: Panel,
   loads: ElectricalLoad[],
   circuits: Circuit[],
   routes: RoutedPath[],
-  targets: RouteTarget[]
+  targets: RouteTarget[],
+  switching: SwitchingInput = { plan: { groups: [], switches: [] }, rooms: [], ceilingHeight: 0 }
 ): CircuitWiring {
   const loadById = new Map(loads.map((l) => [l.id, l]));
   const routeByLoad = new Map(routes.map((r) => [r.loadId, r]));
   const targetById = new Map(targets.map((t) => [t.id, t]));
+  const switchById = new Map(switching.plan.switches.map((s) => [s.id, s]));
+  const roomById = new Map(switching.rooms.map((r) => [r.id, r]));
   const segments: WireSegment[] = [];
+  const switchLegs: SwitchLeg[] = [];
   const junctions: JunctionBox[] = [];
 
   for (const circuit of circuits) {
@@ -56,11 +83,12 @@ export function buildWiring(
     if (devices.length === 0) continue;
     const links = treeLinks(devices, routeByLoad, targetById, grid);
     const roles = conductorRoles(panel, circuit.voltage);
-    const conductors = roles.map((role) => {
+    const conductor = (role: WireRole, groupId?: string): SegmentConductor => {
       const size = role === "G" ? circuit.groundingConductor : circuit.conductor;
+      const color = role === "S" || role === "T" ? SWITCH_LEG_COLORS[role] : CONDUCTOR_COLORS[role];
 
-      return { role, awg: size.awg, mm2: size.mm2, color: CONDUCTOR_COLORS[role] };
-    });
+      return { role, awg: size.awg, mm2: size.mm2, color, ...(groupId ? { groupId } : {}) };
+    };
 
     // Current below each node: its own load plus everything it feeds.
     const childrenOf = new Map<string, string[]>();
@@ -78,6 +106,65 @@ export function buildWiring(
 
     va(PANEL);
 
+    // Devices at or below each node, and wire distance from the panel.
+    const below = new Map<string, Set<string>>();
+    const subtree = (node: string): Set<string> => {
+      const set = new Set([node]);
+
+      for (const c of childrenOf.get(node) ?? []) for (const id of subtree(c)) set.add(id);
+      below.set(node, set);
+
+      return set;
+    };
+
+    subtree(PANEL);
+    const fromPanel = new Map<string, number>([[PANEL, 0]]);
+
+    for (const link of links) fromPanel.set(link.to, fromPanel.get(link.from)! + link.path.lengthM);
+
+    // Lighting groups: box = the group's routed fixture nearest the panel.
+    const groups = switching.plan.groups.filter((g) => g.circuitId === circuit.id);
+    const routedOf = new Map(groups.map((g) => [g.id, g.loadIds.filter((id) => fromPanel.has(id))]));
+
+    for (const g of groups) {
+      const routed = routedOf.get(g.id)!;
+
+      if (routed.length > 0) {
+        g.boxLoadId = routed.reduce((best, id) =>
+          fromPanel.get(id)! < fromPanel.get(best)! ||
+          (fromPanel.get(id) === fromPanel.get(best) && id < best)
+            ? id
+            : best
+        );
+      }
+    }
+    const switched = new Set(groups.flatMap((g) => g.loadIds));
+    const needsL = new Set([
+      ...circuit.loadIds.filter((id) => !switched.has(id)),
+      ...groups.map((g) => g.boxLoadId),
+    ]);
+
+    /** L where something downstream needs the unswitched hot; S where a group's fixtures join. */
+    const segmentConductors = (to: string): SegmentConductor[] => {
+      const sub = below.get(to)!;
+      const hasL = [...sub].some((id) => needsL.has(id));
+      const sGroups = groups.filter((g) => {
+        const routed = routedOf.get(g.id)!;
+        const inside = routed.filter((id) => sub.has(id)).length;
+
+        return inside > 0 && inside < routed.length;
+      });
+      const out: SegmentConductor[] = [];
+
+      for (const role of roles) {
+        if (role === "L" && !hasL) continue;
+        if (role === "G") out.push(...sGroups.map((g) => conductor("S", g.id)));
+        out.push(conductor(role));
+      }
+
+      return out;
+    };
+
     const circuitSegments = links.map((link, index): WireSegment => {
       const downstreamVa = downstream.get(link.to) ?? 0;
 
@@ -89,7 +176,7 @@ export function buildWiring(
         points: link.path.points,
         lengthM: link.path.lengthM,
         penetrations: link.path.penetrations ?? 0,
-        conductors: conductors.map((c) => ({ ...c })),
+        conductors: segmentConductors(link.to),
         downstreamVa,
         downstreamAmps: downstreamVa / circuit.voltage,
       };
@@ -97,29 +184,58 @@ export function buildWiring(
 
     segments.push(...circuitSegments);
 
-    // Chain to each device; the circuit's drop is the worst chain.
+    // Switch legs: box → first switch, then between a 2-way pair.
+    const legsOf = new Map<string, SwitchLeg[]>();
+
+    for (const g of groups) {
+      if (routedOf.get(g.id)!.length === 0) continue;
+      const amps = g.loadIds.reduce((sum, id) => sum + (loadById.get(id)?.va ?? 0), 0) / circuit.voltage;
+      const legs = switchLegsFor(g, {
+        grid,
+        box: targetById.get(g.boxLoadId)!,
+        switches: g.switchIds.map((id) => switchById.get(id)!),
+        room: g.roomId ? roomById.get(g.roomId) : undefined,
+        ceilingHeight: switching.ceilingHeight,
+        conductor,
+        amps,
+      });
+
+      legsOf.set(g.id, legs);
+      switchLegs.push(...legs);
+    }
+
+    // Chain to each device; the circuit's drop is the worst chain. A
+    // switched fixture's current also runs down its switch leg and back.
     const parentSegment = new Map(circuitSegments.map((s) => [s.to, s]));
-    let worst: { score: number; chain: WireSegment[] } = { score: -1, chain: [] };
+    const groupOf = new Map(groups.flatMap((g) => g.loadIds.map((id) => [id, g.id] as const)));
+    let worst: { score: number; chain: { lengthM: number; amps: number }[] } = { score: -1, chain: [] };
     let farthest = 0;
 
     for (const device of devices) {
-      const chain: WireSegment[] = [];
+      const chain: { lengthM: number; amps: number }[] = [];
+      let tree = 0;
 
-      for (let s = parentSegment.get(device); s; s = parentSegment.get(s.from)) chain.unshift(s);
-      const score = chain.reduce((sum, s) => sum + s.downstreamAmps * s.lengthM, 0);
+      for (let s = parentSegment.get(device); s; s = parentSegment.get(s.from)) {
+        chain.unshift({ lengthM: s.lengthM, amps: s.downstreamAmps });
+        tree += s.lengthM;
+      }
+      for (const leg of legsOf.get(groupOf.get(device) ?? "") ?? []) {
+        chain.push({ lengthM: leg.lengthM, amps: leg.amps });
+      }
+      const score = chain.reduce((sum, s) => sum + s.amps * s.lengthM, 0);
 
-      farthest = Math.max(farthest, chain.reduce((sum, s) => sum + s.lengthM, 0));
+      farthest = Math.max(farthest, tree);
       if (score > worst.score) worst = { score, chain };
     }
     circuit.lengthM = farthest;
-    circuit.dropChain = worst.chain.map((s) => ({ lengthM: s.lengthM, amps: s.downstreamAmps }));
+    circuit.dropChain = worst.chain;
 
-    // Junction boxes: devices where three or more conduits meet.
+    // Junction boxes: devices where three or more conduits meet (switch legs count).
     const degree = new Map<string, number>();
 
-    for (const s of circuitSegments) {
+    for (const s of [...circuitSegments, ...[...legsOf.values()].flat()]) {
       for (const node of [s.from, s.to]) {
-        if (node !== PANEL) degree.set(node, (degree.get(node) ?? 0) + 1);
+        if (loadById.has(node)) degree.set(node, (degree.get(node) ?? 0) + 1);
       }
     }
     for (const [loadId, conduits] of degree) {
@@ -135,7 +251,78 @@ export function buildWiring(
     }
   }
 
-  return { segments, junctions, bom: billOfMaterials(segments, junctions.length) };
+  const switches = switching.plan.switches;
+
+  return {
+    segments,
+    junctions,
+    bom: billOfMaterials([...segments, ...switchLegs], junctions.length, switches),
+    lightingGroups: switching.plan.groups,
+    switches,
+    switchLegs,
+  };
+}
+
+/** Routed switch legs of one group: box → nearer switch, then on to the other of a 2-way pair. */
+function switchLegsFor(
+  group: LightingGroup,
+  ctx: {
+    grid: WalkabilityGrid;
+    box: RouteTarget;
+    switches: SwitchDevice[];
+    room?: Room;
+    ceilingHeight: number;
+    conductor: (role: WireRole, groupId?: string) => SegmentConductor;
+    amps: number;
+  }
+): SwitchLeg[] {
+  const target = (s: SwitchDevice): RouteTarget => ({ id: s.id, position: s.position, room: ctx.room?.boundary });
+  const drop = Math.max(0, ctx.ceilingHeight - ctx.switches[0].mountingHeightM);
+  const fromBox = routeFromDevice(ctx.box, ctx.switches.map(target), ctx.grid);
+  const pathTo = (from: RouteTarget, to: SwitchDevice, found?: RoutedPath) => ({
+    points: found?.points ?? [from.position, to.position],
+    penetrations: found?.penetrations ?? 0,
+  });
+  const [first, second] = [...ctx.switches].sort(
+    (a, b) =>
+      polyline(pathTo(ctx.box, a, fromBox.get(a.id)).points) -
+      polyline(pathTo(ctx.box, b, fromBox.get(b.id)).points)
+  );
+  const leg = (
+    index: number,
+    from: string,
+    to: SwitchDevice,
+    path: { points: Point[]; penetrations: number },
+    verticalM: number,
+    roles: readonly WireRole[]
+  ): SwitchLeg => ({
+    id: `${group.id}-leg${index}`,
+    circuitId: group.circuitId,
+    groupId: group.id,
+    from,
+    to: to.id,
+    points: path.points,
+    lengthM: polyline(path.points) + verticalM,
+    verticalM,
+    penetrations: path.penetrations,
+    conductors: roles.map((role) => ctx.conductor(role, role === "S" || role === "T" ? group.id : undefined)),
+    amps: ctx.amps,
+  });
+  const legs = [
+    leg(1, group.boxLoadId, first, pathTo(ctx.box, first, fromBox.get(first.id)), drop, SWITCH_DROP_ROLES),
+  ];
+
+  if (second) {
+    const between = routeFromDevice(target(first), [target(second)], ctx.grid).get(second.id);
+
+    legs.push(leg(2, first.id, second, pathTo(target(first), second, between), 2 * drop, TRAVELER_RUN_ROLES));
+  }
+
+  return legs;
+}
+
+function polyline(points: Point[]): number {
+  return points.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - points[i].x, p.y - points[i].y), 0);
 }
 
 interface Link {
@@ -224,10 +411,14 @@ function dist(a: { x: number; y: number }, b: { x: number; y: number }): number 
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function billOfMaterials(segments: WireSegment[], junctionBoxes: number): CircuitWiring["bom"] {
+export function billOfMaterials(
+  runs: { lengthM: number; conductors: SegmentConductor[] }[],
+  junctionBoxes: number,
+  switches: SwitchDevice[]
+): CircuitWiring["bom"] {
   const lines = new Map<string, WireBomLine>();
 
-  for (const s of segments) {
+  for (const s of runs) {
     for (const c of s.conductors) {
       const key = `${c.role}|${c.awg}|${c.color}`;
       const line = lines.get(key) ?? { role: c.role, awg: c.awg, mm2: c.mm2, color: c.color, lengthM: 0 };
@@ -239,7 +430,11 @@ function billOfMaterials(segments: WireSegment[], junctionBoxes: number): Circui
 
   return {
     wire: [...lines.values()],
-    conduitLengthM: segments.reduce((sum, s) => sum + s.lengthM, 0),
+    conduitLengthM: runs.reduce((sum, s) => sum + s.lengthM, 0),
     junctionBoxes,
+    switches: {
+      oneWay: switches.filter((s) => s.kind === "1-way").length,
+      twoWay: switches.filter((s) => s.kind === "2-way").length,
+    },
   };
 }

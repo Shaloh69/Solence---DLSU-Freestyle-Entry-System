@@ -28,6 +28,22 @@ relies on.
 - `circuits.ts` — groups loads into branch circuits and sizes them
   (each load is still its own home run from the panel; device-to-device
   circuit topology is item W3, docs/WIRING-AUDIT.md F-9).
+- `switching/` — W5: which doors are a room's entrances, lighting groups
+  (switched fixtures per room per circuit), switch auto-placement at the
+  latch side of the entrance door (1-way, or a 2-way pair for two
+  entrances). Data: `switch-data.ts` (DESIGN-VERIFY); switch-leg
+  conductors in `sizing/switch-leg-conductors.ts` (PEC-VERIFY).
+  `topology.ts` wires the switch legs and the switched leg S.
+- `raceways.ts` — W6: per conduit run (each segment / switch leg is its
+  own raceway) counts current-carrying conductors, derates for the
+  project ambient (`floorPlan.ambientTempC`, default 35 °C) and for >3
+  conductors, upsizes the circuit conductor, sizes PVC conduit by
+  Chapter 9 fill. Data: `sizing/pec-derating.ts` (PEC-VERIFY).
+- `service/` — W7: service entrance (kWh meter, main breaker, service
+  conductors sized to the main with derating, grounding electrode
+  conductor) and the one-line (riser) diagram as nodes/edges + SVG
+  (the PDF draws the same primitives). Data: `service/pec-service.ts`
+  (PEC-VERIFY; meter classes UTILITY-VERIFY).
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).

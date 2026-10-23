@@ -8,6 +8,7 @@
 import PDFDocument from "pdfkit";
 import { FloorPlan, Panel } from "../types.js";
 import { SimulationResult } from "../simulate.js";
+import { oneLinePrimitives } from "../service/index.js";
 
 const PALETTE = [
   "#4E79A7",
@@ -42,6 +43,10 @@ export function generatePermitPdf(input: PermitPdfInput): Promise<Buffer> {
     drawDiagramPage(doc, input);
     doc.addPage();
     drawSchedulePage(doc, input);
+    if (input.result.oneLine) {
+      doc.addPage();
+      drawOneLinePage(doc, input);
+    }
     doc.addPage();
     drawDirectoryPage(doc, input);
 
@@ -309,10 +314,105 @@ function drawSchedulePage(doc: PDFKit.PDFDocument, input: PermitPdfInput) {
 
   doc.fontSize(9).fillColor("#333333").text(phaseText, 40, y);
 
+  if (schedule.dwellingCalc) drawDwellingCalc(doc, input, y + 24);
+
   disclaimer(doc);
 }
 
-// ---------- Page 3: conductor schedule + directory ----------
+/**
+ * W8: the PEC 2.20 dwelling calculation behind the feeder/main, one line
+ * per step (label | how it was computed | VA). Each cell is a single
+ * unwrapped line so the text stays extractable as written.
+ */
+function drawDwellingCalc(doc: PDFKit.PDFDocument, input: PermitPdfInput, startY: number) {
+  const calc = input.result.schedule.dwellingCalc;
+
+  if (!calc) return;
+  const rowHeight = 14;
+  let y = startY;
+
+  if (y + (calc.steps.length + 2) * rowHeight > 740) {
+    disclaimer(doc);
+    doc.addPage();
+    header(doc, input, "Panel Schedule (continued)");
+    y = doc.y + 10;
+  }
+
+  doc
+    .fontSize(10)
+    .fillColor("#111111")
+    .text("Schedule of Loads: PEC 2.20 dwelling calculation (PEC-VERIFY)", 40, y, {
+      lineBreak: false,
+    });
+  y += rowHeight + 4;
+  doc.moveTo(40, y - 3).lineTo(555, y - 3).lineWidth(0.5).strokeColor("#999999").stroke();
+
+  for (const step of calc.steps) {
+    const total = step.id === "total-demand";
+
+    doc.fontSize(8).fillColor(total ? "#111111" : "#333333");
+    doc.text(step.label, 40, y, { lineBreak: false });
+    doc.text(step.basis, 200, y, { lineBreak: false });
+    doc.text(`${Math.round(step.va).toLocaleString("en-US")} VA`, 480, y, {
+      width: 75,
+      align: "right",
+      lineBreak: false,
+    });
+    y += rowHeight;
+  }
+}
+
+// ---------- Page 3: one-line (riser) diagram (W7) ----------
+
+/**
+ * Draws the same primitives the result's `oneLine.svg` is built from,
+ * scaled to fit the page. Each text is one unwrapped run so it stays
+ * extractable exactly as the node/edge label.
+ */
+function drawOneLinePage(doc: PDFKit.PDFDocument, input: PermitPdfInput) {
+  const diagram = input.result.oneLine;
+
+  header(doc, input, "One-Line (Riser) Diagram");
+  doc
+    .fontSize(10)
+    .fillColor("#111111")
+    .text("One-Line (Riser) Diagram", 40, doc.y, { lineBreak: false });
+
+  const originX = 40;
+  const originY = doc.y + 16;
+  const scale = Math.min(1, 515 / diagram.width, (760 - originY) / diagram.height);
+  const px = (x: number) => originX + x * scale;
+  const py = (y: number) => originY + y * scale;
+
+  doc.strokeColor("#111111").fillColor("#111111");
+  for (const p of oneLinePrimitives(diagram)) {
+    switch (p.type) {
+      case "line":
+        doc.moveTo(px(p.x1), py(p.y1)).lineTo(px(p.x2), py(p.y2)).lineWidth(p.width * scale).stroke();
+        break;
+      case "rect":
+        doc.rect(px(p.x), py(p.y), p.w * scale, p.h * scale).lineWidth(scale).fillAndStroke("#FFFFFF", "#111111");
+        break;
+      case "circle":
+        doc.circle(px(p.cx), py(p.cy), p.r * scale).lineWidth(scale).fillAndStroke("#FFFFFF", "#111111");
+        break;
+      case "text": {
+        const size = p.size * scale;
+
+        doc.fontSize(size).fillColor("#111111");
+        const width = p.anchor === "middle" ? doc.widthOfString(p.text) : 0;
+
+        // SVG y is the baseline; pdfkit places the top of the line box.
+        doc.text(p.text, px(p.x) - width / 2, py(p.y) - size * 0.8, { lineBreak: false });
+        break;
+      }
+    }
+  }
+
+  disclaimer(doc);
+}
+
+// ---------- Page 4: conductor schedule + directory ----------
 
 function drawDirectoryPage(doc: PDFKit.PDFDocument, input: PermitPdfInput) {
   const { result } = input;

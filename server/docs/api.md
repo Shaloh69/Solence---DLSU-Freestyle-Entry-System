@@ -42,9 +42,11 @@ Gated endpoints return 403 with an upgrade message.
 | PUT | `/projects/:id/floorplan` | `FloorPlan` | Replace the floor plan |
 | PUT | `/projects/:id/panel` | `Panel` | Place/replace the distribution panel |
 
-`FloorPlan`: `{ width, height, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
+`FloorPlan`: `{ width, height, ceilingHeight?, ambientTempC?, walls: Wall[], rooms: Room[], openings?, backgroundImage? }`
 — meters, origin top-left; `backgroundImage` is an optional image data URL
-used as a trace layer. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
+used as a trace layer. `ambientTempC` (W6, project setting, 0–55 °C,
+default 35) is the design ambient of the conduit runs (ceiling space) used
+for the ampacity correction; out-of-range values return 400. `Opening`: `{ id, wallId, offset, width, kind: "door" | "window" }`
 (offset = meters from the wall's start). Doors are free passages for
 routing; walls and windows can be crossed by a run only as a counted
 penetration (concealed conduit — see `RoutedPath.penetrations`); windows
@@ -96,14 +98,29 @@ Preconditions (422): floor plan set, panel placed, at least one load.
   "circuits": [ { "id", "description", "loadIds", "connectedVa", "continuousVa",
                   "voltage", "phase", "breakerAmps",
                   "conductor": { "awg", "mm2", "ampacity", "insulation",
-                                 "terminationTempC" },   // ampacity = usable at 60/75 °C terminals
+                                 "terminationTempC" },   // ampacity = usable: termination-capped, derated (W6)
                   "groundingConductor": { "awg", "mm2" }, // PEC Table 2.50.6.13
                   "lengthM",            // panel → farthest device along the device chain
                   "voltageDropPercent", // summed segment by segment along dropChain
-                  "dropChain": [ { "lengthM", "amps" } ] } ],  // panel → worst-drop device
+                  "dropChain": [ { "lengthM", "amps" } ],  // panel → worst-drop device
+                  "derating": { "ambientTempC", "ambientFactor",       // W6, PEC-VERIFY
+                                "maxCurrentCarrying", "adjustmentFactor",
+                                "ampacity", "resizedFrom?": { "awg", "mm2" } } } ],
   "schedule": { "panelId", "system", "rows": [PanelScheduleRow…],
                 "totalConnectedVa", "totalDemandVa",
-                "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps" },
+                "phaseVa": {"A","B","C"}, "feederAmps", "mainBreakerAmps",
+                "dwellingCalc?": {                  // W8: PEC 2.20 dwelling calc, PEC-VERIFY
+                  "floorAreaM2", "unitLoadVaPerM2", "generalLightingBasisVa",
+                  "connectedGeneralVa", "generalLightingVa",
+                  "generalLightingSource",          // "unit-load" | "connected"
+                  "smallApplianceCircuits", "smallApplianceVa",
+                  "laundryCircuits", "laundryVa",
+                  "generalSubtotalVa", "generalDemandVa",
+                  "fixedApplianceCount", "fixedApplianceConnectedVa",
+                  "fixedApplianceFactor", "fixedApplianceDemandVa",
+                  "airConditioningVa", "airConditioningFactor", "airConditioningDemandVa",
+                  "otherVa", "demandVa", "systemVoltage", "demandAmps",
+                  "steps": [ { "id", "label", "basis", "va", "pecReference" } ] } },
   "directory": [ { "circuitNumber", "circuitId", "description" } ],
   "violations": [ { "ruleId", "severity", "message", "circuitId?", "pecReference" } ],
   "routingErrors": [ { "loadId", "message" } ],
@@ -112,15 +129,73 @@ Preconditions (422): floor plan set, panel placed, at least one load.
                     "from",                    // "panel" or upstream load id
                     "to",                      // downstream load id
                     "points": [{x,y},…], "lengthM", "penetrations",
-                    "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G"
-                                      "awg", "mm2", "color" } ],  // colors PEC-VERIFY
-                    "downstreamVa", "downstreamAmps" } ],
+                    "conductors": [ { "role",  // "L" | "L2" | "L3" | "N" | "G" | "S" | "T"
+                                      "awg", "mm2", "color",  // colors PEC-VERIFY
+                                      "groupId?" } ],  // S/T: the lighting group
+                    "downstreamVa", "downstreamAmps",
+                    "raceway": { "currentCarrying", "adjustmentFactor",   // W6
+                                 "tradeSize", "metricMm",   // PVC Sch 40, e.g. 1/2" = 16
+                                 "conductorAreaMm2", "fillPercent", "fillLimitPercent" } } ],
     "junctions": [ { "id", "circuitId", "loadId", "position": {x,y}, "conduits" } ],
+    "lightingGroups": [ { "id", "circuitId", "roomId?", "loadIds",   // W5
+                          "switchIds",        // one 1-way, or a 2-way pair
+                          "boxLoadId" } ],    // fixture the switch leg drops from
+    "switches": [ { "id", "groupId", "circuitId", "roomId?",
+                    "kind",                  // "1-way" | "2-way"
+                    "position": {x,y}, "mountingHeightM",  // DESIGN-VERIFY
+                    "doorId?", "pairedSwitchId?" } ],
+    "switchLegs": [ { "id", "circuitId", "groupId",
+                      "from", "to",          // box load id or switch id → switch id
+                      "points": [{x,y},…], "lengthM", "verticalM", "penetrations",
+                      "conductors": [ … ], "amps", "raceway": { … } } ],
     "bom": { "wire": [ { "role", "awg", "mm2", "color", "lengthM" } ],
-             "conduitLengthM", "junctionBoxes" }
+             "conduitLengthM", "junctionBoxes",   // conduit incl. switch legs
+             "conduits": [ { "tradeSize", "metricMm", "lengthM" } ],  // W6: by trade size
+             "switches": { "oneWay", "twoWay" } }
+  },
+  "service": {                                 // W7: service entrance, PEC-VERIFY
+    "system", "voltage", "phases", "wires", "demandVa", "demandAmps",
+    "meter": { "kind", "phases", "wires", "ratedAmps", "reference" },  // classes UTILITY-VERIFY
+    "mainBreaker": { "amps", "poles", "source", "pecReference" },     // source "manual" | "computed"
+    "serviceConductors": { "conductors": [ { "role", "awg", "mm2" } ], // lines + neutral
+                           "insulation", "terminationTempC", "ambientTempC",
+                           "ambientFactor", "currentCarrying", "adjustmentFactor",
+                           "ampacity",                                // usable, >= main
+                           "raceway": { "tradeSize", "metricMm", "conductorAreaMm2",
+                                        "fillPercent", "fillLimitPercent" },
+                           "pecReference" },
+    "groundingElectrodeConductor": { "awg", "mm2", "serviceMm2", "pecReference" },  // Table 2.50.3.17
+    "groundingElectrode": { "kind", "lengthM", "diameterMm", "pecReference" }
+  },
+  "oneLine": {                                 // W7: one-line (riser) diagram
+    "nodes": [ { "id", "kind",                 // "utility" | "meter" | "main" | "panel" | "branch" | "ground"
+                 "label",                      // printed text (SVG + PDF)
+                 "circuitId?", "circuitNumber?", "breakerAmps?", "poles?",
+                 "conductor?" } ],             // branch: e.g. 2-3.5 mm² THHN + 1-3.5 mm² G in 1/2" PVC
+    "edges": [ { "id", "from", "to",
+                 "kind",                       // "service-drop" | "service-entrance" | "main-bus" | "branch" | "gec"
+                 "label" } ],
+    "width", "height",                         // points
+    "svg"                                      // standalone <svg> of the diagram
   }
 }
 ```
+
+Service entrance (W7, values PEC-VERIFY in `service/pec-service.ts`):
+the main breaker is the panel's `mainBreakerAmps` when set ("manual"),
+else the auto-sized main from the W8 demand ("computed"). Service
+conductors (every line + the neutral, same size, copper, the circuits'
+insulation) are the smallest whose usable ampacity — insulation column ×
+ambient correction (`floorPlan.ambientTempC`) × adjustment for the
+current-carrying count, capped by the termination column (60 °C for
+mains ≤ 100 A, 75 °C above) — reaches the main rating; PVC conduit by
+fill. The grounding electrode conductor comes from Table 2.50.3.17 by
+the service conductor size (the rod-electrode 14 mm² cap is not
+applied); one driven rod 15.87 mm × 2.4 m. Meter: self-contained Class
+100 / 200 A (smallest ≥ main), CT-metered above (UTILITY-VERIFY). Main
+poles: 2P single-phase (both 230 V conductors opened), 3P three-phase.
+The one-line diagram is built from the service + panel + circuits and
+printed on its own PDF page (same drawing as `oneLine.svg`).
 
 `routes` are still one path per device from the panel (kept for the
 current 2D/3D layers). `wiring` is how the circuit is actually pulled:
@@ -128,6 +203,45 @@ per circuit one home run to the first device, then device to device;
 each circuit's segments form a tree rooted at `"panel"`. A device where
 three or more conduits meet is a junction box. 240 V circuits on a
 120/240 V panel carry L + L2 + G (no neutral); everything else L + N + G.
+
+Switching (W5): the engine places the switches — they are not loads in
+the project. Switched fixtures (lighting, not egress) of one room on one
+circuit form a lighting group. Its switch sits inside the room beside the
+latch side of the room's entrance door (1-way); a room with two or more
+entrance doors gets a 2-way pair at two of them. The switch leg drops from
+the group's box (its fixture nearest the panel) to the first switch with
+L + S + G, and runs S + T + T + G between a 2-way pair; `lengthM`
+includes the vertical drops (`verticalM`, ceiling to switch height). On
+the circuit tree, S runs where it joins a group's fixtures and L only
+where an unswitched device or a group box is downstream. A switched
+fixture's voltage drop includes its switch leg (down and back).
+
+Raceways (W6, all factors PEC-VERIFY in `sizing/pec-derating.ts`): each
+segment and each switch leg is its own conduit (circuits whose routes run
+side by side are separate, parallel conduits — not one shared raceway).
+Current-carrying conductors per run: L, L2, L3, N, S and both travelers T,
+never G. A circuit's conductor is sized for its worst run: insulation
+column × ambient correction (PEC 3.10.1.15(B)(2)(a), 30 °C basis) ×
+adjustment for more than three current-carrying conductors
+(3.10.1.15(B)(3)(a): 0.80 / 0.70 / 0.50 …), capped by the termination
+column, must cover the breaker; it is upsized if not (`resizedFrom`),
+while the equipment ground stays sized by the breaker. Each run gets the
+smallest PVC Schedule 40 trade size (from 16 mm / 1/2") whose fill, EGC
+included, is within Chapter 9 Table 1 (53% / 31% / 40% for 1 / 2 / more
+conductors). The `ampacity` violation applies the same derating.
+
+Feeder/main demand (W8) is the PEC 2.20 standard dwelling calculation
+(`load-calc/dwelling.ts`, values PEC-VERIFY in `pec-demand-factors.ts`
+and `pec-dwelling-calc.ts`): general lighting = the larger of floor area
+(garage/outdoor excluded) × 24 VA/m² and the connected lighting +
+general-purpose receptacles; small-appliance circuits (kitchen/dining
+receptacles, min. 2) and laundry circuits (min. 1 with a laundry room)
+each at not less than 1500 VA; lighting demand tiers (3000 VA at 100%,
+next at 35%, over 120 kVA at 25%) on that subtotal; fixed appliances at
+75% when four or more; A/C, motors and other equipment at 100%.
+`schedule.totalDemandVa` and `feederAmps` come from it, an auto-sized
+main breaker is the next standard rating ≥ `demandAmps`, and `steps`
+(also printed on the PDF's panel-schedule page) shows each line.
 
 `SimulationResult` also carries `roomLighting` (per-room average lux vs
 target, fixture count) and `luxHeatmap` (workplane illuminance samples
@@ -137,7 +251,8 @@ Violation `ruleId`s so far: `ampacity`, `small-conductor`,
 `continuous-80`, `voltage-drop-branch`, `voltage-drop-total`,
 `gfci-required`, `required-branch-circuit`, `receptacle-spacing`,
 `illuminance-none`, `illuminance-low`, `illuminance-high`,
-`general-lighting-basis`, `egress-dedicated-circuit`.
+`egress-dedicated-circuit`. (`general-lighting-basis` was retired in W8:
+the unit load is used in `schedule.dwellingCalc`, not warned.)
 
 ## Realtime (WebSocket)
 
@@ -168,4 +283,4 @@ uses an assumed default until plan-scale calibration is implemented.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |
+| POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, one-line (riser) diagram (W7), conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |
