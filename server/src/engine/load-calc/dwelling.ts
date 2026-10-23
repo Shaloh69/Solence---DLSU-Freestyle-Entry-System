@@ -11,7 +11,12 @@
  *   4. lighting demand tiers on 1 + 2 + 3
  *   5. fixed appliances: 75 % when four or more
  *   6. air conditioning at 100 %
- *   7. motors / other equipment at 100 %
+ *   7. fixed space heating at 100 % (W8b)
+ *   8. heating / A-C non-coincidence: with both, only the larger total
+ *      is counted (W8b; a tie keeps the A/C)
+ *   9. motors / other equipment at 100 %
+ *  10. largest motor +25 %: a quarter of the largest single motor load
+ *      still counted in the demand (W8b)
  *
  * Every code value is PEC-VERIFY and lives in pec-demand-factors.ts or
  * pec-dwelling-calc.ts.
@@ -36,11 +41,15 @@ import {
   AIR_CONDITIONING_DEMAND_FACTOR,
   DWELLING_AREA_EXCLUDED_ROOM_TYPES,
   DWELLING_CALC_REFS,
+  LARGEST_MOTOR_ADDER_FACTOR,
   LAUNDRY_ROOM_TYPES,
   MIN_LAUNDRY_CIRCUITS,
   MIN_SMALL_APPLIANCE_CIRCUITS,
+  MOTOR_LOAD_TYPES,
   OTHER_LOAD_DEMAND_FACTOR,
   SMALL_APPLIANCE_ROOM_TYPES,
+  SPACE_HEATING_DEMAND_FACTOR,
+  SPACE_HEATING_LOAD_TYPES,
 } from "./pec-dwelling-calc.js";
 
 export interface DwellingCalcInput {
@@ -59,9 +68,10 @@ function pct(factor: number): string {
   return `${Math.round(factor * 100)}%`;
 }
 
-type Bucket = "general" | "small-appliance" | "laundry" | "fixed" | "ac" | "other";
+type Bucket = "general" | "small-appliance" | "laundry" | "fixed" | "ac" | "heating" | "other";
 
 function bucketOf(load: ElectricalLoad, roomById: Map<string, Room>): Bucket {
+  if (SPACE_HEATING_LOAD_TYPES.includes(load.type)) return "heating";
   const roomType = roomById.get(load.roomId ?? "")?.type;
 
   switch (load.type) {
@@ -77,6 +87,8 @@ function bucketOf(load: ElectricalLoad, roomById: Map<string, Room>): Bucket {
       return "fixed";
     case "hvac":
       return "ac";
+    case "heating":
+      return "heating";
     case "motor":
     case "equipment":
       return "other";
@@ -145,7 +157,11 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
   let fixedApplianceConnectedVa = 0;
   let airConditioningVa = 0;
   let airConditioningUnits = 0;
+  let spaceHeatingVa = 0;
+  let spaceHeatingUnits = 0;
   let otherVa = 0;
+  const acMotorLoads: ElectricalLoad[] = [];
+  const otherMotorLoads: ElectricalLoad[] = [];
   const smallApplianceCircuitVa: number[] = [];
   const laundryCircuitVa: number[] = [];
 
@@ -178,9 +194,15 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
         case "ac":
           airConditioningUnits += 1;
           airConditioningVa += load.va;
+          if (MOTOR_LOAD_TYPES.includes(load.type)) acMotorLoads.push(load);
+          break;
+        case "heating":
+          spaceHeatingUnits += 1;
+          spaceHeatingVa += load.va;
           break;
         case "other":
           otherVa += load.va;
+          if (MOTOR_LOAD_TYPES.includes(load.type)) otherMotorLoads.push(load);
           break;
       }
     }
@@ -207,15 +229,61 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
   const generalSubtotalVa = generalLightingVa + sa.total + laundry.total;
   const tiers = tieredDemand(generalSubtotalVa);
 
-  // 5–7. Fixed appliances, A/C, other.
+  // 5–7. Fixed appliances, A/C, space heating.
   const fixedApplianceFactor =
     fixedApplianceCount >= FIXED_APPLIANCE_MIN_COUNT ? FIXED_APPLIANCE_DEMAND_FACTOR : 1.0;
   const fixedApplianceDemandVa = fixedApplianceConnectedVa * fixedApplianceFactor;
-  const airConditioningDemandVa = airConditioningVa * AIR_CONDITIONING_DEMAND_FACTOR;
+  const acAtFactorVa = airConditioningVa * AIR_CONDITIONING_DEMAND_FACTOR;
+  const heatingAtFactorVa = spaceHeatingVa * SPACE_HEATING_DEMAND_FACTOR;
+
+  // 8. Heating / A-C non-coincidence: count only the larger (a tie keeps A/C).
+  let nonCoincidentOmitted: DwellingLoadCalc["nonCoincidentOmitted"] = null;
+  let nonCoincidentBasis: string;
+
+  if (acAtFactorVa > 0 && heatingAtFactorVa > 0) {
+    if (heatingAtFactorVa > acAtFactorVa) {
+      nonCoincidentOmitted = "air-conditioning";
+      nonCoincidentBasis = `heating ${va(heatingAtFactorVa)} VA > A/C ${va(acAtFactorVa)} VA: A/C omitted`;
+    } else {
+      nonCoincidentOmitted = "heating";
+      nonCoincidentBasis =
+        `A/C ${va(acAtFactorVa)} VA ${acAtFactorVa > heatingAtFactorVa ? ">" : "="} ` +
+        `heating ${va(heatingAtFactorVa)} VA: heating omitted`;
+    }
+  } else if (acAtFactorVa > 0) {
+    nonCoincidentBasis = "A/C only, nothing omitted";
+  } else if (heatingAtFactorVa > 0) {
+    nonCoincidentBasis = "heating only, nothing omitted";
+  } else {
+    nonCoincidentBasis = "no heating or A/C";
+  }
+  const airConditioningDemandVa = nonCoincidentOmitted === "air-conditioning" ? 0 : acAtFactorVa;
+  const spaceHeatingDemandVa = nonCoincidentOmitted === "heating" ? 0 : heatingAtFactorVa;
+  const nonCoincidentOmittedVa =
+    acAtFactorVa + heatingAtFactorVa - airConditioningDemandVa - spaceHeatingDemandVa;
+
+  // 9. Motors / other equipment.
   const otherDemandVa = otherVa * OTHER_LOAD_DEMAND_FACTOR;
 
+  // 10. Largest motor +25 %, among the motor loads still counted.
+  const countedMotors = [
+    ...(nonCoincidentOmitted === "air-conditioning" ? [] : acMotorLoads),
+    ...otherMotorLoads,
+  ];
+  const largestMotor = countedMotors.reduce<ElectricalLoad | null>(
+    (best, load) => (best === null || load.va > best.va ? load : best),
+    null
+  );
+  const largestMotorVa = largestMotor?.va ?? 0;
+  const largestMotorAdderVa = largestMotorVa * LARGEST_MOTOR_ADDER_FACTOR;
+
   const demandVa =
-    tiers.demand + fixedApplianceDemandVa + airConditioningDemandVa + otherDemandVa;
+    tiers.demand +
+    fixedApplianceDemandVa +
+    airConditioningDemandVa +
+    spaceHeatingDemandVa +
+    otherDemandVa +
+    largestMotorAdderVa;
   const threePhase = system === "3P4W-230/400";
   const systemVoltage = systemVoltageOf(system);
   const demandAmps = threePhase
@@ -271,8 +339,22 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
       id: "air-conditioning",
       label: "Air conditioning",
       basis: `${airConditioningUnits} units, ${va(airConditioningVa)} VA × ${pct(AIR_CONDITIONING_DEMAND_FACTOR)}`,
-      va: airConditioningDemandVa,
+      va: acAtFactorVa,
       pecReference: DWELLING_CALC_REFS.airConditioning,
+    },
+    {
+      id: "space-heating",
+      label: "Space heating",
+      basis: `${spaceHeatingUnits} units, ${va(spaceHeatingVa)} VA × ${pct(SPACE_HEATING_DEMAND_FACTOR)}`,
+      va: heatingAtFactorVa,
+      pecReference: DWELLING_CALC_REFS.spaceHeating,
+    },
+    {
+      id: "heating-ac-noncoincident",
+      label: "Heating/A-C non-coincident (smaller omitted)",
+      basis: nonCoincidentBasis,
+      va: nonCoincidentOmittedVa === 0 ? 0 : -nonCoincidentOmittedVa,
+      pecReference: DWELLING_CALC_REFS.heatingAcNoncoincident,
     },
     {
       id: "other",
@@ -280,6 +362,15 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
       basis: `${va(otherVa)} VA × ${pct(OTHER_LOAD_DEMAND_FACTOR)}`,
       va: otherDemandVa,
       pecReference: DWELLING_CALC_REFS.other,
+    },
+    {
+      id: "largest-motor",
+      label: "Largest motor +25%",
+      basis: largestMotor
+        ? `${pct(LARGEST_MOTOR_ADDER_FACTOR)} × ${va(largestMotorVa)} VA (${largestMotor.name})`
+        : "no motor loads",
+      va: largestMotorAdderVa,
+      pecReference: DWELLING_CALC_REFS.largestMotor,
     },
     {
       id: "total-demand",
@@ -312,7 +403,16 @@ export function dwellingLoadCalc(input: DwellingCalcInput): DwellingLoadCalc {
     airConditioningVa,
     airConditioningFactor: AIR_CONDITIONING_DEMAND_FACTOR,
     airConditioningDemandVa,
+    spaceHeatingVa,
+    spaceHeatingFactor: SPACE_HEATING_DEMAND_FACTOR,
+    spaceHeatingDemandVa,
+    nonCoincidentOmitted,
+    nonCoincidentOmittedVa,
     otherVa: otherDemandVa,
+    largestMotorVa,
+    largestMotorLoadId: largestMotor?.id ?? null,
+    largestMotorFactor: LARGEST_MOTOR_ADDER_FACTOR,
+    largestMotorAdderVa,
     demandVa,
     systemVoltage,
     demandAmps,

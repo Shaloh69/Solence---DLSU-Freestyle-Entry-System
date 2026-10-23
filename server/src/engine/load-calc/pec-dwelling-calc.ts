@@ -16,7 +16,7 @@
  * FIXED_APPLIANCE_DEMAND_FACTOR (75 %) at FIXED_APPLIANCE_MIN_COUNT (4).
  * ====================================================================
  */
-import { RoomType } from "../types.js";
+import { LoadType, RoomType } from "../types.js";
 
 /**
  * Room types left out of the floor area the general-lighting unit load is
@@ -64,6 +64,33 @@ export const AIR_CONDITIONING_DEMAND_FACTOR = 1.0;
 /** Motors and other equipment counted at 100 % (no demand factor). PEC 2017 2.20 Part III (NEC 220.50 pattern). PEC-VERIFY. */
 export const OTHER_LOAD_DEMAND_FACTOR = 1.0;
 
+/**
+ * W8b. Load types that are motors for the "largest motor +25 %" step:
+ * "hvac" (A/C motor-compressor) and "motor" (pumps, fans, other motors).
+ * Fixed appliances ("appliance"), "equipment" (ranges, water heaters) and
+ * "heating" are resistive, not motors.
+ * PEC 2017 2.20.3.11 / 4.30.2.4 (NEC 220.50, 430.24 pattern; PEC clause
+ * numbers derived from the NEC-to-PEC numbering pattern). PEC-VERIFY.
+ */
+export const MOTOR_LOAD_TYPES: readonly LoadType[] = ["hvac", "motor"];
+
+/**
+ * W8b. Share of the largest single motor load (VA) added to the dwelling
+ * demand. PEC 2017 2.20.3.11 / 4.30.2.4 (NEC 220.50, 430.24 pattern). PEC-VERIFY.
+ */
+export const LARGEST_MOTOR_ADDER_FACTOR = 0.25;
+
+/**
+ * W8b. Load types that are fixed electric space heating, for the
+ * heating/A-C non-coincidence step: when a dwelling has both, only the
+ * larger total is counted (a tie keeps the A/C).
+ * PEC 2017 2.20.3.21 (NEC 220.60 pattern). PEC-VERIFY.
+ */
+export const SPACE_HEATING_LOAD_TYPES: readonly LoadType[] = ["heating"];
+
+/** W8b. Space heating counted at 100 % of nameplate. PEC 2017 2.20.3.21 (NEC 220.51, 220.60 pattern). PEC-VERIFY. */
+export const SPACE_HEATING_DEMAND_FACTOR = 1.0;
+
 /** PEC references printed next to each step of the schedule of loads. All PEC-VERIFY. */
 export const DWELLING_CALC_REFS = {
   generalLighting:
@@ -78,6 +105,12 @@ export const DWELLING_CALC_REFS = {
     "PEC 2017 Art. 2.20 Part III fixed appliances (NEC 220.53 pattern) · PEC-VERIFY",
   airConditioning:
     "PEC 2017 Art. 2.20 Part III / Art. 4.40 air conditioning (NEC 220.50, 220.60 pattern) · PEC-VERIFY",
+  spaceHeating:
+    "PEC 2017 2.20.3.12 fixed electric space heating (NEC 220.51 pattern) · PEC-VERIFY",
+  heatingAcNoncoincident:
+    "PEC 2017 2.20.3.21 noncoincident loads (NEC 220.60 pattern) · PEC-VERIFY",
+  largestMotor:
+    "PEC 2017 2.20.3.11 / 4.30.2.4 largest motor at 25% (NEC 220.50, 430.24 pattern) · PEC-VERIFY",
   other:
     "PEC 2017 Art. 2.20 Part III motors and other loads (NEC 220.50 pattern) · PEC-VERIFY",
   feeder:

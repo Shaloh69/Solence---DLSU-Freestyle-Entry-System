@@ -69,7 +69,8 @@ engine size the main breaker from feeder demand.
 | DELETE | `/projects/:id/loads/:loadId` | — | Remove a load |
 
 `ElectricalLoad`: `{ id, name, type, va, voltage, continuous, position, roomId?, lumens?, gfci? }`
-with `type` one of `lighting | outlet | appliance | laundry | hvac | motor | equipment`.
+with `type` one of `lighting | outlet | appliance | laundry | hvac | heating | motor | equipment`
+(`heating` = fixed electric space heating, W8b).
 `lumens` is the photometric output for lighting fixtures (estimated from VA
 when absent, flagged); `gfci` marks a GFCI-protected outlet.
 
@@ -238,7 +239,17 @@ general-purpose receptacles; small-appliance circuits (kitchen/dining
 receptacles, min. 2) and laundry circuits (min. 1 with a laundry room)
 each at not less than 1500 VA; lighting demand tiers (3000 VA at 100%,
 next at 35%, over 120 kVA at 25%) on that subtotal; fixed appliances at
-75% when four or more; A/C, motors and other equipment at 100%.
+75% when four or more; A/C, space heating (`heating` loads), motors and
+other equipment at 100%. W8b: when a dwelling has both space heating and
+A/C only the larger total is counted (non-coincident loads, NEC 220.60
+pattern; a tie keeps the A/C; the `heating-ac-noncoincident` step carries
+the omitted VA as a negative value), and 25% of the largest single motor
+load still counted (`hvac` or `motor` load types) is added as the
+`largest-motor` step (NEC 220.50 / 430.24 pattern). New fields:
+`spaceHeatingVa`, `spaceHeatingFactor`, `spaceHeatingDemandVa`,
+`nonCoincidentOmitted` (`heating` | `air-conditioning` | null),
+`nonCoincidentOmittedVa`, `largestMotorVa`, `largestMotorLoadId`,
+`largestMotorFactor`, `largestMotorAdderVa`.
 `schedule.totalDemandVa` and `feederAmps` come from it, an auto-sized
 main breaker is the next standard rating ≥ `demandAmps`, and `steps`
 (also printed on the PDF's panel-schedule page) shows each line.

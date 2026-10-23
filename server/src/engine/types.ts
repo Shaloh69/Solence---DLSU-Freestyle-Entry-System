@@ -117,6 +117,7 @@ export type LoadType =
   | "appliance" // small appliance / dedicated appliance
   | "laundry"
   | "hvac"
+  | "heating" // fixed electric space heating (W8b)
   | "motor"
   | "equipment";
 
@@ -271,12 +272,12 @@ export interface PanelSchedule {
 
 /** One line of the PEC 2.20 dwelling calculation (schedule of loads). */
 export interface DwellingCalcStep {
-  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "other" | "total-demand" */
+  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "space-heating" | "heating-ac-noncoincident" | "other" | "largest-motor" | "total-demand" */
   id: string;
   label: string;
   /** How the value was computed, e.g. "66.0 m² × 24 VA/m²". */
   basis: string;
-  /** VA of this step (connected for inputs, demand for demand lines). */
+  /** VA of this step (connected for inputs, demand for demand lines; negative for a deduction, e.g. the omitted non-coincident load). */
   va: number;
   /** PEC section the step stands for (PEC-VERIFY). */
   pecReference: string;
@@ -311,9 +312,25 @@ export interface DwellingLoadCalc {
   fixedApplianceDemandVa: number;
   airConditioningVa: number;
   airConditioningFactor: number;
+  /** A/C counted in the demand (0 when omitted as non-coincident with heating). */
   airConditioningDemandVa: number;
+  /** W8b: connected fixed space heating (load type "heating"), VA. */
+  spaceHeatingVa: number;
+  spaceHeatingFactor: number;
+  /** Space heating counted in the demand (0 when omitted as non-coincident with A/C). */
+  spaceHeatingDemandVa: number;
+  /** W8b: which of heating / A/C was left out as the smaller non-coincident load (null unless both present). */
+  nonCoincidentOmitted: "heating" | "air-conditioning" | null;
+  nonCoincidentOmittedVa: number;
   /** Motors and other equipment at 100 %. */
   otherVa: number;
+  /** W8b: largest single motor load (types "hvac", "motor") still counted, VA (0 if none). */
+  largestMotorVa: number;
+  largestMotorLoadId: string | null;
+  /** Share of the largest motor added (0.25). */
+  largestMotorFactor: number;
+  /** largestMotorVa × largestMotorFactor, VA. */
+  largestMotorAdderVa: number;
   /** Feeder/main demand, VA. */
   demandVa: number;
   /** Voltage the demand current is computed on (line-to-line for 3φ). */

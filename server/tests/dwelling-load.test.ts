@@ -11,8 +11,9 @@
  *   lighting demand: 3 000 × 100 % + 3 084 × 35 %                = 4 079.4 VA
  *   fixed appliances (4): 1 200 + 3 500 + 300 + 750 = 5 750 × 75 % = 4 312.5 VA
  *   A/C: 1 800 + 1 000 = 2 800 × 100 %                           = 2 800 VA
- *   total demand                                                 = 11 191.9 VA
- *   ÷ 230 V = 48.66 A → 50 A main
+ *   largest motor (W8b): 25 % × 1 800 (ac-1)                     =   450 VA
+ *   total demand                                                 = 11 641.9 VA
+ *   ÷ 230 V = 50.62 A → 60 A main
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -135,10 +136,11 @@ describe("dwellingLoadCalc — hand-computed example", () => {
     expect(calc.otherVa).toBe(0);
   });
 
-  it("total demand 11 191.9 VA → 48.66 A at 230 V", () => {
-    expect(calc.demandVa).toBeCloseTo(11191.9, 6);
+  it("total demand 11 641.9 VA (incl. W8b largest motor +450 VA) → 50.62 A at 230 V", () => {
+    expect(calc.largestMotorAdderVa).toBe(450);
+    expect(calc.demandVa).toBeCloseTo(11641.9, 6);
     expect(calc.systemVoltage).toBe(230);
-    expect(calc.demandAmps).toBeCloseTo(11191.9 / 230, 6);
+    expect(calc.demandAmps).toBeCloseTo(11641.9 / 230, 6);
   });
 
   it("lists every step with its basis and PEC reference", () => {
@@ -150,7 +152,10 @@ describe("dwellingLoadCalc — hand-computed example", () => {
       "lighting-demand",
       "fixed-appliance",
       "air-conditioning",
+      "space-heating",
+      "heating-ac-noncoincident",
       "other",
+      "largest-motor",
       "total-demand",
     ]);
     const byId = Object.fromEntries(calc.steps.map((s) => [s.id, s]));
@@ -161,18 +166,19 @@ describe("dwellingLoadCalc — hand-computed example", () => {
     expect(byId["lighting-demand"].basis).toBe("3,000 VA × 100% + 3,084 VA × 35%");
     expect(byId["fixed-appliance"].basis).toBe("4 appliances, 5,750 VA × 75%");
     expect(byId["air-conditioning"].basis).toBe("2 units, 2,800 VA × 100%");
-    expect(byId["total-demand"].basis).toBe("11,192 VA ÷ 230 V = 48.7 A");
-    expect(byId["total-demand"].va).toBeCloseTo(11191.9, 6);
+    expect(byId["largest-motor"].basis).toBe("25% × 1,800 VA (ac-1)");
+    expect(byId["total-demand"].basis).toBe("11,642 VA ÷ 230 V = 50.6 A");
+    expect(byId["total-demand"].va).toBeCloseTo(11641.9, 6);
     for (const step of calc.steps) expect(step.pecReference, step.id).toMatch(/PEC.*PEC-VERIFY/);
   });
 
   it("the panel schedule carries the calculation and sizes from it", () => {
     const panel: Panel = { id: "p", name: "LP-1", position: { x: 0, y: 0 }, system: "1P2W-230", mainBreakerAmps: 0 };
-    const schedule = buildPanelSchedule(panel, circuits, loads, 50, calc);
+    const schedule = buildPanelSchedule(panel, circuits, loads, 60, calc);
 
     expect(schedule.dwellingCalc).toEqual(calc);
-    expect(schedule.totalDemandVa).toBe(11192);
-    expect(schedule.feederAmps).toBe(48.7);
+    expect(schedule.totalDemandVa).toBe(11642);
+    expect(schedule.feederAmps).toBe(50.6);
     expect(schedule.totalConnectedVa).toBe(loads.reduce((s, l) => s + l.va, 0));
   });
 });
@@ -228,9 +234,11 @@ describe("dwellingLoadCalc — rule edges", () => {
     });
 
     expect(calc.otherVa).toBe(2000);
-    expect(calc.demandVa).toBeCloseTo(13191.9, 6);
+    // W8b: the 2000 VA motor is now the largest motor → +500 VA.
+    expect(calc.largestMotorLoadId).toBe("m-1");
+    expect(calc.demandVa).toBeCloseTo(11191.9 + 2000 + 500, 6);
     expect(calc.systemVoltage).toBe(400);
-    expect(calc.demandAmps).toBeCloseTo(13191.9 / (Math.sqrt(3) * 400), 6);
+    expect(calc.demandAmps).toBeCloseTo(13691.9 / (Math.sqrt(3) * 400), 6);
   });
 });
 
@@ -261,7 +269,12 @@ describe("W8 on the 12 real houses", () => {
       expect(calc!.airConditioningDemandVa).toBe(hvac);
       expect(calc!.smallApplianceCircuits).toBeGreaterThanOrEqual(2);
       expect(calc!.demandVa).toBeCloseTo(
-        calc!.generalDemandVa + calc!.fixedApplianceDemandVa + calc!.airConditioningDemandVa + calc!.otherVa,
+        calc!.generalDemandVa +
+          calc!.fixedApplianceDemandVa +
+          calc!.airConditioningDemandVa +
+          calc!.spaceHeatingDemandVa +
+          calc!.otherVa +
+          calc!.largestMotorAdderVa,
         6
       );
       expect(result.schedule.totalDemandVa).toBe(Math.round(calc!.demandVa));

@@ -49,6 +49,7 @@ const LOAD_GLYPH: Record<string, string> = {
   appliance: "A",
   laundry: "W",
   hvac: "AC",
+  heating: "H",
   motor: "M",
   equipment: "E",
 };

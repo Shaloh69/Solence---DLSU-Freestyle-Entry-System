@@ -93,6 +93,7 @@ export type LoadType =
   | "appliance"
   | "laundry"
   | "hvac"
+  | "heating" // fixed electric space heating (W8b)
   | "motor"
   | "equipment";
 
@@ -201,12 +202,12 @@ export interface PanelSchedule {
 
 /** One line of the PEC 2.20 dwelling calculation (schedule of loads). */
 export interface DwellingCalcStep {
-  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "other" | "total-demand" */
+  /** "general-lighting" | "small-appliance" | "laundry" | "general-subtotal" | "lighting-demand" | "fixed-appliance" | "air-conditioning" | "space-heating" | "heating-ac-noncoincident" | "other" | "largest-motor" | "total-demand" */
   id: string;
   label: string;
   /** How the value was computed, e.g. "66.0 m² × 24 VA/m²". */
   basis: string;
-  /** VA of this step (connected for inputs, demand for demand lines). */
+  /** VA of this step (connected for inputs, demand for demand lines; negative for a deduction, e.g. the omitted non-coincident load). */
   va: number;
   /** PEC section the step stands for (PEC-VERIFY). */
   pecReference: string;
@@ -233,7 +234,16 @@ export interface DwellingLoadCalc {
   airConditioningVa: number;
   airConditioningFactor: number;
   airConditioningDemandVa: number;
+  spaceHeatingVa: number;
+  spaceHeatingFactor: number;
+  spaceHeatingDemandVa: number;
+  nonCoincidentOmitted: "heating" | "air-conditioning" | null;
+  nonCoincidentOmittedVa: number;
   otherVa: number;
+  largestMotorVa: number;
+  largestMotorLoadId: string | null;
+  largestMotorFactor: number;
+  largestMotorAdderVa: number;
   demandVa: number;
   systemVoltage: number;
   demandAmps: number;
