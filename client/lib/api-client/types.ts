@@ -576,3 +576,27 @@ export interface SimulateOptions {
   cellSize?: number;
   clearance?: number;
 }
+
+// ---------- DXF exchange (W12) ----------
+
+/** DXF drawing units (`$INSUNITS` 1 in, 2 ft, 4 mm, 5 cm, 6 m). */
+export type DxfUnits = "m" | "cm" | "mm" | "in" | "ft";
+
+/** What a DXF wall import read, returned by `POST /projects/:id/import/dxf`. */
+export interface DxfImportReport {
+  /** Units the drawing was read in (from `$INSUNITS` or the request). */
+  units: DxfUnits;
+  /** Meters per drawing unit. */
+  scaleToMeters: number;
+  /** Layers walls were read from. */
+  wallLayers: string[];
+  wallCount: number;
+  /** Every layer in the file. */
+  layers: string[];
+  /** Entities on wall layers that were not read, by type (arcs, blocks, …). */
+  skipped: Record<string, number>;
+  /** "limits": plan frame from `$LIMMIN`/`$LIMMAX` (Solence exports); "extents": walls' extent + margin. */
+  frame: "limits" | "extents";
+  /** Margin added around the walls' extent, meters (0 with "limits"). */
+  marginM: number;
+}

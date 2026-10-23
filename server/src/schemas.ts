@@ -137,3 +137,19 @@ export const autoLightingSchema = z.object({
   /** Replace previously auto-generated fixtures in those rooms. */
   replaceExisting: z.boolean().optional(),
 });
+
+/** W12: DXF drawing units (engine/dxf/layers.ts DXF_UNITS). */
+export const dxfUnitsSchema = z.enum(["m", "cm", "mm", "in", "ft"]);
+
+export const dxfExportSchema = z.object({
+  units: dxfUnitsSchema.optional(),
+});
+
+export const dxfImportSchema = z.object({
+  /** ASCII DXF text (the 10 MB JSON body limit caps it further). */
+  dxf: z.string().min(1).max(9_500_000),
+  /** Overrides the file's $INSUNITS (needed for unitless drawings not in meters). */
+  units: dxfUnitsSchema.optional(),
+  /** Exact layer names to read walls from; default SOLENCE-WALLS, else WALL-named layers. */
+  wallLayers: z.array(z.string().min(1).max(255)).max(50).optional(),
+});

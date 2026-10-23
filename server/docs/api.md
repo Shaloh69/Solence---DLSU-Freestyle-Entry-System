@@ -295,3 +295,27 @@ uses an assumed default until plan-scale calibration is implemented.
 | Method | Path | Description |
 | --- | --- | --- |
 | POST | `/projects/:id/export` | Permit-ready PDF (`application/pdf` attachment): wiring diagram + legend, panel schedule, one-line (riser) diagram (W7), conductor schedule, panel directory, open violations. 422 until the project has a floor plan, panel, and stored simulation result. |
+| POST | `/projects/:id/export/dxf` | W12. Body `{ units?: "m" \| "cm" \| "mm" \| "in" \| "ft" }` (default `m`). AutoCAD R12 ASCII DXF (`application/dxf` attachment, AC1009, `$INSUNITS` set). 400 bad units, 404 unknown project, 422 without a floor plan. Wiring, switches and violations come from the stored simulation result when there is one. Not tier-gated (open question). |
+
+### DXF exchange (W12)
+
+Export layers, one per editor layer key (`client/lib/layers.ts`; `heatmap`
+is raster and not exported), so AutoCAD layer states mirror the Solence
+presets:
+
+| Layer | Content |
+| --- | --- |
+| `SOLENCE-WALLS` | one 2-vertex POLYLINE per wall, width = wall thickness |
+| `SOLENCE-OPENINGS` | door/window spans as LINEs (drawn with the walls key; kept off the walls layer so a re-import ignores them) |
+| `SOLENCE-ROOMS` | closed POLYLINE per room + TEXT name |
+| `SOLENCE-LOADS` | panel outline + name; CIRCLE + TEXT per non-lighting load |
+| `SOLENCE-LIGHTING` | CIRCLE + TEXT per lighting fixture; CIRCLE + `S`/`S2` per wall switch |
+| `SOLENCE-WIRING` | POLYLINE per conduit segment and switch leg, colored per circuit |
+| `SOLENCE-FURNITURE` | closed rotated rectangle per furniture piece |
+| `SOLENCE-VIOLATIONS` | TEXT `ruleId: message` at the circuit's home-run device (else the panel) |
+
+DXF y is up, so plan y is negated; `$LIMMIN`/`$LIMMAX` = (0, −height)…(width, 0).
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/projects/:id/import/dxf` | Body `{ dxf: string, units?, wallLayers?: string[] }`. Reads LINE / LWPOLYLINE / POLYLINE walls (polyline width → thickness, none → default 0.15 m) from `SOLENCE-WALLS`, else from every layer with a `WALL`/`WALLS` name token (`A-WALL`, `A-WALL-INTR`), or exactly `wallLayers`. Units from `$INSUNITS` (in/ft/mm/cm/m; unitless = m) unless `units` overrides. Frame: `$LIMMIN`/`$LIMMAX` when they contain every wall, else the walls' extent + 0.5 m. Replaces the plan's walls and drops its openings (they referenced the old walls); rooms, furniture and settings are kept; a project without a plan gets one with no rooms. Returns `{ project, import: DxfImportReport }`. 400 bad body, 404 unknown project, 422 not an ASCII DXF / no walls / unsupported units / drawing larger than 1000 m. Arcs (bulges) are read as straight segments and blocks (INSERT) are not expanded; `import.skipped` counts them. |

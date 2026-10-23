@@ -7,6 +7,8 @@
 import {
   AutoLightingOptions,
   AutoLightingPlacement,
+  DxfImportReport,
+  DxfUnits,
   ElectricalLoad,
   FloorPlan,
   Panel,
@@ -150,5 +152,37 @@ export const api = {
 
       return response.blob();
     },
+
+    /** W12: the plan as an AutoCAD R12 DXF (walls, rooms, devices, wiring on SOLENCE-* layers). */
+    exportDxf: async (id: string, units?: DxfUnits): Promise<Blob> => {
+      const response = await fetch(`${BASE_URL}/api/projects/${id}/export/dxf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(units ? { units } : {}),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+
+        throw new ApiError(
+          response.status,
+          payload?.error ?? `DXF export failed with status ${response.status}`,
+        );
+      }
+
+      return response.blob();
+    },
+
+    /** W12: replace the plan's walls with the walls of an ASCII DXF. */
+    importDxf: (
+      id: string,
+      dxf: string,
+      options?: { units?: DxfUnits; wallLayers?: string[] },
+    ) =>
+      request<{ project: Project; import: DxfImportReport }>(
+        "POST",
+        `/projects/${id}/import/dxf`,
+        { dxf, ...options },
+      ),
   },
 };

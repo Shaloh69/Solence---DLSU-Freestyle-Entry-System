@@ -47,6 +47,11 @@ relies on.
 - `simulate.ts` — the orchestrator running the full core loop as one
   pure function; its `SimulationResult` is the API's central shape.
 - `pdf/` — permit-ready PDF generator (pdfkit).
+- `dxf/` — W12: AutoCAD R12 ASCII DXF writer (walls, openings, rooms,
+  panel/loads, lighting + switches, wiring, furniture, violations on
+  `SOLENCE-*` layers named after the editor's layer keys) and a reader
+  that imports walls (LINE/LWPOLYLINE/POLYLINE, `$INSUNITS`). No
+  dependency.
 - `vision-import.ts` — converts a solence-vision `/recognize` result
   (pixel walls/openings/rooms) into a `FloorPlan` in meters
   (`VISION-VERIFY` assumed scale until item V1).

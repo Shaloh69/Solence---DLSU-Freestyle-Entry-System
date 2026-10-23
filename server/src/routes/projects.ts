@@ -8,6 +8,8 @@ import {
   autoLightingSchema,
   bulkLoadsSchema,
   createProjectSchema,
+  dxfExportSchema,
+  dxfImportSchema,
   floorPlanSchema,
   loadSchema,
   panelSchema,
@@ -20,6 +22,7 @@ import { broadcastToProject } from "../realtime/index.js";
 import { simulate } from "../engine/simulate.js";
 import { generatePermitPdf } from "../engine/pdf/permit-pdf.js";
 import { tierOf } from "../middleware/tier.js";
+import { DxfImportError, exportDxf, importDxfWalls } from "../engine/dxf/index.js";
 
 type Handler = (req: Request, res: Response) => Promise<void>;
 
@@ -345,6 +348,62 @@ export function projectsRouter(repo: ProjectRepository): Router {
           `attachment; filename="${safeName}-permit.pdf"`
         )
         .send(pdf);
+    })
+  );
+
+  // ---- DXF exchange (W12) ----
+
+  router.post(
+    "/projects/:id/export/dxf",
+    wrap(async (req, res) => {
+      const { units } = dxfExportSchema.parse(req.body ?? {});
+      const project = await requireProject(req.params.id);
+
+      if (!project.floorPlan) {
+        throw new HttpError(422, "Project has no floor plan");
+      }
+      const dxf = exportDxf({
+        floorPlan: project.floorPlan,
+        panel: project.panel,
+        loads: project.loads,
+        result: project.lastResult,
+        units,
+      });
+      const safeName = project.name.replace(/[^\w.-]+/g, "_");
+
+      res
+        .setHeader("Content-Type", "application/dxf; charset=us-ascii")
+        .setHeader("Content-Disposition", `attachment; filename="${safeName}.dxf"`)
+        .send(dxf);
+    })
+  );
+
+  router.post(
+    "/projects/:id/import/dxf",
+    wrap(async (req, res) => {
+      const { dxf, units, wallLayers } = dxfImportSchema.parse(req.body ?? {});
+      const project = await requireProject(req.params.id);
+      let imported: ReturnType<typeof importDxfWalls>;
+
+      try {
+        imported = importDxfWalls(dxf, { units, wallLayers });
+      } catch (error) {
+        if (error instanceof DxfImportError) throw new HttpError(422, error.message);
+        throw error;
+      }
+
+      // Walls are replaced. Openings referenced the old wall ids and are
+      // dropped; rooms, furniture and project settings are kept.
+      const previous = project.floorPlan;
+
+      project.floorPlan = floorPlanSchema.parse({
+        ...(previous ?? { rooms: [] }),
+        openings: undefined,
+        width: imported.floorPlan.width,
+        height: imported.floorPlan.height,
+        walls: imported.floorPlan.walls,
+      });
+      res.json({ project: await repo.update(project), import: imported.report });
     })
   );
 
